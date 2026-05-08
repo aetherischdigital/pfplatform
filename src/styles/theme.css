@@ -1,0 +1,102 @@
+/**
+ * Single source of truth for the visual theme.
+ * Swap the palette here and every page picks it up.
+ *
+ *  - surface-*  neutral text + UI tones, scaling from cream (light bg)
+ *               up to deep moss-green (text + brand-deep)
+ *  - accent-*   the brand accent — warm walnut brown
+ *
+ * Theme resolution order:
+ *   1. <html data-theme="dark">   → forced dark
+ *   2. <html data-theme="light">  → forced light
+ *   3. (no data-theme)            → follows prefers-color-scheme
+ *
+ * Tailwind utility classes use the same names, so e.g. `bg-accent-500`,
+ * `text-surface-900`, etc. all flow from here.
+ */
+
+@theme {
+  /* Neutral / text scale — cream → deep moss */
+  --color-surface-50:  #FAF7F0;
+  --color-surface-100: #F2EDE0;
+  --color-surface-200: #E4DCC9;
+  --color-surface-300: #C2BFA6;
+  --color-surface-400: #8B9785;
+  --color-surface-500: #5F6F5A;
+  --color-surface-600: #4A5A48;
+  --color-surface-700: #3A4A38;
+  --color-surface-800: #2C382B;
+  --color-surface-900: #1E2A1D;
+
+  /* Brand accent scale — warm walnut brown */
+  --color-accent-100: #F2E9D6;
+  --color-accent-200: #E0CFA8;
+  --color-accent-400: #A88563;
+  --color-accent-500: #7A5C3A;
+  --color-accent-600: #5C4628;
+
+  /* Type stack */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgb(30 42 29 / 0.05), 0 1px 3px rgb(30 42 29 / 0.07);
+  --shadow-card-lg: 0 10px 30px -10px rgb(30 42 29 / 0.20), 0 4px 12px -4px rgb(30 42 29 / 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Dark mode — applies when:
+ *   (a) user explicitly selected dark (data-theme="dark"), or
+ *   (b) system preference is dark AND user hasn't forced light
+ * ───────────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-50:  #1E2A1D;
+    --color-surface-100: #2C382B;
+    --color-surface-200: #3A4A38;
+    --color-surface-300: #4A5A48;
+    --color-surface-400: #6B7A66;
+    --color-surface-500: #8B9785;
+    --color-surface-600: #B5BDA8;
+    --color-surface-700: #D2D5C2;
+    --color-surface-800: #E4DCC9;
+    --color-surface-900: #FAF7F0;
+
+    --color-white: #2C382B;
+
+    --color-accent-100: #2A1F12;
+    --color-accent-200: #3D2D1B;
+    --color-accent-400: #C9A87E;
+    --color-accent-500: #B89571;
+    --color-accent-600: #C9A87E;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
+    --shadow-card-lg: 0 10px 30px -10px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-surface-50:  #1E2A1D;
+  --color-surface-100: #2C382B;
+  --color-surface-200: #3A4A38;
+  --color-surface-300: #4A5A48;
+  --color-surface-400: #6B7A66;
+  --color-surface-500: #8B9785;
+  --color-surface-600: #B5BDA8;
+  --color-surface-700: #D2D5C2;
+  --color-surface-800: #E4DCC9;
+  --color-surface-900: #FAF7F0;
+
+  --color-white: #2C382B;
+
+  --color-accent-100: #2A1F12;
+  --color-accent-200: #3D2D1B;
+  --color-accent-400: #C9A87E;
+  --color-accent-500: #B89571;
+  --color-accent-600: #C9A87E;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
+  --shadow-card-lg: 0 10px 30px -10px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.35);
+}

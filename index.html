@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P5JG0XN2DZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      // Skip tracking on local dev hosts so internal testing doesn't pollute GA.
+      // The script tag still loads (visible in DevTools) — only the config call is gated.
+      (function () {
+        var h = location.hostname;
+        var isLocal = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h.endsWith('.local');
+        if (!isLocal) {
+          gtag('config', 'G-P5JG0XN2DZ');
+        }
+      })();
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Apply stored theme preference before paint to avoid flash. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'light' || t === 'dark') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!--
+      Tags below use %BRAND_*% / %SITE_URL% / %OG_IMAGE% placeholders.
+      The seoFilesPlugin in vite.config.ts replaces them at dev/build time
+      from src/config/brand.ts. Update brand.ts to update everything here.
+    -->
+    <title>%BRAND_NAME% — %BRAND_HEADLINE%</title>
+    <meta name="description" content="%BRAND_TAGLINE%" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="%SITE_URL%/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="%BRAND_NAME%" />
+    <meta property="og:title" content="%BRAND_NAME% — %BRAND_HEADLINE%" />
+    <meta property="og:description" content="%BRAND_TAGLINE%" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:image" content="%SITE_URL%%OG_IMAGE%" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="%BRAND_NAME% — %BRAND_TAGLINE%" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="%BRAND_NAME% — %BRAND_HEADLINE%" />
+    <meta name="twitter:description" content="%BRAND_TAGLINE%" />
+    <meta name="twitter:image" content="%SITE_URL%%OG_IMAGE%" />
+
+    <!-- Theme color (deep moss-green brand color in both modes) -->
+    <meta name="theme-color" content="#1E2A1D" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1E2A1D" media="(prefers-color-scheme: dark)" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

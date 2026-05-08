@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+
+html {
+  /* Tells the browser to use OS-aware defaults for scrollbars + form controls */
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  color: var(--color-surface-900);
+  background: var(--color-surface-50);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
