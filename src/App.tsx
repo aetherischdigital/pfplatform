@@ -6,6 +6,7 @@ import MarketingLayout from './components/marketing/MarketingLayout'
 import AppShell from './components/app/AppShell'
 import AppShellPlaceholder from './components/app/AppShellPlaceholder'
 import AuthModal, { AuthModalRedirect } from './components/AuthModal'
+import RequireAuth from './components/RequireAuth'
 
 import Landing from './pages/marketing/Landing'
 import HowItWorks from './pages/marketing/HowItWorks'
@@ -46,18 +47,20 @@ export default function App() {
         <Route path="/login" element={<AuthModalRedirect view="login" />} />
         <Route path="/signup" element={<AuthModalRedirect view="signup" />} />
 
-        {/* Authenticated homeowner/realtor app — running on mock data
-            until Supabase auth + PFS schema land */}
-        <Route element={<AppShell />}>
-          <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="/app/dashboard" element={<Dashboard />} />
-          <Route path="/app/financials" element={<Financials />} />
-          <Route path="/app/account" element={<Account />} />
-        </Route>
+        {/* Authenticated homeowner/realtor app — PFS pages still on mock
+            data until the Supabase schema lands */}
+        <Route element={<RequireAuth />}>
+          <Route element={<AppShell />}>
+            <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="/app/dashboard" element={<Dashboard />} />
+            <Route path="/app/financials" element={<Financials />} />
+            <Route path="/app/account" element={<Account />} />
+          </Route>
 
-        {/* Admin — separate placeholder shell, built out post-auth */}
-        <Route element={<AppShellPlaceholder />}>
-          <Route path="/admin" element={<Admin />} />
+          {/* Admin — any-user gate for now; role gate added with the profiles table */}
+          <Route element={<AppShellPlaceholder />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
         </Route>
       </Routes>
 

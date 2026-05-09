@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, FileText, Calculator, User, LogOut, Menu, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
-import { MOCK_PROFILE } from '../../lib/mockData'
+import { useAuth } from '../../lib/auth'
 
 type NavItem = { to: string; label: string; icon: LucideIcon }
 
@@ -69,6 +69,22 @@ export default function AppShell() {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const fullName =
+    (user?.user_metadata?.full_name as string | undefined) ??
+    user?.email?.split('@')[0] ??
+    'You'
+  const email = user?.email ?? ''
+  const initial = (fullName[0] ?? 'U').toUpperCase()
+
+  const handleSignOut = async () => {
+    await signOut()
+    onNavigate?.()
+    navigate('/')
+  }
+
   return (
     <>
       <div className="flex items-center justify-between border-b border-surface-200 px-4 py-4">
@@ -100,22 +116,23 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-surface-200 p-3">
         <div className="flex items-center gap-3 rounded-md px-3 py-2">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-accent-100 text-sm font-medium text-accent-600">
-            {MOCK_PROFILE.name[0]}
+            {initial}
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium text-surface-900">
-              {MOCK_PROFILE.name}
+              {fullName}
             </div>
-            <div className="truncate text-xs text-surface-500">{MOCK_PROFILE.email}</div>
+            <div className="truncate text-xs text-surface-500">{email}</div>
           </div>
-          <Link
-            to="/"
+          <button
+            type="button"
+            onClick={handleSignOut}
             className="text-surface-400 hover:text-surface-700"
-            title="Sign out (placeholder)"
-            onClick={onNavigate}
+            title="Sign out"
+            aria-label="Sign out"
           >
             <LogOut size={16} />
-          </Link>
+          </button>
         </div>
       </div>
     </>
