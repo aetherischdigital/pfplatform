@@ -77,7 +77,7 @@ export default function Pricing() {
         <Container className="py-20 text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-100 px-3 py-1 text-xs font-medium text-accent-600">
             <Sparkles size={12} />
-            Tiers and pricing are placeholder — final structure lands with payment in Phase 2
+            Indicative pricing
           </div>
           <h1 className="mx-auto mt-5 max-w-2xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
             Simple pricing. Real value at every tier.

@@ -189,11 +189,10 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-accent-200 bg-accent-100 p-5">
-        <Sparkles size={16} className="mt-0.5 flex-shrink-0 text-accent-600" />
-        <div className="flex-1 text-sm text-surface-700">
-          This is the fully-built dashboard with placeholder data. Once Supabase auth
-          and the PFS schema land, every number above flows from your actual records.
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-accent-200 bg-accent-100 p-4">
+        <div className="flex items-center gap-2.5 text-sm text-surface-700">
+          <Sparkles size={14} className="flex-shrink-0 text-accent-600" />
+          <strong className="font-semibold text-surface-900">Demo data</strong>
         </div>
         <Link
           to="/app/financials"

@@ -1,6 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
 import Container from '../ui/Container'
-import { BRAND } from '../../config/brand'
 import { usePageMeta } from '../../lib/usePageMeta'
 
 /**
@@ -53,28 +52,9 @@ export default function LegalSkeletonLayout({ title, description, url }: Props) 
 
       <section className="bg-white">
         <Container size="md" className="pb-24">
-          <div className="overflow-hidden rounded-2xl border border-amber-300/70 bg-amber-50">
-            <div className="flex items-start gap-4 p-7">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-200 text-amber-800">
-                <AlertTriangle size={18} />
-              </div>
-              <div className="space-y-3">
-                <h2 className="font-display text-xl font-semibold text-amber-900">
-                  Draft template — awaiting legal review
-                </h2>
-                <p className="text-sm leading-relaxed text-amber-900/90">
-                  This page is a placeholder. The final {title.toLowerCase()} text will be supplied by
-                  {' '}{BRAND.name}'s legal counsel before public launch. Until then, this page is hidden
-                  from search engines (<code className="rounded bg-amber-200/60 px-1.5 py-0.5 font-mono text-xs">noindex</code>),
-                  omitted from the sitemap, and exists only so the footer link does not 404.
-                </p>
-                <p className="text-sm leading-relaxed text-amber-900/90">
-                  The developer has not drafted any legal language for this page. Per the Web
-                  Development Services Agreement §2.1, legal, tax, and compliance review of platform
-                  content is out of scope and is the Client&apos;s responsibility.
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-5 text-sm text-amber-900">
+            <AlertTriangle size={16} className="flex-shrink-0" />
+            <span><strong className="font-semibold">Draft template.</strong> Awaiting counsel-provided content.</span>
           </div>
         </Container>
       </section>

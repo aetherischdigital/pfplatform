@@ -11,7 +11,7 @@ export default function Account() {
           Account
         </h1>
         <p className="mt-1 text-sm text-surface-500">
-          Profile, security, and subscription. Most actions wire up with Supabase auth.
+          Profile, security, and subscription.
         </p>
       </header>
 
@@ -36,8 +36,7 @@ export default function Account() {
           <h2 className="font-display text-lg font-semibold text-surface-900">Subscription</h2>
         </header>
         <div className="px-6 py-6 text-sm text-surface-500">
-          Subscription billing wires up in <span className="font-medium text-surface-700">Phase 2</span>{' '}
-          along with the payment processor integration.
+          No active subscription.
         </div>
       </section>
 

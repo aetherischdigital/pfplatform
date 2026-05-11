@@ -6,11 +6,11 @@ export default function Admin() {
           Admin
         </h1>
         <p className="mt-1 text-sm text-surface-500">
-          User management and site overview. Built out after auth wiring.
+          User management and site overview.
         </p>
       </header>
       <div className="rounded-2xl border border-dashed border-surface-300 bg-white p-12 text-center text-sm text-surface-500">
-        Admin placeholder — coming after auth wiring.
+        Coming soon
       </div>
     </div>
   )
