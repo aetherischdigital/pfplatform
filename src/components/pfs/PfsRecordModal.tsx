@@ -1,0 +1,265 @@
+import { useState, type FormEvent } from 'react'
+import Modal, { modalFieldClass } from '../ui/Modal'
+import { Button } from '../ui/Button'
+import {
+  ASSET_CATEGORY_LABELS,
+  LIABILITY_CATEGORY_LABELS,
+  EXPENSE_CATEGORY_LABELS,
+  createPfsRecord,
+  updatePfsRecord,
+  type AssetCategory,
+  type LiabilityCategory,
+  type ExpenseCategory,
+  type PfsRecordKind,
+  type Asset,
+  type Liability,
+  type IncomeSource,
+  type Expense,
+} from '../../lib/pfs'
+
+export type ExistingRecord =
+  | ({ kind: 'asset' } & Asset)
+  | ({ kind: 'liability' } & Liability)
+  | ({ kind: 'income' } & IncomeSource)
+  | ({ kind: 'expense' } & Expense)
+
+type Props = {
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+  kind: PfsRecordKind
+  existing?: ExistingRecord
+}
+
+const kindLabels: Record<PfsRecordKind, { title: string; amount: string }> = {
+  asset: { title: 'asset', amount: 'Value' },
+  liability: { title: 'liability', amount: 'Balance' },
+  income: { title: 'income source', amount: 'Monthly amount' },
+  expense: { title: 'expense', amount: 'Monthly amount' },
+}
+
+export default function PfsRecordModal({ open, onClose, onSaved, kind, existing }: Props) {
+  const labels = kindLabels[kind]
+  const isEdit = !!existing
+
+  const initial = initialFormState(kind, existing)
+  const [label, setLabel] = useState(initial.label)
+  const [amount, setAmount] = useState(initial.amount)
+  const [category, setCategory] = useState(initial.category)
+  const [rate, setRate] = useState(initial.rate)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const amountNum = Number(amount)
+    if (!Number.isFinite(amountNum) || amountNum < 0) {
+      setError('Amount must be a positive number.')
+      return
+    }
+    const rateNum = rate.trim() === '' ? undefined : Number(rate)
+    if (rate.trim() !== '' && (!Number.isFinite(rateNum) || (rateNum ?? -1) < 0)) {
+      setError('Rate must be a positive number (e.g. 6.5 for 6.5%).')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const input =
+        kind === 'asset'
+          ? { kind, label, category: category as AssetCategory, amount: amountNum }
+          : kind === 'liability'
+            ? {
+                kind,
+                label,
+                category: category as LiabilityCategory,
+                amount: amountNum,
+                rate: rateNum,
+              }
+            : kind === 'income'
+              ? { kind, label, amount: amountNum }
+              : { kind, label, category: category as ExpenseCategory, amount: amountNum }
+
+      if (existing) await updatePfsRecord(existing.id, input)
+      else await createPfsRecord(input)
+
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const categoryOptions = categoryOptionsFor(kind)
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`${isEdit ? 'Edit' : 'Add'} ${labels.title}`}
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <Field label="Label">
+          <input
+            type="text"
+            required
+            maxLength={120}
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder={placeholderFor(kind)}
+            className={modalFieldClass}
+          />
+        </Field>
+
+        {categoryOptions && (
+          <Field label="Category">
+            <select
+              required
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className={modalFieldClass}
+            >
+              {categoryOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        <Field label={labels.amount}>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
+              $
+            </span>
+            <input
+              type="number"
+              required
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className={`${modalFieldClass} pl-7`}
+            />
+          </div>
+        </Field>
+
+        {kind === 'liability' && (
+          <Field label="Interest rate (optional)">
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.001"
+                min="0"
+                value={rate}
+                onChange={(e) => setRate(e.target.value)}
+                placeholder="6.5"
+                className={`${modalFieldClass} pr-9`}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
+                %
+              </span>
+            </div>
+          </Field>
+        )}
+
+        {error && (
+          <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" size="md" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" size="md" disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-surface-700">{label}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  )
+}
+
+function defaultCategory(kind: PfsRecordKind): string {
+  switch (kind) {
+    case 'asset':
+      return 'real_estate'
+    case 'liability':
+      return 'mortgage'
+    case 'expense':
+      return 'housing'
+    case 'income':
+      return ''
+  }
+}
+
+function initialFormState(
+  kind: PfsRecordKind,
+  existing: ExistingRecord | undefined,
+): { label: string; amount: string; category: string; rate: string } {
+  if (!existing) {
+    return { label: '', amount: '', category: defaultCategory(kind), rate: '' }
+  }
+  if (existing.kind === 'asset') {
+    return { label: existing.label, amount: String(existing.value), category: existing.category, rate: '' }
+  }
+  if (existing.kind === 'liability') {
+    return {
+      label: existing.label,
+      amount: String(existing.balance),
+      category: existing.category,
+      rate: existing.rate != null ? String(existing.rate) : '',
+    }
+  }
+  if (existing.kind === 'income') {
+    return { label: existing.label, amount: String(existing.monthly), category: '', rate: '' }
+  }
+  return { label: existing.label, amount: String(existing.monthly), category: existing.category, rate: '' }
+}
+
+function placeholderFor(kind: PfsRecordKind): string {
+  switch (kind) {
+    case 'asset':
+      return 'Primary residence'
+    case 'liability':
+      return 'Primary mortgage'
+    case 'income':
+      return 'Salary'
+    case 'expense':
+      return 'Groceries'
+  }
+}
+
+function categoryOptionsFor(
+  kind: PfsRecordKind,
+): { value: string; label: string }[] | null {
+  if (kind === 'asset') {
+    return Object.entries(ASSET_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+  }
+  if (kind === 'liability') {
+    return Object.entries(LIABILITY_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+  }
+  if (kind === 'expense') {
+    return Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+  }
+  return null
+}
