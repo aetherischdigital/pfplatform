@@ -30,9 +30,11 @@ export default function About() {
           <h1 className="mx-auto mt-3 max-w-3xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
             Built for the home you live in.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
-            For most of us, our home is the largest financial decision we'll ever make.
-            It deserves a tool built specifically for it — and one that doesn't take the bank's word for it.
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-surface-500">
+            Let me ask you something. When was the last time you actually verified your mortgage
+            statement? For most of us, our home is the largest financial decision we'll ever make
+            — and almost nobody is checking the math. {BRAND.name} exists because the math is
+            checkable. You just need the right tools.
           </p>
         </Container>
       </section>
@@ -55,10 +57,12 @@ export default function About() {
           </h2>
           <div className="mt-6 space-y-5 text-lg leading-relaxed text-surface-600">
             <p>
-              Most homeowners never see their amortization schedule. They sign a Note at closing,
-              receive monthly statements, and trust the numbers in the corner of the page. Servicers
-              change hands. Payments get misapplied. Escrow analyses come out wrong. Almost nobody
-              catches it, because almost nobody is keeping their own books.
+              Here's something most homeowners are never told. Your mortgage isn't really about
+              years or months — it's a fixed schedule of numbered payments, each broken down to
+              the penny the day you sign the Note. The lender knows it. The borrower almost never
+              does. So when a payment gets misapplied, an escrow analysis comes out wrong, or a
+              servicer transfer loses a payment in the seam, the math drifts — and nobody catches
+              it, because nobody's keeping their own books.
             </p>
             <p>
               {BRAND.name} exists to flip that. We start with the Personal Financial Statement — the

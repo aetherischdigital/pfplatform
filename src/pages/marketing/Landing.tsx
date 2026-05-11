@@ -1,4 +1,4 @@
-import { ArrowRight, FileText, ListChecks, ScanSearch, Users, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, FileText, ListChecks, ScanSearch, Wallet, Users, ShieldCheck, Sparkles } from 'lucide-react'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
 import EquityChart from '../../components/EquityChart'
@@ -21,9 +21,9 @@ const features = [
     body: 'Knock future payments off the schedule by paying their principal portion now. The platform tells you the exact dollar amount and prints the check label — no rounding, no drift, no fee programs.',
   },
   {
-    icon: Users,
-    title: 'Built for realtors too',
-    body: 'Manage a roster of homeowner clients, share custom payoff plans, and stay top-of-mind long after closing.',
+    icon: Wallet,
+    title: 'Finding Hidden Money',
+    body: "Most homeowners have an extra mortgage payment hidden in their paycheck every year. We help you find it — in your pay cycle, your tax refund, your monthly budget — and put it to work on principal.",
   },
 ]
 
@@ -96,9 +96,9 @@ export default function Landing() {
               <span className="text-accent-200 italic">Pay it off years sooner.</span>
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-white/80">
-              Most homeowners trust their bank's amortization math without ever checking it. {BRAND.name} turns
-              the Personal Financial Statement into a living ledger — so you catch the errors, retire payments early,
-              and keep the savings.
+              Did you know your bank can make mistakes on your mortgage? It happens more often than you'd think
+              — and almost nobody catches it. {BRAND.name} gives you the tools to balance your mortgage the same
+              way you balance your checkbook, so every error stops costing you the moment it happens.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <ButtonLink to="/signup" variant="accent" size="lg">
@@ -165,11 +165,12 @@ export default function Landing() {
         <Container className="py-24">
           <div className="max-w-2xl">
             <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
-              The methodology, turned into software.
+              Here's the key: your loan has nothing to do with years or months.
             </h2>
             <p className="mt-4 text-surface-500">
-              Four tightly-built tools that work together — a financial ledger, an amortization audit, and the prepayment
-              workflow that keeps both honest.
+              A 30-year mortgage is just 360 numbered payments, each broken down to the penny.
+              The faster you complete them, the sooner you own your home. These four tools work together
+              to help you do exactly that.
             </p>
           </div>
           <div className="mt-12 grid gap-5 sm:grid-cols-2">
@@ -188,6 +189,32 @@ export default function Landing() {
                 </div>
               )
             })}
+          </div>
+        </Container>
+      </section>
+
+      {/* For realtors — thin strip between features and section-break */}
+      <section className="bg-accent-100/60">
+        <Container className="py-12">
+          <div className="flex flex-col items-start justify-between gap-5 lg:flex-row lg:items-center">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-surface-900 text-accent-400">
+                <Users size={18} />
+              </div>
+              <div className="max-w-2xl">
+                <h3 className="font-display text-xl font-semibold text-surface-900 sm:text-2xl">
+                  For realtors who want to be more than the closing handshake.
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-surface-600">
+                  Stay in your clients' financial lives the way a trusted advisor should — with the
+                  tools to actually be useful between transactions. Manage a roster, submit value
+                  updates, share custom plans.
+                </p>
+              </div>
+            </div>
+            <ButtonLink to="/how-it-works" variant="secondary" size="md" className="flex-shrink-0">
+              How realtors use it <ArrowRight size={14} />
+            </ButtonLink>
           </div>
         </Container>
       </section>
@@ -252,11 +279,12 @@ export default function Landing() {
           <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
             <div className="max-w-xl">
               <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-                Every uncaught error compounds for thirty years.
+                Let's face the facts.
               </h2>
               <p className="mt-3 text-surface-300">
-                A single $200 misposting on a 6.5% loan with 25 years to run costs you about $700 by payoff.
-                Catching it the month it happens costs about a minute.
+                A single $100 error in the first year of a 7% mortgage costs you over $800 by the time it
+                pays off. Most homeowners never catch it. Of course this happens, more often than you'd think
+                — and the bigger problem is that nobody's looking. You can be.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -292,11 +320,11 @@ export default function Landing() {
       <section className="bg-gradient-to-b from-white to-surface-50">
         <Container className="py-20 text-center">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-surface-900 sm:text-5xl">
-            Own your ledger. Own your timeline.
+            Eliminating debt. <span className="italic text-accent-500">Creating ownership.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-surface-500">
-            Five minutes of input. A schedule the bank should agree with — and the tools to make sure it does.
-            Free for as long as you need it.
+            Five minutes of input. A schedule the bank should agree with, and the tools to keep them honest.
+            Yours to use, free for as long as you need it.
           </p>
           <div className="mt-8 flex justify-center">
             <ButtonLink to="/signup" variant="primary" size="lg">

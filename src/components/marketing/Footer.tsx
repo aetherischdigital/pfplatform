@@ -40,6 +40,9 @@ export default function Footer() {
             <p className="max-w-xs text-sm text-surface-500">
               {BRAND.tagline} Pay off your home, build equity, grow wealth.
             </p>
+            <p className="max-w-xs font-display text-sm italic text-accent-600">
+              Eliminating debt &amp; creating ownership.
+            </p>
           </div>
           {sections.map((s) => (
             <div key={s.title}>

@@ -17,7 +17,7 @@ const sections: Section[] = [
   {
     eyebrow: 'Step 01',
     title: 'The PFS as your spine.',
-    body: "The Personal Financial Statement is the instrument a banker uses to evaluate a borrower. We turn it the other way around — into the living spine of your dashboard, so every payoff projection, prepayment plan, and equity report draws from one consistent picture of your finances.",
+    body: "Here's where everything starts. The Personal Financial Statement is the instrument a banker uses to evaluate a borrower. We turn it the other way around — into the living spine of your dashboard, so every payoff projection, prepayment plan, and equity report draws from one consistent picture of your finances.",
     bullets: [
       'Assets: home, retirement, cash, vehicles, other holdings',
       'Liabilities: mortgages, loans, credit lines with current balances',
@@ -29,7 +29,7 @@ const sections: Section[] = [
   {
     eyebrow: 'Step 02',
     title: 'Your amortization schedule — the one the bank should agree with.',
-    body: "Every fixed-rate loan resolves to a numbered list of payments, each with a precise principal and interest split decided the day the Note is signed. We generate that schedule for you, store it as your ledger, and project equity off of it. The bank's statement should match — and if it doesn't, that's news you want.",
+    body: "Never forget this: your loan has nothing to do with years or months. Every fixed-rate loan resolves to a numbered list of payments, each with a precise principal and interest split decided the day the Note is signed. We generate that schedule for you, store it as your ledger, and project equity off of it. The bank's statement should match — and if it doesn't, that's news you want.",
     bullets: [
       'Full payment-by-payment amortization, generated from your Note',
       'Equity projection grounded in checkable math, not a forecast',
@@ -41,7 +41,7 @@ const sections: Section[] = [
   {
     eyebrow: 'Step 03',
     title: 'Prepay in exact amounts. Retire payments early.',
-    body: "Instead of sending a round-number extra payment that drifts the math, the platform tells you the exact principal portion of your next scheduled payment — or the sum across several — and prints a label for the check. You're not 'paying ahead.' You're permanently retiring a numbered payment from the schedule.",
+    body: "Here's the key to paying off your loan faster. Instead of sending a round-number extra payment that drifts the math, the platform tells you the exact principal portion of your next scheduled payment — or the sum across several — and prints a label for the check. You're not 'paying ahead.' You're permanently retiring a numbered payment from the schedule.",
     bullets: [
       'Single-payment prepayments: knock out payment #6 with one check',
       'Multi-payment prepayments: retire #6–#8 with one sum',
