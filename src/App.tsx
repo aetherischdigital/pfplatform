@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { BRAND } from './config/brand'
 import MarketingLayout from './components/marketing/MarketingLayout'
 import AppShell from './components/app/AppShell'
-import AppShellPlaceholder from './components/app/AppShellPlaceholder'
 import AuthModal, { AuthModalRedirect } from './components/AuthModal'
 import RequireAuth from './components/RequireAuth'
 import ViewAsBanner from './components/ViewAsBanner'
@@ -71,9 +70,9 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* Admin — role-gated */}
+        {/* Admin — role-gated, same AppShell so admins keep the full sidebar */}
         <Route element={<RequireAuth requiredRole="admin" />}>
-          <Route element={<AppShellPlaceholder />}>
+          <Route element={<AppShell />}>
             <Route path="/admin" element={<Admin />} />
           </Route>
         </Route>

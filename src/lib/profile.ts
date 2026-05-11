@@ -46,10 +46,9 @@ export function displayLabel(p: Profile | null): string {
 
 export function homePathFor(role: UserRole | null | undefined): string {
   switch (role) {
-    case 'admin':
-      return '/admin'
     case 'realtor':
       return '/app/clients'
+    case 'admin':
     case 'homeowner':
     default:
       return '/app/dashboard'
