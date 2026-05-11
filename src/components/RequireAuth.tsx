@@ -1,10 +1,15 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 import { useAuthModal } from '../lib/authModal'
+import { homePathFor, type UserRole } from '../lib/profile'
 
-export default function RequireAuth() {
-  const { session, loading } = useAuth()
+type Props = {
+  requiredRole?: UserRole
+}
+
+export default function RequireAuth({ requiredRole }: Props) {
+  const { session, profile, loading, profileLoading } = useAuth()
   const { openModal } = useAuthModal()
   const location = useLocation()
 
@@ -14,7 +19,7 @@ export default function RequireAuth() {
     if (unauthed) openModal('login')
   }, [unauthed, openModal])
 
-  if (loading) {
+  if (loading || (session && profileLoading)) {
     return (
       <div className="grid min-h-screen place-items-center bg-surface-50 text-sm text-surface-500">
         Loading…
@@ -24,6 +29,10 @@ export default function RequireAuth() {
 
   if (!session) {
     return <Navigate to="/" replace state={{ from: location }} />
+  }
+
+  if (requiredRole && profile?.role !== requiredRole) {
+    return <Navigate to={homePathFor(profile?.role)} replace />
   }
 
   return <Outlet />

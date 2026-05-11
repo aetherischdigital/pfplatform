@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '../ui/Button'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
 import { useAuthModal } from '../../lib/authModal'
-import { useAuth } from '../../lib/auth'
+import { useAuth } from '../../lib/useAuth'
 
 const links = [
   { to: '/how-it-works', label: 'How it works' },

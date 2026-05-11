@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { LogOut, Mail, User as UserIcon, Lock, AlertTriangle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
-import { useAuth } from '../../lib/auth'
+import { useAuth } from '../../lib/useAuth'
 import { fetchOwnProfile, type Profile } from '../../lib/profile'
 
 export default function Account() {

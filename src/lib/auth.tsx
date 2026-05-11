@@ -1,31 +1,13 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
-import type { Session, User } from '@supabase/supabase-js'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-
-type SignUpArgs = { email: string; password: string; fullName: string }
-type SignInArgs = { email: string; password: string }
-
-type AuthContextValue = {
-  session: Session | null
-  user: User | null
-  loading: boolean
-  signUp: (args: SignUpArgs) => Promise<{ error: string | null; needsConfirmation: boolean }>
-  signIn: (args: SignInArgs) => Promise<{ error: string | null }>
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { fetchOwnProfile, type Profile } from './profile'
+import { AuthContext, type SignInArgs, type SignUpArgs } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -45,6 +27,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe()
     }
   }, [])
+
+  // Load (or clear) profile whenever the auth user changes. All setState
+  // happens inside async continuations to satisfy React 19's
+  // react-hooks/set-state-in-effect rule.
+  const userId = session?.user.id ?? null
+  useEffect(() => {
+    let cancelled = false
+    const work: Promise<Profile | null> = userId
+      ? fetchOwnProfile().catch(() => null)
+      : Promise.resolve(null)
+    work.then((p) => {
+      if (!cancelled) setProfile(p)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  // Derived: profile is "loading" whenever the cached profile doesn't match
+  // the current authenticated user yet.
+  const profileLoading = !!userId && profile?.id !== userId
 
   const signUp = useCallback(async ({ email, password, fullName }: SignUpArgs) => {
     const { data, error } = await supabase.auth.signUp({
@@ -68,24 +71,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }, [])
 
+  const refreshProfile = useCallback(async () => {
+    const p = await fetchOwnProfile().catch(() => null)
+    setProfile(p)
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
         session,
         user: session?.user ?? null,
+        profile,
         loading,
+        profileLoading,
         signUp,
         signIn,
         signOut,
+        refreshProfile,
       }}
     >
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
-  return ctx
 }

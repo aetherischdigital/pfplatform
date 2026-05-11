@@ -43,3 +43,15 @@ export function displayLabel(p: Profile | null): string {
   if (p.email) return p.email.split('@')[0]
   return 'there'
 }
+
+export function homePathFor(role: UserRole | null | undefined): string {
+  switch (role) {
+    case 'admin':
+      return '/admin'
+    case 'realtor':
+      return '/app/clients'
+    case 'homeowner':
+    default:
+      return '/app/dashboard'
+  }
+}

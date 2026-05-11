@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { X, Mail, Lock, User, CheckCircle2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthModal, type AuthView } from '../lib/authModal'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
+import { fetchOwnProfile, homePathFor } from '../lib/profile'
 import { BRAND } from '../config/brand'
 import { Button } from './ui/Button'
 
@@ -118,13 +119,17 @@ function LoginPanel() {
     setError(null)
     setSubmitting(true)
     const { error } = await signIn({ email, password })
-    setSubmitting(false)
     if (error) {
+      setSubmitting(false)
       setError(error)
       return
     }
+    // Fetch profile inline so we can route by role on first login (the
+    // AuthProvider's profile state may not be hydrated yet).
+    const profile = await fetchOwnProfile().catch(() => null)
+    setSubmitting(false)
     closeModal()
-    navigate('/app/dashboard')
+    navigate(homePathFor(profile?.role))
   }
 
   return (
@@ -193,8 +198,9 @@ function SignupPanel() {
       setConfirmationEmail(email)
       return
     }
+    // New signups always start as homeowner (default role) — no need to fetch.
     closeModal()
-    navigate('/app/dashboard')
+    navigate(homePathFor('homeowner'))
   }
 
   if (confirmationEmail) {

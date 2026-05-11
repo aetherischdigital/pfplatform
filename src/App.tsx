@@ -22,6 +22,7 @@ import Disclosures from './pages/marketing/Disclosures'
 import Dashboard from './pages/app/Dashboard'
 import Financials from './pages/app/Financials'
 import Calculators from './pages/app/Calculators'
+import Clients from './pages/app/Clients'
 import Account from './pages/app/Account'
 import Admin from './pages/app/Admin'
 
@@ -56,18 +57,20 @@ export default function App() {
         <Route path="/login" element={<AuthModalRedirect view="login" />} />
         <Route path="/signup" element={<AuthModalRedirect view="signup" />} />
 
-        {/* Authenticated homeowner/realtor app — PFS pages still on mock
-            data until the Supabase schema lands */}
+        {/* Authenticated homeowner/realtor app */}
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
             <Route path="/app/dashboard" element={<Dashboard />} />
             <Route path="/app/financials" element={<Financials />} />
             <Route path="/app/calculators" element={<Calculators />} />
+            <Route path="/app/clients" element={<Clients />} />
             <Route path="/app/account" element={<Account />} />
           </Route>
+        </Route>
 
-          {/* Admin — any-user gate for now; role gate added with the profiles table */}
+        {/* Admin — role-gated */}
+        <Route element={<RequireAuth requiredRole="admin" />}>
           <Route element={<AppShellPlaceholder />}>
             <Route path="/admin" element={<Admin />} />
           </Route>

@@ -4,7 +4,7 @@ import { Home, FileText, Calculator, User, LogOut, Menu, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
-import { useAuth } from '../../lib/auth'
+import { useAuth } from '../../lib/useAuth'
 
 type NavItem = { to: string; label: string; icon: LucideIcon }
 
