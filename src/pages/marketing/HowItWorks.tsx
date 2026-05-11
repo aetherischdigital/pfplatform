@@ -65,7 +65,7 @@ const sections: Section[] = [
   {
     eyebrow: 'Always-on',
     title: 'Education built around the methodology.',
-    body: 'Articles, calculators, and walkthroughs that explain the *why* behind the prepayment workflow — when biweekly programs are a marketing trick, why recasts matter, how to catch a servicer transfer that loses a payment in the seam.',
+    body: 'Articles, calculators, and walkthroughs that explain why the prepayment workflow works — when biweekly programs are a marketing trick, why recasts matter, how to catch a servicer transfer that loses a payment in the seam.',
     bullets: [
       'Plain-English deep-dives on prepayment, recasts, PMI, servicer transfers',
       'Public mortgage payoff calculator — no account required',
@@ -207,8 +207,8 @@ function SectionVisual({ kind }: { kind: Section['visual'] }) {
   if (kind === 'payoff') {
     const scenarios = [
       { name: 'Baseline', years: '30 yr 0 mo', interest: '$248,400', highlight: false },
-      { name: '+$200/mo principal', years: '24 yr 8 mo', interest: '$182,100', highlight: false },
-      { name: 'Biweekly + $200', years: '21 yr 4 mo', interest: '$148,300', highlight: true },
+      { name: '+$100/mo to principal', years: '26 yr 8 mo', interest: '$210,800', highlight: false },
+      { name: '+$200/mo to principal', years: '24 yr 8 mo', interest: '$182,100', highlight: true },
     ]
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card-lg">
