@@ -1,9 +1,43 @@
-import { Link } from 'react-router-dom'
-import { LogOut, Mail, User as UserIcon, Lock } from 'lucide-react'
-import { MOCK_PROFILE } from '../../lib/mockData'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { LogOut, Mail, User as UserIcon, Lock, AlertTriangle } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { useAuth } from '../../lib/auth'
+import { fetchOwnProfile, type Profile } from '../../lib/profile'
 
 export default function Account() {
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchOwnProfile()
+      .then((p) => {
+        if (!cancelled) setProfile(p)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load profile.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/', { replace: true })
+  }
+
   return (
     <div className="space-y-8">
       <header>
@@ -15,13 +49,24 @@ export default function Account() {
         </p>
       </header>
 
+      {error && (
+        <div role="alert" className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
         <header className="border-b border-surface-200 px-6 py-4">
           <h2 className="font-display text-lg font-semibold text-surface-900">Profile</h2>
         </header>
         <div className="space-y-1 p-6">
-          <Field icon={UserIcon} label="Name" value={MOCK_PROFILE.name} />
-          <Field icon={Mail} label="Email" value={MOCK_PROFILE.email} />
+          <Field
+            icon={UserIcon}
+            label="Name"
+            value={loading ? '…' : profile?.displayName || '—'}
+          />
+          <Field icon={Mail} label="Email" value={loading ? '…' : profile?.email ?? '—'} />
           <Field icon={Lock} label="Password" value="••••••••••" />
         </div>
         <footer className="flex items-center justify-end gap-2 border-t border-surface-200 px-6 py-4">
@@ -46,22 +91,22 @@ export default function Account() {
         </header>
         <div className="flex items-center justify-between px-6 py-5">
           <div className="text-sm text-surface-600">
-            Signed in as <span className="font-medium text-surface-900">{MOCK_PROFILE.email}</span>
+            Signed in as{' '}
+            <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
           </div>
-          <Link
-            to="/"
+          <button
+            type="button"
+            onClick={handleSignOut}
             className="inline-flex items-center gap-2 rounded-md border border-surface-300 bg-white px-4 py-2 text-sm font-medium text-surface-900 hover:bg-surface-50"
           >
             <LogOut size={14} />
             Sign out
-          </Link>
+          </button>
         </div>
       </section>
     </div>
   )
 }
-
-import type { LucideIcon } from 'lucide-react'
 
 function Field({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
