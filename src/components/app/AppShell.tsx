@@ -11,7 +11,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon }
 const navItems: NavItem[] = [
   { to: '/app/dashboard', label: 'Dashboard', icon: Home },
   { to: '/app/financials', label: 'Financials', icon: FileText },
-  { to: '/calculator', label: 'Calculator', icon: Calculator },
+  { to: '/app/calculators', label: 'Calculators', icon: Calculator },
   { to: '/app/account', label: 'Account', icon: User },
 ]
 

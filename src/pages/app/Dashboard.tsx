@@ -258,7 +258,7 @@ function PayoffPlanSection({ pfs }: { pfs: Pfs }) {
         />
       </dl>
       <div className="mt-auto pt-5">
-        <ButtonLink to="/calculator" variant="secondary" size="sm" className="w-full">
+        <ButtonLink to="/app/calculators" variant="secondary" size="sm" className="w-full">
           Try other scenarios <ArrowRight size={14} />
         </ButtonLink>
       </div>

@@ -21,6 +21,7 @@ import Disclosures from './pages/marketing/Disclosures'
 
 import Dashboard from './pages/app/Dashboard'
 import Financials from './pages/app/Financials'
+import Calculators from './pages/app/Calculators'
 import Account from './pages/app/Account'
 import Admin from './pages/app/Admin'
 
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
             <Route path="/app/dashboard" element={<Dashboard />} />
             <Route path="/app/financials" element={<Financials />} />
+            <Route path="/app/calculators" element={<Calculators />} />
             <Route path="/app/account" element={<Account />} />
           </Route>
 

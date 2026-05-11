@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { Menu, X, LayoutDashboard, LogOut } from 'lucide-react'
 import Container from '../ui/Container'
-import { Button } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
 import { useAuthModal } from '../../lib/authModal'
+import { useAuth } from '../../lib/auth'
 
 const links = [
   { to: '/how-it-works', label: 'How it works' },
@@ -23,6 +24,9 @@ const linkClasses = ({ isActive }: { isActive: boolean }) =>
 export default function Header() {
   const [open, setOpen] = useState(false)
   const { openModal } = useAuthModal()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const signedIn = !!user
 
   const onSignIn = () => {
     setOpen(false)
@@ -31,6 +35,11 @@ export default function Header() {
   const onStartFree = () => {
     setOpen(false)
     openModal('signup')
+  }
+  const onSignOut = async () => {
+    setOpen(false)
+    await signOut()
+    navigate('/')
   }
 
   return (
@@ -50,8 +59,21 @@ export default function Header() {
           <div className="hidden items-center gap-1 md:flex">
             <ThemeToggle />
             <span className="mx-1 h-5 w-px bg-surface-200" aria-hidden />
-            <Button onClick={onSignIn} variant="ghost" size="sm">Sign in</Button>
-            <Button onClick={onStartFree} variant="primary" size="sm">Start free</Button>
+            {signedIn ? (
+              <>
+                <ButtonLink to="/app/dashboard" variant="primary" size="sm">
+                  <LayoutDashboard size={14} /> Dashboard
+                </ButtonLink>
+                <Button onClick={onSignOut} variant="ghost" size="sm" aria-label="Sign out">
+                  <LogOut size={14} />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={onSignIn} variant="ghost" size="sm">Sign in</Button>
+                <Button onClick={onStartFree} variant="primary" size="sm">Start free</Button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1 md:hidden">
@@ -83,8 +105,21 @@ export default function Header() {
                 </NavLink>
               ))}
               <div className="mt-2 flex flex-col gap-2">
-                <Button onClick={onSignIn} variant="secondary" size="md">Sign in</Button>
-                <Button onClick={onStartFree} variant="primary" size="md">Start free</Button>
+                {signedIn ? (
+                  <>
+                    <ButtonLink to="/app/dashboard" variant="primary" size="md" onClick={() => setOpen(false)}>
+                      <LayoutDashboard size={16} /> Dashboard
+                    </ButtonLink>
+                    <Button onClick={onSignOut} variant="secondary" size="md">
+                      <LogOut size={16} /> Sign out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={onSignIn} variant="secondary" size="md">Sign in</Button>
+                    <Button onClick={onStartFree} variant="primary" size="md">Start free</Button>
+                  </>
+                )}
               </div>
             </nav>
           </Container>
