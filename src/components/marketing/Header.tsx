@@ -5,7 +5,7 @@ import Container from '../ui/Container'
 import { Button, ButtonLink } from '../ui/Button'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
-import { useAuthModal } from '../../lib/authModal'
+import { useAuthModal } from '../../lib/useAuthModal'
 import { useAuth } from '../../lib/useAuth'
 
 const links = [

@@ -1,5 +1,5 @@
 import { Sun, Moon, Monitor } from 'lucide-react'
-import { useTheme, type ThemePreference } from '../lib/theme'
+import { useTheme, type ThemePreference } from '../lib/useTheme'
 
 const icons: Record<ThemePreference, typeof Sun> = {
   system: Monitor,

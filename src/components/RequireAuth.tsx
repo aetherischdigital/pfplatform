@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
-import { useAuthModal } from '../lib/authModal'
+import { useAuthModal } from '../lib/useAuthModal'
 import { homePathFor, type UserRole } from '../lib/profile'
 
 type Props = {

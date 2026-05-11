@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { useNavigate } from 'react-router-dom'
 import { X, Mail, Lock, User, CheckCircle2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useAuthModal, type AuthView } from '../lib/authModal'
+import { useAuthModal, type AuthView } from '../lib/useAuthModal'
 import { useAuth } from '../lib/useAuth'
 import { fetchOwnProfile, homePathFor } from '../lib/profile'
 import { BRAND } from '../config/brand'
