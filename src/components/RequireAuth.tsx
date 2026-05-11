@@ -9,7 +9,7 @@ type Props = {
 }
 
 export default function RequireAuth({ requiredRole }: Props) {
-  const { session, profile, loading, profileLoading } = useAuth()
+  const { session, effectiveRole, loading, profileLoading } = useAuth()
   const { openModal } = useAuthModal()
   const location = useLocation()
 
@@ -31,8 +31,8 @@ export default function RequireAuth({ requiredRole }: Props) {
     return <Navigate to="/" replace state={{ from: location }} />
   }
 
-  if (requiredRole && profile?.role !== requiredRole) {
-    return <Navigate to={homePathFor(profile?.role)} replace />
+  if (requiredRole && effectiveRole !== requiredRole) {
+    return <Navigate to={homePathFor(effectiveRole)} replace />
   }
 
   return <Outlet />

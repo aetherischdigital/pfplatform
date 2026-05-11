@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import type { Profile } from './profile'
+import type { Profile, UserRole } from './profile'
 
 export type SignUpArgs = { email: string; password: string; fullName: string }
 export type SignInArgs = { email: string; password: string }
@@ -11,6 +11,11 @@ export type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   profileLoading: boolean
+  /** Admin-only: the role they're previewing. null = no view-as active. */
+  viewAsRole: UserRole | null
+  /** profile.role with view-as applied (admins only). */
+  effectiveRole: UserRole | null
+  setViewAs: (role: UserRole | null) => void
   signUp: (args: SignUpArgs) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signIn: (args: SignInArgs) => Promise<{ error: string | null }>
   signOut: () => Promise<void>

@@ -7,6 +7,7 @@ import AppShell from './components/app/AppShell'
 import AppShellPlaceholder from './components/app/AppShellPlaceholder'
 import AuthModal, { AuthModalRedirect } from './components/AuthModal'
 import RequireAuth from './components/RequireAuth'
+import ViewAsBanner from './components/ViewAsBanner'
 
 import Landing from './pages/marketing/Landing'
 import HowItWorks from './pages/marketing/HowItWorks'
@@ -35,6 +36,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ViewAsBanner />
       <Routes>
         {/* Public marketing */}
         <Route element={<MarketingLayout />}>
