@@ -1,36 +1,94 @@
-/**
- * Sample blog posts. Replace with CMS-backed query in Phase 3.
- * The shape is intentionally close to what a Supabase `posts` table will
- * return so the migration is a data-source swap, not a UI change.
- */
+-- Blog posts table for the public /blog section.
+--
+-- Phase 1 runtime serves posts from src/lib/blogPosts.ts so they ship in the
+-- static bundle (good for SEO + initial render). This table is seeded with
+-- the same content so it's ready for the Phase 3 CMS to manage. When the CMS
+-- ships, the runtime will switch to reading from this table.
+--
+-- RLS convention matches profiles:
+--   • Public read for published posts (anon + authenticated)
+--   • Writes flow through service-role on the server side; no client write
+--     policy is granted here. Phase 3 CMS will route admin writes through an
+--     Edge Function holding the service-role key.
 
-export type BlogPost = {
-  slug: string
-  title: string
-  excerpt: string
-  body: string
-  tag: string
-  publishedAt: string
-  readingMinutes: number
-  /**
-   * Cover image URL. Currently hot-linked to royalty-free sources (Unsplash).
-   * The Phase 3 CMS will allow either URL paste OR upload-to-Supabase-Storage.
-   */
-  coverImage: string
-}
+-- ---------------------------------------------------------------------------
+-- post_status enum
+-- ---------------------------------------------------------------------------
+create type public.post_status as enum ('draft', 'scheduled', 'published');
 
-export const BLOG_POSTS: BlogPost[] = [
-  {
-    slug: 'biweekly-vs-extra-principal',
-    title: 'When biweekly payments actually beat extra principal',
-    excerpt:
-      "They're often pitched as the same thing. They aren't. Here's when each one wins, and how to pick the right lever for your situation.",
-    tag: 'Strategy',
-    publishedAt: '2026-05-08',
-    readingMinutes: 6,
-    coverImage:
-      'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1600&q=80',
-    body: `If you've talked to a lender about paying off your house faster, you've probably heard about
+-- ---------------------------------------------------------------------------
+-- blog_posts table
+-- ---------------------------------------------------------------------------
+create table public.blog_posts (
+  id              uuid primary key default gen_random_uuid(),
+  slug            text not null unique,
+  title           text not null,
+  excerpt         text not null,
+  body_markdown   text not null,
+  tag             text not null,
+  reading_minutes integer not null,
+  status          public.post_status not null default 'draft',
+  published_at    timestamptz,
+  scheduled_at    timestamptz,
+  cover_image_url text,
+  author_id       uuid references public.profiles(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index blog_posts_published_idx
+  on public.blog_posts (status, published_at desc)
+  where status = 'published';
+
+create index blog_posts_slug_idx on public.blog_posts (slug);
+
+comment on table public.blog_posts is
+  'Public-facing blog posts. Phase 1 ships these via the React bundle (src/lib/blogPosts.ts); this table is the future CMS-managed source.';
+comment on column public.blog_posts.status is
+  'draft | scheduled | published. Public read policy serves only published rows with published_at <= now().';
+comment on column public.blog_posts.scheduled_at is
+  'For status = scheduled, when the post should auto-flip to published. Phase 3 will add a scheduler.';
+comment on column public.blog_posts.body_markdown is
+  'Markdown body. Rendered client-side by ReactMarkdown + remark-gfm.';
+
+-- ---------------------------------------------------------------------------
+-- updated_at maintenance (reuse the function from the profiles migration)
+-- ---------------------------------------------------------------------------
+create trigger blog_posts_set_updated_at
+  before update on public.blog_posts
+  for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- RLS
+-- ---------------------------------------------------------------------------
+alter table public.blog_posts enable row level security;
+
+-- Read: anyone — including unauthenticated visitors — can read published posts
+-- whose published_at is in the past. Future-dated published rows stay hidden.
+create policy "public read for published posts"
+  on public.blog_posts for select
+  to anon, authenticated
+  using (status = 'published' and published_at is not null and published_at <= now());
+
+-- ---------------------------------------------------------------------------
+-- Grants
+-- ---------------------------------------------------------------------------
+grant select on public.blog_posts to anon, authenticated;
+-- No insert/update/delete grants. Writes flow through service-role.
+
+-- ---------------------------------------------------------------------------
+-- Seed: mirror the four posts from src/lib/blogPosts.ts.
+-- Idempotent via on conflict (slug) — re-applying this migration is safe.
+-- ---------------------------------------------------------------------------
+
+insert into public.blog_posts
+  (slug, title, excerpt, body_markdown, tag, reading_minutes, status, published_at)
+values
+  (
+    'biweekly-vs-extra-principal',
+    'When biweekly payments actually beat extra principal',
+    $excerpt$They're often pitched as the same thing. They aren't. Here's when each one wins, and how to pick the right lever for your situation.$excerpt$,
+    $body1$If you've talked to a lender about paying off your house faster, you've probably heard about
 two strategies: paying extra principal each month, or switching to **biweekly payments**. They're
 often pitched as identical. They're not.
 
@@ -72,19 +130,17 @@ If you're not yet paying extra at all, biweekly is a great forcing function. If 
 the habit of paying extra, just pay extra — every dollar you control directly is a dollar working
 harder than 1/12 spread across a year.
 
-Run both scenarios in our [calculator](/calculator) and compare side by side.`,
-  },
-  {
-    slug: 'recast-vs-refinance',
-    title: 'What a recast is, and when to use one',
-    excerpt:
-      "A lump sum doesn't lower your monthly payment unless you ask. The thirty-second version, then the deep one.",
-    tag: 'Explainer',
-    publishedAt: '2026-04-29',
-    readingMinutes: 5,
-    coverImage:
-      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1600&q=80',
-    body: `If you make a large lump-sum payment toward your mortgage, what happens to your monthly payment?
+Run both scenarios in our [calculator](/calculator) and compare side by side.$body1$,
+    'Strategy',
+    6,
+    'published',
+    timestamptz '2026-05-08 13:00:00+00'
+  ),
+  (
+    'recast-vs-refinance',
+    'What a recast is, and when to use one',
+    $excerpt$A lump sum doesn't lower your monthly payment unless you ask. The thirty-second version, then the deep one.$excerpt$,
+    $body2$If you make a large lump-sum payment toward your mortgage, what happens to your monthly payment?
 
 **Nothing.** Your monthly stays the same. Your loan just pays off earlier.
 
@@ -120,19 +176,17 @@ just asking: "given that I now owe less, what would my monthly payment be?"
 4. **Yes to all three** → call your servicer and ask about recasting
 
 The combination of "low rate locked in + want lower monthly payment + have cash" is the sweet spot.
-That's where recast wins.`,
-  },
-  {
-    slug: 'equity-isnt-cash',
-    title: "Equity isn't cash — until you make it cash",
-    excerpt:
-      'The four ways homeowners actually access equity, and what each one costs in interest, time, and risk.',
-    tag: 'Explainer',
-    publishedAt: '2026-04-15',
-    readingMinutes: 7,
-    coverImage:
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1600&q=80',
-    body: `Your home is worth more than you owe on it. That difference — your **equity** — shows up on
+That's where recast wins.$body2$,
+    'Explainer',
+    5,
+    'published',
+    timestamptz '2026-04-29 13:00:00+00'
+  ),
+  (
+    'equity-isnt-cash',
+    'Equity isn''t cash — until you make it cash',
+    $excerpt$The four ways homeowners actually access equity, and what each one costs in interest, time, and risk.$excerpt$,
+    $body3$Your home is worth more than you owe on it. That difference — your **equity** — shows up on
 your net worth statement as a real number. But it's not cash. You can't pay your kid's tuition with it.
 You can't fix a broken HVAC.
 
@@ -180,19 +234,17 @@ debt secured by your home. You're trading equity for liquidity, and paying inter
 
 This is why **building** equity matters more than tracking it. The number on your statement is real
 — but it only becomes useful when you have a plan for what to do with it that doesn't undo all the
-work you did to build it.`,
-  },
-  {
-    slug: 'velocity-banking',
-    title: 'Velocity banking, demystified',
-    excerpt:
-      "It's not magic. It's arithmetic. We pull apart the math and show what actually moves — and where the strategy quietly fails.",
-    tag: 'Strategy',
-    publishedAt: '2026-03-26',
-    readingMinutes: 8,
-    coverImage:
-      'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1600&q=80',
-    body: `Velocity banking is a payoff strategy that gets aggressive marketing online: "pay off your
+work you did to build it.$body3$,
+    'Explainer',
+    7,
+    'published',
+    timestamptz '2026-04-15 13:00:00+00'
+  ),
+  (
+    'velocity-banking',
+    'Velocity banking, demystified',
+    $excerpt$It's not magic. It's arithmetic. We pull apart the math and show what actually moves — and where the strategy quietly fails.$excerpt$,
+    $body4$Velocity banking is a payoff strategy that gets aggressive marketing online: "pay off your
 30-year mortgage in 7 years!" The pitch usually involves a HELOC, a "chunking" payment, and a lot of
 breathless YouTube energy.
 
@@ -242,14 +294,18 @@ The simpler strategy — automate $200–500/month in extra principal, leave it 
 compounding work — beats velocity banking in the vast majority of real-world cases. Cleaner math,
 zero variable-rate risk, no HELOC origination fees, and no execution overhead.
 
-When something is marketed as a secret, it's usually marketing.`,
-  },
-]
-
-export function getPostBySlug(slug: string): BlogPost | undefined {
-  return BLOG_POSTS.find((p) => p.slug === slug)
-}
-
-export function listPostsByDateDesc(): BlogPost[] {
-  return [...BLOG_POSTS].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-}
+When something is marketed as a secret, it's usually marketing.$body4$,
+    'Strategy',
+    8,
+    'published',
+    timestamptz '2026-03-26 13:00:00+00'
+  )
+on conflict (slug) do update
+  set title           = excluded.title,
+      excerpt         = excluded.excerpt,
+      body_markdown   = excluded.body_markdown,
+      tag             = excluded.tag,
+      reading_minutes = excluded.reading_minutes,
+      status          = excluded.status,
+      published_at    = excluded.published_at,
+      updated_at      = now();

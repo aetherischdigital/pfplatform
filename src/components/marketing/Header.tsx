@@ -11,7 +11,7 @@ const links = [
   { to: '/how-it-works', label: 'How it works' },
   { to: '/calculator', label: 'Calculator' },
   { to: '/pricing', label: 'Pricing' },
-  { to: '/blog', label: 'Insights' },
+  { to: '/blog', label: 'Blog' },
   { to: '/about', label: 'About' },
 ]
 

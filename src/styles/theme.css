@@ -37,7 +37,7 @@
 
   /* Type stack */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-display: "Fraunces", "Inter Tight", "Inter", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 
   /* Elevation */

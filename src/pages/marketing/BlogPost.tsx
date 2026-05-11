@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
+import BlogCoverImage from '../../components/BlogCoverImage'
 import { getPostBySlug, listPostsByDateDesc } from '../../lib/blogPosts'
+import { usePageMeta } from '../../lib/usePageMeta'
 import { BRAND } from '../../config/brand'
 import NotFound from '../NotFound'
 
@@ -13,12 +14,47 @@ export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>()
   const post = slug ? getPostBySlug(slug) : undefined
 
-  useEffect(() => {
-    if (post) document.title = `${post.title} — ${BRAND.name}`
-    return () => {
-      document.title = `${BRAND.name} — ${BRAND.headline}`
-    }
-  }, [post])
+  usePageMeta({
+    title: post ? post.title : 'Post not found',
+    description: post ? post.excerpt : 'The blog post you requested could not be found.',
+    image: post?.coverImage,
+    url: post ? `/blog/${post.slug}` : '/blog',
+    type: 'article',
+    publishedTime: post?.publishedAt,
+    modifiedTime: post?.publishedAt,
+    author: BRAND.name,
+    jsonLd: post
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: post.title,
+          description: post.excerpt,
+          image: post.coverImage,
+          datePublished: post.publishedAt,
+          dateModified: post.publishedAt,
+          author: {
+            '@type': 'Organization',
+            name: BRAND.name,
+            url: BRAND.siteUrl,
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: BRAND.name,
+            url: BRAND.siteUrl,
+            logo: {
+              '@type': 'ImageObject',
+              url: `${BRAND.siteUrl}/favicon.svg`,
+            },
+          },
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${BRAND.siteUrl}/blog/${post.slug}`,
+          },
+          articleSection: post.tag,
+          wordCount: post.body.split(/\s+/).length,
+        }
+      : null,
+  })
 
   if (!post) return <NotFound />
 
@@ -35,7 +71,7 @@ export default function BlogPost() {
             className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 hover:text-surface-900"
           >
             <ArrowLeft size={14} />
-            All insights
+            All posts
           </Link>
           <div className="mt-8">
             <span className="text-xs font-medium uppercase tracking-wider text-accent-600">
@@ -51,6 +87,17 @@ export default function BlogPost() {
               <span>{post.readingMinutes} min read</span>
             </div>
           </div>
+        </Container>
+      </section>
+
+      <section className="bg-white">
+        <Container size="md" className="pt-2 pb-10">
+          <BlogCoverImage
+            src={post.coverImage}
+            alt={post.title}
+            loading="eager"
+            className="aspect-[21/9] w-full rounded-2xl"
+          />
         </Container>
       </section>
 

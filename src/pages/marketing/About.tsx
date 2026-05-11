@@ -6,18 +6,18 @@ import { BRAND } from '../../config/brand'
 const values = [
   {
     icon: Compass,
-    title: 'Useful, not flashy',
-    body: 'Tools you reach for monthly, not a dashboard you visit once and forget. Every feature pays for the screen real estate it takes.',
+    title: 'You own the ledger',
+    body: 'No bank logins. No auto-sync. The platform tracks what should be true; you enter what your statement says is true. Mismatches are where the value lives.',
   },
   {
     icon: Eye,
-    title: 'Honest about uncertainty',
-    body: "We don't pretend the future is a single line. Projections show ranges, assumptions are visible, and you can challenge the math.",
+    title: 'The math is checkable',
+    body: 'Every projection shows its inputs. Every prepayment is the exact principal portion of a specific payment. No rounded numbers, no opaque models — if the math is wrong, you can see it.',
   },
   {
     icon: ShieldCheck,
     title: 'Your data, your call',
-    body: 'Bank-grade encryption. No selling, no sharing, no surprise integrations. The export button is always one click away.',
+    body: 'Encrypted at rest and in transit. No selling, no sharing, no surprise integrations. The export button is always one click away.',
   },
 ]
 
@@ -32,30 +32,47 @@ export default function About() {
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
             For most of us, our home is the largest financial decision we'll ever make.
-            It deserves a tool built specifically for it.
+            It deserves a tool built specifically for it — and one that doesn't take the bank's word for it.
           </p>
         </Container>
       </section>
 
       <section className="bg-white">
         <Container size="md" className="py-20">
+          <figure className="mb-12 overflow-hidden rounded-2xl">
+            <img
+              src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1600&q=80"
+              alt="A sunlit desk with a notebook and morning coffee — the kind of place a homeowner keeps their books."
+              className="aspect-[16/9] w-full object-cover"
+              loading="lazy"
+            />
+            <figcaption className="mt-3 text-center text-xs italic text-surface-400">
+              The platform is the math. You are the ledger-keeper.
+            </figcaption>
+          </figure>
           <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
             Why {BRAND.name} exists.
           </h2>
           <div className="mt-6 space-y-5 text-lg leading-relaxed text-surface-600">
             <p>
-              Generic personal finance apps treat your home as a line item. Mortgage
-              calculators stop at "monthly payment." Spreadsheets don't update themselves.
-              The single biggest asset most homeowners own gets the worst tooling.
+              Most homeowners never see their amortization schedule. They sign a Note at closing,
+              receive monthly statements, and trust the numbers in the corner of the page. Servicers
+              change hands. Payments get misapplied. Escrow analyses come out wrong. Almost nobody
+              catches it, because almost nobody is keeping their own books.
             </p>
             <p>
-              {BRAND.name} starts with the Personal Financial Statement — the same instrument
-              banks use to evaluate borrowers — and turns it into a living plan you can
-              update over time. Strategies for paying off your home faster, projections
-              for equity over decades, and the moves that change them in plain English.
+              {BRAND.name} exists to flip that. We start with the Personal Financial Statement — the
+              same instrument a banker uses to evaluate a borrower — and turn it into a living ledger
+              you control. Every scheduled payment becomes a numbered row, with the exact principal
+              and interest split known the day the loan closes. Every prepayment is sent in the
+              precise principal-portion amount of one or more upcoming payments, so the math is
+              checkable to the penny. Every statement is a chance to confirm that the bank's
+              version of your balance matches yours.
             </p>
-            <p className="text-surface-400">
-              <em>(Brand story to be developed with client — this is provisional copy.)</em>
+            <p>
+              The platform is deliberately manual. No bank logins. No auto-sync. The user is the
+              ledger-keeper; the platform is the math. That separation is what makes the audit
+              possible — and what makes the savings yours to keep.
             </p>
           </div>
         </Container>

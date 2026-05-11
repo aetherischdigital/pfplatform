@@ -1,4 +1,4 @@
-import { ArrowRight, Calculator, Home, LineChart, Users, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, FileText, ListChecks, ScanSearch, Users, ShieldCheck, Sparkles } from 'lucide-react'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
 import EquityChart from '../../components/EquityChart'
@@ -6,49 +6,53 @@ import { BRAND } from '../../config/brand'
 
 const features = [
   {
-    icon: Calculator,
-    title: 'Mortgage payoff strategy',
-    body: 'See exactly how a few extra dollars a month shaves years off your mortgage. Run scenarios side by side.',
+    icon: FileText,
+    title: 'A living Personal Financial Statement',
+    body: 'Assets, liabilities, income, expenses — the same instrument a banker uses, set up as the spine of your dashboard so every projection has real numbers behind it.',
   },
   {
-    icon: LineChart,
-    title: 'Equity projection',
-    body: 'Watch equity grow over time with realistic appreciation, principal paydown, and refinance scenarios.',
+    icon: ListChecks,
+    title: 'Your amortization, line by line',
+    body: 'Every scheduled payment as a numbered row, with the exact principal and interest split for each. The source of truth your bank should agree with — and the basis for everything else.',
   },
   {
-    icon: Home,
-    title: 'Personal Financial Statement',
-    body: 'A living PFS — assets, liabilities, income, expenses — that updates as your finances do.',
+    icon: ScanSearch,
+    title: 'Prepay in exact principal amounts',
+    body: 'Knock future payments off the schedule by paying their principal portion now. The platform tells you the exact dollar amount and prints the check label — no rounding, no drift, no fee programs.',
   },
   {
     icon: Users,
     title: 'Built for realtors too',
-    body: 'Manage a roster of clients, share custom payoff plans, and stay top-of-mind long after closing.',
+    body: 'Manage a roster of homeowner clients, share custom payoff plans, and stay top-of-mind long after closing.',
   },
 ]
 
 const steps = [
   {
     n: '01',
-    title: 'Build your snapshot',
-    body: 'Enter your home, mortgage, income, and obligations once. Five minutes to a complete picture.',
+    title: 'Build your ledger',
+    body: 'Enter your loan terms once. The platform generates your full amortization schedule and turns it into a living ledger you control.',
   },
   {
     n: '02',
-    title: 'See your trajectory',
-    body: 'A personalized payoff date, projected equity curve, and the monthly moves that change them.',
+    title: 'Pay smart',
+    body: "Make prepayments in the exact principal amount of upcoming scheduled payments. Each one retires a future payment entirely — no math, no drift.",
   },
   {
     n: '03',
-    title: 'Adjust and act',
-    body: 'Test extra principal, biweekly payments, and recasts. Pick the plan you can actually live with.',
+    title: 'Audit, adjust, repeat',
+    body: "Each statement, compare what the bank says against what your ledger says. Catch mismatches early; we'll help you write the letter.",
   },
 ]
 
 const faqs = [
   {
     q: 'Is this financial advice?',
-    a: `No. ${BRAND.name} is an educational tool. We model scenarios so you can have better conversations with your lender, planner, or realtor.`,
+    a: `No. ${BRAND.name} is a tool, not an advisor. We model scenarios and surface the math so you can have better conversations with your lender, planner, or realtor.`,
+  },
+  {
+    q: 'Why a manual ledger? Why not auto-sync from my bank?',
+    a: `By design. Auto-sync makes the bank's numbers feel like ground truth — but the whole point is to audit those numbers. The platform tracks what should be true; you enter what your statement says is true. The mismatch is where the value lives.`,
   },
   {
     q: 'Do I need a realtor to use it?',
@@ -56,51 +60,86 @@ const faqs = [
   },
   {
     q: 'What happens to my data?',
-    a: 'Your financial data is yours. We use bank-grade encryption at rest and in transit, and we never sell or share your information.',
-  },
-  {
-    q: 'How is this different from a spreadsheet?',
-    a: `A spreadsheet shows you a number. ${BRAND.name} shows you the path — what to change, by how much, and what it costs you to wait.`,
+    a: 'Your financial data is yours. Encrypted at rest and in transit, no bank logins required, no third-party syncing, export anytime. We never sell or share it.',
   },
 ]
 
 export default function Landing() {
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-surface-50 to-white">
-        <div className="absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(ellipse_at_top,_rgba(184,148,90,0.12),transparent_60%)]" />
-        <Container className="py-20 lg:py-28">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-medium text-surface-600 shadow-sm">
-                <Sparkles size={12} className="text-accent-500" />
-                Built for homeowners and the realtors who serve them
-              </div>
-              <h1 className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-surface-900 sm:text-6xl">
-                Pay off your home <span className="text-accent-500">10 years sooner.</span>
-              </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-surface-500">
-                {BRAND.name} turns your mortgage, income, and equity into a single picture —
-                then shows you the moves that change it. Free to start.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <ButtonLink to="/signup" variant="primary" size="lg">
-                  Start free <ArrowRight size={16} />
-                </ButtonLink>
-                <ButtonLink to="/how-it-works" variant="secondary" size="lg">
-                  See how it works
-                </ButtonLink>
-              </div>
-              <div className="flex items-center gap-6 pt-2 text-xs text-surface-400">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-surface-500" />
-                  Bank-grade encryption
-                </div>
-                <div>No card required</div>
-              </div>
+      {/* Hero — dark canvas with warm radial accent */}
+      <section className="relative isolate overflow-hidden bg-surface-900">
+        {/* Warm walnut radial in the upper-right for depth */}
+        <div
+          aria-hidden="true"
+          className="absolute -right-32 -top-32 h-[36rem] w-[36rem] -z-10 rounded-full bg-[radial-gradient(circle,_rgba(168,133,99,0.35)_0%,_transparent_60%)] blur-3xl"
+        />
+        {/* Subtle sage wash in the lower-left to ground the composition */}
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-40 -left-40 h-[40rem] w-[40rem] -z-10 rounded-full bg-[radial-gradient(circle,_rgba(95,111,90,0.28)_0%,_transparent_65%)] blur-3xl"
+        />
+        {/* Faint vertical gradient to deepen the foot of the hero */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-transparent to-surface-900/60"
+        />
+        <Container className="relative py-28 lg:py-40">
+          <div className="max-w-2xl space-y-7 text-white">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
+              <Sparkles size={12} className="text-accent-200" />
+              A homeowner's ledger — and a check on the bank's math
             </div>
+            <h1 className="font-display text-5xl font-semibold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
+              Audit your mortgage.
+              <br />
+              <span className="text-accent-200 italic">Pay it off years sooner.</span>
+            </h1>
+            <p className="max-w-xl text-lg leading-relaxed text-white/80">
+              Most homeowners trust their bank's amortization math without ever checking it. {BRAND.name} turns
+              the Personal Financial Statement into a living ledger — so you catch the errors, retire payments early,
+              and keep the savings.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ButtonLink to="/signup" variant="accent" size="lg">
+                Start free <ArrowRight size={16} />
+              </ButtonLink>
+              <ButtonLink
+                to="/how-it-works"
+                variant="ghost"
+                size="lg"
+                className="border border-white/30 !text-white hover:!bg-white/10"
+              >
+                See how it works
+              </ButtonLink>
+            </div>
+            <div className="flex items-center gap-6 pt-2 text-xs text-white/60">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={14} />
+                No bank logins required
+              </div>
+              <div>No card required</div>
+            </div>
+          </div>
+        </Container>
+      </section>
 
+      {/* What you'll see when you log in */}
+      <section className="bg-surface-50">
+        <Container className="py-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.2fr] lg:gap-16">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wider text-accent-600">
+                What you'll see when you log in
+              </p>
+              <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
+                Your equity, your payoff date, and the moves that change them.
+              </h2>
+              <p className="mt-4 text-surface-500">
+                Every number on your dashboard is grounded in the amortization schedule generated from your Note —
+                so when the bank's statement disagrees, you'll know who to call and what to point at.
+              </p>
+            </div>
             <HeroDashboardCard />
           </div>
         </Container>
@@ -110,10 +149,14 @@ export default function Landing() {
       <section className="border-y border-surface-200 bg-white">
         <Container className="py-10">
           <div className="grid gap-8 sm:grid-cols-3">
-            <Stat value="$184k" label="Avg. interest saved per user (modeled)" />
-            <Stat value="9.4 yrs" label="Avg. payoff acceleration (modeled)" />
-            <Stat value="100%" label="Of your data, owned by you" />
+            <Stat value="$184k" label="Interest saved (modeled)" />
+            <Stat value="9.4 yrs" label="Payoff acceleration (modeled)" />
+            <Stat value="0" label="Bank logins required" />
           </div>
+          <p className="mt-6 text-center text-xs text-surface-400">
+            Modeled on a $400,000 30-year fixed at 6.5% with $250/month redirected to principal as exact-amount prepayments.
+            Run your own numbers in the <a href="/calculator" className="underline decoration-surface-300 underline-offset-2 hover:text-surface-600">calculator</a>.
+          </p>
         </Container>
       </section>
 
@@ -122,10 +165,11 @@ export default function Landing() {
         <Container className="py-24">
           <div className="max-w-2xl">
             <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
-              Everything you need to plan around the biggest asset you own.
+              The methodology, turned into software.
             </h2>
             <p className="mt-4 text-surface-500">
-              Four tightly-built tools that work together — not a sprawling spreadsheet you'll never open.
+              Four tightly-built tools that work together — a financial ledger, an amortization audit, and the prepayment
+              workflow that keeps both honest.
             </p>
           </div>
           <div className="mt-12 grid gap-5 sm:grid-cols-2">
@@ -148,6 +192,28 @@ export default function Landing() {
         </Container>
       </section>
 
+      {/* Section break — pull-quote over photo */}
+      <section className="relative isolate overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=2400&q=80"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 -z-10 bg-surface-900/60" />
+        <Container className="relative py-28 lg:py-36">
+          <blockquote className="max-w-3xl">
+            <p className="font-display text-3xl font-medium leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+              You're not <span className="italic text-accent-200">paying ahead.</span> You're permanently retiring a numbered payment from the schedule.
+            </p>
+            <footer className="mt-6 font-mono text-xs uppercase tracking-wider text-white/60">
+              The methodology, in one sentence
+            </footer>
+          </blockquote>
+        </Container>
+      </section>
+
       {/* How it works */}
       <section className="bg-surface-50">
         <Container className="py-24">
@@ -155,11 +221,11 @@ export default function Landing() {
             <div>
               <p className="font-mono text-xs uppercase tracking-wider text-accent-600">How it works</p>
               <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
-                Three steps to a real plan.
+                Three steps. Then repeat for thirty years.
               </h2>
               <p className="mt-4 text-surface-500">
-                You don't need to be a financial expert. You need a tool that asks the right questions
-                and shows you the consequences.
+                You don't need to be a financial expert. You need a tool that owns the math, surfaces the choices,
+                and keeps the bank honest while you do the rest of your life.
               </p>
             </div>
             <ol className="space-y-6">
@@ -186,10 +252,11 @@ export default function Landing() {
           <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
             <div className="max-w-xl">
               <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-                The cost of waiting another month? About six.
+                Every uncaught error compounds for thirty years.
               </h2>
               <p className="mt-3 text-surface-300">
-                Every month you wait to optimize compounds against you. Try the calculator and see for yourself.
+                A single $200 misposting on a 6.5% loan with 25 years to run costs you about $700 by payoff.
+                Catching it the month it happens costs about a minute.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -225,10 +292,11 @@ export default function Landing() {
       <section className="bg-gradient-to-b from-white to-surface-50">
         <Container className="py-20 text-center">
           <h2 className="font-display text-4xl font-semibold tracking-tight text-surface-900 sm:text-5xl">
-            See your payoff date.
+            Own your ledger. Own your timeline.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-surface-500">
-            Five minutes of input. A plan you can actually use. Free for as long as you need it.
+            Five minutes of input. A schedule the bank should agree with — and the tools to make sure it does.
+            Free for as long as you need it.
           </p>
           <div className="mt-8 flex justify-center">
             <ButtonLink to="/signup" variant="primary" size="lg">

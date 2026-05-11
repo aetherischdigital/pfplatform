@@ -56,7 +56,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/blog',
-    title: 'Insights',
+    title: 'Blog',
     description: 'Educational articles on payoff strategies, equity, and homeownership.',
     changefreq: 'weekly',
     priority: 0.7,

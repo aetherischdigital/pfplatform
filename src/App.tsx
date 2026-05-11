@@ -15,6 +15,9 @@ import Pricing from './pages/marketing/Pricing'
 import About from './pages/marketing/About'
 import Blog from './pages/marketing/Blog'
 import BlogPost from './pages/marketing/BlogPost'
+import Privacy from './pages/marketing/Privacy'
+import Terms from './pages/marketing/Terms'
+import Disclosures from './pages/marketing/Disclosures'
 
 import Dashboard from './pages/app/Dashboard'
 import Financials from './pages/app/Financials'
@@ -40,6 +43,11 @@ export default function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/about" element={<About />} />
+          {/* Legal placeholders — skeleton only, awaiting counsel-provided content.
+              noindex'd in usePageMeta and excluded from PUBLIC_ROUTES until live. */}
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/disclosures" element={<Disclosures />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

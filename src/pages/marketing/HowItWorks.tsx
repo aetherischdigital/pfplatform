@@ -16,36 +16,36 @@ type Section = {
 const sections: Section[] = [
   {
     eyebrow: 'Step 01',
-    title: 'A complete picture of your finances, in one place.',
-    body: 'The Personal Financial Statement is a banker\'s tool — assets, liabilities, income, expenses. We make it the spine of your dashboard so every recommendation has real numbers behind it.',
+    title: 'The PFS as your spine.',
+    body: "The Personal Financial Statement is the instrument a banker uses to evaluate a borrower. We turn it the other way around — into the living spine of your dashboard, so every payoff projection, prepayment plan, and equity report draws from one consistent picture of your finances.",
     bullets: [
-      'Track home, accounts, vehicles, and other assets',
-      'Mortgages, loans, and credit lines with live balances',
-      'Income and expenses with the level of detail you want',
+      'Assets: home, retirement, cash, vehicles, other holdings',
+      'Liabilities: mortgages, loans, credit lines with current balances',
+      'Income and expenses, at the level of detail you choose',
     ],
     icon: Home,
     visual: 'pfs',
   },
   {
     eyebrow: 'Step 02',
-    title: 'See equity grow as it actually will.',
-    body: 'Realistic appreciation, principal paydown, and refinance scenarios in one chart. Not a single line — a range, with assumptions you can challenge.',
+    title: 'Your amortization schedule — the one the bank should agree with.',
+    body: "Every fixed-rate loan resolves to a numbered list of payments, each with a precise principal and interest split decided the day the Note is signed. We generate that schedule for you, store it as your ledger, and project equity off of it. The bank's statement should match — and if it doesn't, that's news you want.",
     bullets: [
-      'Conservative, expected, and aggressive projection bands',
-      'See the impact of one-time and recurring extra principal',
-      'Compare current path vs. optimized path side by side',
+      'Full payment-by-payment amortization, generated from your Note',
+      'Equity projection grounded in checkable math, not a forecast',
+      'Reconcile each monthly statement against the ledger to catch errors',
     ],
     icon: LineChart,
     visual: 'equity',
   },
   {
     eyebrow: 'Step 03',
-    title: 'A payoff plan that actually fits your life.',
-    body: 'Test biweekly payments, recasts, lump-sum scenarios, and round-up strategies. Pick the plan you\'ll actually stick to — not the most aggressive one on paper.',
+    title: 'Prepay in exact amounts. Retire payments early.',
+    body: "Instead of sending a round-number extra payment that drifts the math, the platform tells you the exact principal portion of your next scheduled payment — or the sum across several — and prints a label for the check. You're not 'paying ahead.' You're permanently retiring a numbered payment from the schedule.",
     bullets: [
-      'Side-by-side scenario comparison',
-      'Total interest saved, broken out by strategy',
-      'Calendar of triggered actions you can opt in to',
+      'Single-payment prepayments: knock out payment #6 with one check',
+      'Multi-payment prepayments: retire #6–#8 with one sum',
+      'Every prepayment updates your projected payoff and interest saved',
     ],
     icon: Calculator,
     visual: 'payoff',
@@ -53,22 +53,22 @@ const sections: Section[] = [
   {
     eyebrow: 'For realtors',
     title: 'Stay top-of-mind long after closing.',
-    body: 'Manage your roster, share custom payoff plans with each client, and become the long-term trusted advisor instead of the one-time transaction.',
+    body: 'Manage a roster of homeowner clients, view their plans with permission, and become the long-term advisor instead of the one-time transaction. Submit property-value updates, send reminders, and share payoff progress on a cadence you set.',
     bullets: [
-      'Invite clients with one link',
-      'View and edit their financial plan with their permission',
-      'Branded reports you can send between meetings',
+      'Invite clients with one link; they keep ownership of their data',
+      'View — or, with permission, edit — their dashboard side by side with yours',
+      'Reminder templates and branded reports for after-closing touchpoints',
     ],
     icon: Users,
     visual: 'realtor',
   },
   {
     eyebrow: 'Always-on',
-    title: 'Education that compounds.',
-    body: 'Articles, calculators, and walkthroughs that turn an abstract concept ("equity") into something you can act on this month.',
+    title: 'Education built around the methodology.',
+    body: 'Articles, calculators, and walkthroughs that explain the *why* behind the prepayment workflow — when biweekly programs are a marketing trick, why recasts matter, how to catch a servicer transfer that loses a payment in the seam.',
     bullets: [
-      'Plain-English deep-dives on payoff strategies',
-      'Tools you can use without an account',
+      'Plain-English deep-dives on prepayment, recasts, PMI, servicer transfers',
+      'Public mortgage payoff calculator — no account required',
       'New content as the platform grows',
     ],
     icon: BookOpen,
@@ -83,10 +83,11 @@ export default function HowItWorks() {
         <Container className="py-20 text-center">
           <p className="font-mono text-xs uppercase tracking-wider text-accent-600">How it works</p>
           <h1 className="mx-auto mt-3 max-w-3xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
-            From a number on a statement to a plan you can act on.
+            From a Note at closing to a ledger you control for the next thirty years.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
-            Five tools, one product. Built so each step makes the next one easier.
+            Five tools, one product. The PFS, the amortization schedule, the prepayment workflow, the realtor surface, and the
+            education that explains the math.
           </p>
         </Container>
       </section>
@@ -133,10 +134,10 @@ export default function HowItWorks() {
       <section className="bg-surface-50">
         <Container className="py-20 text-center">
           <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
-            Ready to see your numbers?
+            Ready to start your ledger?
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-surface-500">
-            Five minutes of input gets you a full picture. No card, no commitment.
+            Five minutes of input gets you your full amortization schedule and a dashboard you'll actually use. No card, no commitment.
           </p>
           <div className="mt-8 flex justify-center">
             <ButtonLink to="/signup" variant="primary" size="lg">

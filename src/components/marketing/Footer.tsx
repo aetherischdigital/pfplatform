@@ -16,16 +16,16 @@ const sections = [
   {
     title: 'Resources',
     links: [
-      { to: '/blog', label: 'Insights' },
+      { to: '/blog', label: 'Blog' },
       { to: '/about', label: 'About' },
     ],
   },
   {
     title: 'Legal',
     links: [
-      { to: '#', label: 'Privacy' },
-      { to: '#', label: 'Terms' },
-      { to: '#', label: 'Disclosures' },
+      { to: '/privacy', label: 'Privacy' },
+      { to: '/terms', label: 'Terms' },
+      { to: '/disclosures', label: 'Disclosures' },
     ],
   },
 ]
