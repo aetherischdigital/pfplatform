@@ -4,8 +4,8 @@ import {
   Calculator as CalculatorIcon,
   ListOrdered,
   RefreshCw,
-  Repeat,
   Scale,
+  TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import PayoffCalculator, {
@@ -14,6 +14,9 @@ import PayoffCalculator, {
 import AmortizationCalculator, {
   type AmortizationCalculatorDefaults,
 } from '../../components/calculators/AmortizationCalculator'
+import EquityProjectionCalculator, {
+  type EquityCalculatorDefaults,
+} from '../../components/calculators/EquityProjectionCalculator'
 import { fetchPfs, type Pfs } from '../../lib/pfs'
 import { Button } from '../../components/ui/Button'
 import { markCalculatorVisited } from '../../lib/onboarding'
@@ -104,17 +107,34 @@ export default function Calculators() {
         )}
       </section>
 
+      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-surface-900">
+              Equity projection
+            </h2>
+            <p className="mt-0.5 text-sm text-surface-500">
+              Project equity over time as your home value grows and your balance falls.
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <PayoffCalculatorSkeleton />
+        ) : (
+          <EquityProjectionCalculator defaults={pfsToEquityDefaults(pfs)} />
+        )}
+      </section>
+
       <section>
         <h2 className="font-display text-lg font-semibold text-surface-900">More calculators</h2>
         <p className="mt-1 text-sm text-surface-500">
           Still to come in the Phase 2 release.
         </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ComingSoonTile
-            icon={Repeat}
-            title="Equity projection"
-            description="Project equity over time given property value, growth rate, and your loan terms."
-          />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <ComingSoonTile
             icon={RefreshCw}
             title="Refinance compare"
@@ -213,5 +233,18 @@ function pfsToAmortizationDefaults(pfs: Pfs | null): AmortizationCalculatorDefau
     balance: m.balance,
     rate: m.ratePct,
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+  }
+}
+
+function pfsToEquityDefaults(pfs: Pfs | null): EquityCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    startingHomeValue: m.startingHomeValue,
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    monthlyPayment: m.monthlyPayment,
+    extra: m.extraPrincipal,
   }
 }
