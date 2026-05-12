@@ -6,7 +6,7 @@ import {
   formatYearsMonths,
   monthlyPaymentForLoan,
 } from '../../lib/mortgage'
-import { formFieldClass } from '../ui/formStyles'
+import { NumberField } from '../ui/NumberField'
 
 export type EquityCalculatorDefaults = {
   startingHomeValue?: number
@@ -97,6 +97,7 @@ export default function EquityProjectionCalculator({ defaults }: Props) {
               onChange={setAppreciationPct}
               step={0.25}
               min={-10}
+              hint="Long-run U.S. average is roughly 3–4%. Negative for a soft market."
             />
           </div>
 
@@ -253,49 +254,3 @@ function ResultStat({
   )
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  prefix,
-  suffix,
-  step = 1,
-  min = 0,
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  prefix?: string
-  suffix?: string
-  step?: number
-  min?: number
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-surface-700">{label}</span>
-      <div className="relative mt-1.5">
-        {prefix && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
-            {prefix}
-          </span>
-        )}
-        <input
-          type="number"
-          value={Number.isFinite(value) ? value : ''}
-          onChange={(e) => {
-            const n = Number(e.target.value)
-            onChange(Number.isFinite(n) ? Math.max(min, n) : min)
-          }}
-          step={step}
-          min={min}
-          className={`${formFieldClass} text-base ${prefix ? 'pl-7' : ''} ${suffix ? 'pr-16' : ''}`}
-        />
-        {suffix && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
-            {suffix}
-          </span>
-        )}
-      </div>
-    </label>
-  )
-}

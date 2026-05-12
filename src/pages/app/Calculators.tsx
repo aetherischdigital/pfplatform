@@ -81,7 +81,7 @@ export default function Calculators() {
               Mortgage payoff
             </h2>
             <p className="mt-0.5 text-sm text-surface-500">
-              Compare your scheduled payoff against extra-principal scenarios.
+              How much faster does your loan disappear if you send extra each month?
             </p>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function Calculators() {
               Amortization schedule
             </h2>
             <p className="mt-0.5 text-sm text-surface-500">
-              See exactly where each payment goes — principal, interest, and balance — for the life of the loan.
+              Where does every dollar of every payment go? Here&rsquo;s the receipt, month by month.
             </p>
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function Calculators() {
               Equity projection
             </h2>
             <p className="mt-0.5 text-sm text-surface-500">
-              Project equity over time as your home value grows and your balance falls.
+              Two things build equity: your home value rising, and your balance falling. Watch them work together.
             </p>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function Calculators() {
               Payoff scenarios
             </h2>
             <p className="mt-0.5 text-sm text-surface-500">
-              Compare no-extra, monthly-extra, biweekly, and lump-sum strategies side-by-side.
+              Four ways to retire your loan early. Which one fits your situation?
             </p>
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function Calculators() {
               Refinance compare
             </h2>
             <p className="mt-0.5 text-sm text-surface-500">
-              Current loan vs. a new rate and term — with break-even and lifetime impact.
+              A lower payment isn&rsquo;t free. What does it cost &mdash; and when does it pay for itself?
             </p>
           </div>
         </div>
