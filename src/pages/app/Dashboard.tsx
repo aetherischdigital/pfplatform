@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, ArrowDownRight, AlertTriangle, Home } from 'l
 import type { LucideIcon } from 'lucide-react'
 import {
   fetchPfs,
+  totalMonthlyHousingOutflow,
   totals,
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
@@ -20,6 +21,7 @@ import {
 import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import OnboardingCard from '../../components/app/OnboardingCard'
+import CashFlowSection from '../../components/app/CashFlowSection'
 
 export default function Dashboard() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -111,6 +113,8 @@ export default function Dashboard() {
       ) : (
         <NoMortgagePrompt />
       )}
+
+      <CashFlowSection income={pfs.income} expenses={pfs.expenses} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
@@ -211,6 +215,7 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
 
 function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
   const scenario = compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
+  const piti = totalMonthlyHousingOutflow(m)
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
@@ -229,11 +234,42 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
           value={formatUSD(Math.max(0, scenario.interestSaved))}
         />
       </dl>
+      {piti?.hasPiti && (
+        <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
+            True monthly housing cost
+          </div>
+          <div className="mt-1.5 font-display text-xl font-semibold text-surface-900">
+            {formatUSD(piti.total)}/mo
+          </div>
+          <dl className="mt-3 space-y-1 text-xs text-surface-600">
+            <PitiRow label="Principal &amp; interest" value={formatUSD(m.monthlyPayment)} />
+            {m.propertyTaxAnnual != null && (
+              <PitiRow label="Property tax" value={`${formatUSD(m.propertyTaxAnnual / 12)} (${formatUSD(m.propertyTaxAnnual)}/yr)`} />
+            )}
+            {m.homeownersInsuranceAnnual != null && (
+              <PitiRow label="Insurance" value={`${formatUSD(m.homeownersInsuranceAnnual / 12)} (${formatUSD(m.homeownersInsuranceAnnual)}/yr)`} />
+            )}
+            {m.hoaMonthly != null && m.hoaMonthly > 0 && (
+              <PitiRow label="HOA" value={formatUSD(m.hoaMonthly)} />
+            )}
+          </dl>
+        </div>
+      )}
       <div className="mt-auto pt-5">
         <ButtonLink to="/app/calculators" variant="secondary" size="sm" className="w-full">
           Try other scenarios <ArrowRight size={14} />
         </ButtonLink>
       </div>
+    </div>
+  )
+}
+
+function PitiRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-surface-500">{label}</dt>
+      <dd className="font-mono">{value}</dd>
     </div>
   )
 }
