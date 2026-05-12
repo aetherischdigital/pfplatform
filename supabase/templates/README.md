@@ -3,7 +3,7 @@
 Branded HTML templates for the three auth emails Supabase sends. Designed to
 match the marketing site: deep moss header strip, white card, walnut accent.
 
-| File | Used for | Subject (recommended) |
+| File | Used for | Subject |
 |---|---|---|
 | `confirmation.html` | Signup email-verification | `Confirm your Personal Financial Platform account` |
 | `recovery.html` | Password reset link | `Reset your Personal Financial Platform password` |
@@ -11,19 +11,29 @@ match the marketing site: deep moss header strip, white card, walnut accent.
 
 ## How to apply (production)
 
-The Supabase **dashboard** is the source of truth for production email
-templates — the CLI's `[auth.email.template.*]` blocks only configure the
-local dev instance. Paste each template into the matching field in
-Supabase Studio:
+The `[auth.email.template.*]` blocks in `supabase/config.toml` reference these
+files. To push them to the live project, from `app/`:
 
-1. Go to **Authentication → Email Templates** in the Supabase dashboard.
-2. For each of:
-   - **Confirm signup** ← paste `confirmation.html`
-   - **Reset password** ← paste `recovery.html`
-   - **Change email address** ← paste `email_change.html`
-3. Set the subject lines from the table above.
-4. Save each. Changes are live immediately — test with a real signup +
-   password reset to verify rendering across Gmail / iOS Mail / Outlook.
+```sh
+npx supabase config push --yes
+```
+
+That command syncs the entire `config.toml` to remote — not just the
+templates. The CLI prints a diff and waits for confirmation (`--yes` accepts
+it). Before running, **read the diff**: any setting in `config.toml` that
+diverges from production will be overwritten too. In particular, the
+default config.toml ships with values appropriate for `supabase start` (e.g.
+`enable_confirmations = false`, `site_url = "http://127.0.0.1:3000"`) that
+would break production if pushed verbatim. The auth section in our
+`config.toml` has been hand-tuned to production values:
+
+- `site_url = "https://pfplatform.app"`
+- `enable_confirmations = true`
+- `otp_length = 8`
+- `max_frequency = "1m0s"`
+- MFA TOTP `enroll_enabled` + `verify_enabled` = `true`
+
+If you change any of those, you change production. Push only with eyes open.
 
 The templates use the standard Supabase variables:
 
