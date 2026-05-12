@@ -27,7 +27,9 @@ export type ExistingRecord =
 type Props = {
   open: boolean
   onClose: () => void
-  onSaved: () => void
+  /** Returns a promise so the modal can keep its saving state until the
+   *  parent's refetch completes — avoids a flash of stale list after save. */
+  onSaved: () => void | Promise<void>
   kind: PfsRecordKind
   existing?: ExistingRecord
 }
@@ -91,7 +93,7 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
       if (existing) await updatePfsRecord(existing.id, input)
       else await createPfsRecord(input)
 
-      onSaved()
+      await onSaved()
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed.')

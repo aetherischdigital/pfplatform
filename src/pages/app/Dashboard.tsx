@@ -216,7 +216,9 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
     <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
       <h2 className="font-display text-lg font-semibold text-surface-900">Payoff plan</h2>
       <p className="mt-1 text-sm text-surface-500">
-        Paying ${m.extraPrincipal} extra each month vs. baseline.
+        {m.extraPrincipal > 0
+          ? `Paying ${formatUSD(m.extraPrincipal)} extra each month vs. baseline.`
+          : 'Add extra principal to accelerate your payoff.'}
       </p>
       <dl className="mt-5 space-y-3">
         <Row label="Baseline payoff" value={payoffDate(scenario.baseline.months)} muted />
@@ -410,7 +412,7 @@ function NoMortgagePrompt() {
       title="Add your mortgage to unlock equity & payoff projections"
       body="Enter your balance, rate, and monthly payment from your Note. The platform projects equity, compares payoff scenarios, and shows interest saved against the baseline."
       ctaLabel="Add mortgage"
-      ctaTo="/app/financials"
+      ctaTo="/app/financials?add=mortgage"
     />
   )
 }

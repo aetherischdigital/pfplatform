@@ -55,10 +55,15 @@ export function useModalDismiss(
     document.body.style.overflow = 'hidden'
 
     queueMicrotask(() => {
-      const firstInput = containerRef.current?.querySelector<HTMLElement>(
-        'input, select, textarea, button',
+      // Prefer first form field over buttons — the close (X) button is first in
+      // DOM order on every modal, but screen readers announcing "Close, button"
+      // on every open is worse than landing on the email input.
+      const field = containerRef.current?.querySelector<HTMLElement>(
+        'input:not([type="hidden"]), select, textarea',
       )
-      firstInput?.focus()
+      const fallback = containerRef.current?.querySelector<HTMLElement>('button:not([aria-label="Close"])')
+      const target = field ?? fallback ?? containerRef.current
+      target?.focus()
     })
 
     return () => {

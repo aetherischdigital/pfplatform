@@ -37,8 +37,10 @@ export default function EquityProjectionChart({ points, className = '' }: Props)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const maxMonth = points.length > 0 ? points[points.length - 1].month : 0
+  // Use max of both series so an underwater loan (balance > homeValue) doesn't
+  // render the balance area above the chart top.
   const maxValue = useMemo(
-    () => points.reduce((m, p) => Math.max(m, p.homeValue), 0),
+    () => points.reduce((m, p) => Math.max(m, p.homeValue, p.balance), 0),
     [points],
   )
 

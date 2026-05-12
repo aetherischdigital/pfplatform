@@ -7,7 +7,9 @@ import { upsertMortgage, type Mortgage, type MortgageInput } from '../../lib/pfs
 type Props = {
   open: boolean
   onClose: () => void
-  onSaved: () => void
+  /** Returns a promise so the modal can keep its saving state until the
+   *  parent's refetch completes — avoids a flash of stale UI after save. */
+  onSaved: () => void | Promise<void>
   existing?: Mortgage | null
 }
 
@@ -86,7 +88,7 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
     setSaving(true)
     try {
       await upsertMortgage(input, existing?.id)
-      onSaved()
+      await onSaved()
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed.')

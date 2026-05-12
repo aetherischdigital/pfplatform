@@ -512,10 +512,16 @@ function Field({
 
 export function AuthModalRedirect({ view }: { view: AuthView }) {
   const { openModal } = useAuthModal()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   useEffect(() => {
+    // Already signed in? Skip the auth modal entirely and go to their home.
+    if (user) {
+      navigate(homePathFor(profile?.role), { replace: true })
+      return
+    }
     openModal(view)
     navigate('/', { replace: true })
-  }, [view, openModal, navigate])
+  }, [view, openModal, navigate, user, profile])
   return null
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import {
   ASSET_CATEGORY_LABELS,
@@ -22,6 +23,7 @@ type PendingDelete =
   | { kind: 'mortgage'; id: string; propertyLabel: string }
 
 export default function Financials() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [pfs, setPfs] = useState<Pfs | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +31,18 @@ export default function Financials() {
   const [recordModal, setRecordModal] = useState<{ kind: PfsRecordKind; existing?: ExistingRecord } | null>(
     null,
   )
-  const [mortgageModalOpen, setMortgageModalOpen] = useState(false)
+  // Auto-open the mortgage modal when arriving via the onboarding "Add mortgage"
+  // CTA (?add=mortgage). Strip the param immediately so refresh doesn't reopen.
+  const [mortgageModalOpen, setMortgageModalOpen] = useState(
+    () => searchParams.get('add') === 'mortgage',
+  )
+  useEffect(() => {
+    if (searchParams.get('add') === 'mortgage') {
+      const next = new URLSearchParams(searchParams)
+      next.delete('add')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [deleting, setDeleting] = useState(false)
 

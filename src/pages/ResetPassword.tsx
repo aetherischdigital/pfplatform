@@ -172,9 +172,11 @@ export default function ResetPassword() {
             <h1 className="mt-4 font-display text-xl font-semibold text-surface-900">
               Password updated
             </h1>
-            <p className="mt-2 text-sm text-surface-500">You&rsquo;re signed in. Heading to your dashboard.</p>
+            <p className="mt-2 text-sm text-surface-500">
+              You&rsquo;re signed in with your new password.
+            </p>
             <Button type="button" variant="primary" size="md" onClick={goHome} className="mt-5 w-full">
-              Continue
+              Go to dashboard
             </Button>
           </div>
         )}

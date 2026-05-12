@@ -45,7 +45,11 @@ export default function BlogCoverImage({
   }
 
   return (
-    <picture className={className}>
+    // `<picture>` is inline by HTML default; force block so width/aspect-ratio
+    // classes from `className` size the container as expected. Without this,
+    // Safari (and Firefox in some cases) collapse the picture to the img's
+    // intrinsic size and ignore the layout classes.
+    <picture className={`block overflow-hidden ${className}`}>
       <source
         type="image/webp"
         srcSet={`${src}-800.webp 800w, ${src}-1600.webp 1600w`}

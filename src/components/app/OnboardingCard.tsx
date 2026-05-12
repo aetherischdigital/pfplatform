@@ -64,7 +64,7 @@ export default function OnboardingCard({
       title: 'Add your mortgage',
       body: 'Enter your balance, rate, and monthly payment to unlock equity + payoff projections.',
       ctaLabel: 'Add mortgage',
-      ctaTo: '/app/financials',
+      ctaTo: '/app/financials?add=mortgage',
       done: hasMortgage,
     },
     {
