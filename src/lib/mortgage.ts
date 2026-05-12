@@ -108,6 +108,57 @@ export function compareScenarios(
   }
 }
 
+export type AmortizationRow = {
+  /** 1-indexed month number (1 = first payment) */
+  month: number
+  /** Scheduled P&I payment for this month */
+  payment: number
+  /** Portion of the payment applied to principal */
+  principal: number
+  /** Portion of the payment that paid interest */
+  interest: number
+  /** Remaining balance after this month's payment */
+  balance: number
+}
+
+/**
+ * Full amortization schedule for a loan paid on its scheduled monthly P&I
+ * with no extra principal. Returns one row per month until the balance is
+ * fully retired (or the 50-year cap, in which case the schedule is
+ * truncated and the final row's balance is non-zero — callers should
+ * surface this honestly rather than pretend it amortized).
+ *
+ * For "what if I add extra" scenarios, use `simulate()` instead — it
+ * returns the same shape of history but accepts `extraPrincipal`.
+ */
+export function amortizationSchedule(
+  principal: number,
+  annualRatePct: number,
+  termMonths: number,
+): AmortizationRow[] {
+  if (principal <= 0 || termMonths <= 0) return []
+  const payment = monthlyPaymentForLoan(principal, annualRatePct, termMonths)
+  const r = annualRatePct / 100 / 12
+  const rows: AmortizationRow[] = []
+  let balance = principal
+
+  for (let m = 1; m <= termMonths && balance > 0.01; m++) {
+    const interest = balance * r
+    let principalPaid = payment - interest
+    // Last row often has a tiny overpay due to float rounding — clamp it.
+    if (principalPaid > balance) principalPaid = balance
+    balance -= principalPaid
+    rows.push({
+      month: m,
+      payment: principalPaid + interest,
+      principal: principalPaid,
+      interest,
+      balance: Math.max(0, balance),
+    })
+  }
+  return rows
+}
+
 /** Pretty-print a month count as "Xy Ym" (or "Ym" / "Xy"). */
 export function formatYearsMonths(totalMonths: number): string {
   if (!Number.isFinite(totalMonths)) return '—'

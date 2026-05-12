@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   Calculator as CalculatorIcon,
-  CalendarClock,
+  ListOrdered,
   RefreshCw,
   Repeat,
   Scale,
@@ -11,6 +11,9 @@ import type { LucideIcon } from 'lucide-react'
 import PayoffCalculator, {
   type PayoffCalculatorDefaults,
 } from '../../components/calculators/PayoffCalculator'
+import AmortizationCalculator, {
+  type AmortizationCalculatorDefaults,
+} from '../../components/calculators/AmortizationCalculator'
 import { fetchPfs, type Pfs } from '../../lib/pfs'
 import { Button } from '../../components/ui/Button'
 import { markCalculatorVisited } from '../../lib/onboarding'
@@ -79,21 +82,38 @@ export default function Calculators() {
         {loading ? <PayoffCalculatorSkeleton /> : <PayoffCalculator defaults={defaults} />}
       </section>
 
+      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
+            <ListOrdered size={18} />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-surface-900">
+              Amortization schedule
+            </h2>
+            <p className="mt-0.5 text-sm text-surface-500">
+              See exactly where each payment goes — principal, interest, and balance — for the life of the loan.
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <PayoffCalculatorSkeleton />
+        ) : (
+          <AmortizationCalculator defaults={pfsToAmortizationDefaults(pfs)} />
+        )}
+      </section>
+
       <section>
         <h2 className="font-display text-lg font-semibold text-surface-900">More calculators</h2>
         <p className="mt-1 text-sm text-surface-500">
-          The next set of tools, building on your ledger. Coming with the Phase 2 release.
+          Still to come in the Phase 2 release.
         </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ComingSoonTile
-            icon={CalendarClock}
-            title="Prepayment planner"
-            description="Pick which scheduled payments to retire and print a check label for each."
-          />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <ComingSoonTile
             icon={Repeat}
-            title="Recast calculator"
-            description="Model a lump-sum reamortization and the new monthly payment."
+            title="Equity projection"
+            description="Project equity over time given property value, growth rate, and your loan terms."
           />
           <ComingSoonTile
             icon={RefreshCw}
@@ -102,8 +122,8 @@ export default function Calculators() {
           />
           <ComingSoonTile
             icon={Scale}
-            title="Biweekly vs. extra principal"
-            description="Honest math on whether a biweekly program beats sending extra yourself."
+            title="Scenarios side-by-side"
+            description="Compare no-extra, monthly-extra, biweekly, and lump-sum payoff strategies."
           />
         </div>
       </section>
@@ -183,5 +203,15 @@ function pfsToCalculatorDefaults(pfs: Pfs | null): PayoffCalculatorDefaults | un
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     extra: m.extraPrincipal,
     monthlyPayment: m.monthlyPayment,
+  }
+}
+
+function pfsToAmortizationDefaults(pfs: Pfs | null): AmortizationCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
   }
 }
