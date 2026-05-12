@@ -18,6 +18,7 @@ const sections = [
     links: [
       { to: '/blog', label: 'Blog' },
       { to: '/about', label: 'About' },
+      { to: '/how-it-works#realtors', label: 'For realtors' },
     ],
   },
   {
@@ -37,16 +38,13 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,_1fr)]">
           <div className="space-y-4">
             <Wordmark size="md" />
-            <p className="max-w-xs text-sm text-surface-500">
-              {BRAND.tagline} Pay off your home, build equity, grow wealth.
-            </p>
             <p className="max-w-xs font-display text-sm italic text-accent-600">
               Eliminating debt &amp; creating ownership.
             </p>
           </div>
           {sections.map((s) => (
             <div key={s.title}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-surface-400">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-surface-500">
                 {s.title}
               </h3>
               <ul className="mt-3 space-y-2">
@@ -62,7 +60,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-surface-200 pt-6 text-xs text-surface-400 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-surface-200 pt-6 text-xs text-surface-500 sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} {BRAND.legalName}. All rights reserved.</span>
           <span>Educational. Not financial advice.</span>
         </div>

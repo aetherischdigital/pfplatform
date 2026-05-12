@@ -104,7 +104,7 @@ export default function Financials() {
   const t = totals(pfs)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <header>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
           Personal Financial Statement
@@ -115,7 +115,7 @@ export default function Financials() {
       </header>
 
       {error && (
-        <div role="alert" className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="flex items-start gap-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
           <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -316,7 +316,7 @@ function Headline({
 }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -406,7 +406,7 @@ function ItemList({ rows }: { rows: Row[] }) {
             <button
               type="button"
               onClick={r.onEdit}
-              className="rounded-md p-2 text-surface-400 hover:bg-surface-100 hover:text-surface-700"
+              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               aria-label={`Edit ${r.label}`}
             >
               <Pencil size={14} />
@@ -414,7 +414,7 @@ function ItemList({ rows }: { rows: Row[] }) {
             <button
               type="button"
               onClick={r.onDelete}
-              className="rounded-md p-2 text-surface-400 hover:bg-red-50 hover:text-red-600"
+              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               aria-label={`Delete ${r.label}`}
             >
               <Trash2 size={14} />
@@ -458,9 +458,9 @@ function SkeletonState() {
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-      <AlertTriangle size={24} className="mx-auto text-red-600" />
-      <p className="mt-3 text-sm text-red-700">{message}</p>
+    <div className="rounded-2xl border border-danger-200 bg-danger-50 p-8 text-center">
+      <AlertTriangle size={24} className="mx-auto text-danger-600" />
+      <p className="mt-3 text-sm text-danger-700">{message}</p>
       <Button variant="secondary" size="sm" onClick={onRetry} className="mt-4">
         Try again
       </Button>

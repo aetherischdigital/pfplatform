@@ -8,6 +8,7 @@ import {
   formatYearsMonths,
   payoffDate,
 } from '../../lib/mortgage'
+import { formFieldClass } from '../ui/formStyles'
 
 export type PayoffCalculatorDefaults = {
   balance?: number
@@ -161,7 +162,7 @@ function ResultStat({
 }) {
   return (
     <div className="p-6">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -224,9 +225,7 @@ function NumberField({
           }}
           step={step}
           min={min}
-          className={`w-full rounded-md border border-surface-200 bg-white py-2.5 text-base text-surface-900 outline-none transition-colors focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 ${
-            prefix ? 'pl-7' : 'pl-3'
-          } ${suffix ? 'pr-16' : 'pr-3'}`}
+          className={`${formFieldClass} text-base ${prefix ? 'pl-7' : ''} ${suffix ? 'pr-16' : ''}`}
         />
         {suffix && (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">

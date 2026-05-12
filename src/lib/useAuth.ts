@@ -1,8 +1,13 @@
 import { createContext, useContext } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import type { Profile, UserRole } from './profile'
+import type { Profile, UserRole, WaitlistInterest } from './profile'
 
-export type SignUpArgs = { email: string; password: string; fullName: string }
+export type SignUpArgs = {
+  email: string
+  password: string
+  fullName: string
+  waitlistInterest?: WaitlistInterest
+}
 export type SignInArgs = { email: string; password: string }
 
 export type AuthContextValue = {

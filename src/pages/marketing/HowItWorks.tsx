@@ -100,7 +100,8 @@ export default function HowItWorks() {
             return (
               <div
                 key={s.title}
-                className={`grid items-center gap-12 lg:grid-cols-2 lg:gap-16 ${
+                id={s.visual === 'realtor' ? 'realtors' : undefined}
+                className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-2 lg:gap-16 ${
                   reversed ? 'lg:[&>*:first-child]:order-2' : ''
                 }`}
               >
@@ -156,12 +157,12 @@ function SectionVisual({ kind }: { kind: Section['visual'] }) {
       <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card-lg">
         <div className="flex items-baseline justify-between">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
+            <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
               Projected equity
             </div>
             <div className="mt-1 font-display text-3xl font-semibold text-surface-900">$312,400</div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+          <span className="rounded-full bg-success-50 px-2.5 py-1 text-xs font-medium text-success-700">
             +$48k / yr
           </span>
         </div>
@@ -249,7 +250,7 @@ function SectionVisual({ kind }: { kind: Section['visual'] }) {
       <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card-lg">
         <div className="flex items-center justify-between">
           <h4 className="font-display text-base font-semibold text-surface-900">Your clients</h4>
-          <span className="font-mono text-xs text-surface-400">4 active</span>
+          <span className="font-mono text-xs text-surface-500">4 active</span>
         </div>
         <ul className="mt-4 divide-y divide-surface-200 border-t border-surface-200">
           {clients.map((c) => (

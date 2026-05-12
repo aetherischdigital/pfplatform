@@ -1,10 +1,12 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useModalDismiss } from '../../lib/useModalDismiss'
 
 type Props = {
   open: boolean
   onClose: () => void
-  title: string
+  /** Visible heading. Omit when the dialog manages its own header (e.g. AuthModal tab bar). */
+  title?: string
   titleId?: string
   children: ReactNode
   size?: 'sm' | 'md' | 'lg'
@@ -16,62 +18,12 @@ const sizeClass: Record<NonNullable<Props['size']>, string> = {
   lg: 'max-w-lg',
 }
 
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-
 export default function Modal({ open, onClose, title, titleId, children, size = 'md' }: Props) {
   const generatedId = useId()
   const resolvedTitleId = titleId ?? generatedId
   const cardRef = useRef<HTMLDivElement>(null)
-  const lastFocusedRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-
-    lastFocusedRef.current = document.activeElement as HTMLElement | null
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-        return
-      }
-      if (e.key !== 'Tab' || !cardRef.current) return
-      const focusables = Array.from(
-        cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      ).filter((el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null)
-      if (focusables.length === 0) {
-        e.preventDefault()
-        cardRef.current.focus()
-        return
-      }
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
-      const active = document.activeElement as HTMLElement | null
-      if (e.shiftKey && (active === first || !cardRef.current.contains(active))) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && (active === last || !cardRef.current.contains(active))) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    queueMicrotask(() => {
-      const firstInput = cardRef.current?.querySelector<HTMLElement>(
-        'input, select, textarea, button',
-      )
-      firstInput?.focus()
-    })
-
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-      lastFocusedRef.current?.focus()
-    }
-  }, [open, onClose])
+  useModalDismiss(open, onClose, cardRef)
 
   if (!open) return null
 
@@ -98,14 +50,14 @@ export default function Modal({ open, onClose, title, titleId, children, size = 
         >
           <X size={16} />
         </button>
-        <h2 id={resolvedTitleId} className="pr-8 font-display text-xl font-semibold text-surface-900">
-          {title}
-        </h2>
-        <div className="mt-5">{children}</div>
+        {title && (
+          <h2 id={resolvedTitleId} className="pr-8 font-display text-xl font-semibold text-surface-900">
+            {title}
+          </h2>
+        )}
+        <div className={title ? 'mt-5' : ''}>{children}</div>
       </div>
     </div>
   )
 }
 
-export const modalFieldClass =
-  'w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2.5 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white'

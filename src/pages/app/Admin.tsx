@@ -50,10 +50,20 @@ export default function Admin() {
   }, [])
 
   const counts = useMemo(() => {
-    const c = { total: users.length, homeowner: 0, realtor: 0, admin: 0, inactive: 0 }
+    const c = {
+      total: users.length,
+      homeowner: 0,
+      realtor: 0,
+      admin: 0,
+      inactive: 0,
+      plus: 0,
+      pro: 0,
+    }
     for (const u of users) {
       c[u.role] += 1
       if (!u.isActive) c.inactive += 1
+      if (u.waitlistInterest === 'plus') c.plus += 1
+      else if (u.waitlistInterest === 'pro') c.pro += 1
     }
     return c
   }, [users])
@@ -125,8 +135,13 @@ export default function Admin() {
         <CountCard label="Admins" value={counts.admin} accent />
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CountCard label="Waiting on Plus" value={counts.plus} />
+        <CountCard label="Waiting on Pro" value={counts.pro} />
+      </div>
+
       {error && (
-        <div role="alert" className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="flex items-start gap-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
           <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -175,18 +190,21 @@ export default function Admin() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-medium text-surface-900">
+                        <div className="flex flex-wrap items-center gap-2 font-medium text-surface-900">
                           {u.displayName || u.email?.split('@')[0] || 'Unnamed'}
                           {isSelf && (
-                            <span className="ml-2 rounded bg-accent-100 px-1.5 py-0.5 text-xs font-medium text-accent-700">
+                            <span className="rounded bg-accent-100 px-1.5 py-0.5 text-xs font-medium text-accent-700">
                               You
                             </span>
+                          )}
+                          {u.waitlistInterest !== 'none' && (
+                            <WaitlistChip interest={u.waitlistInterest} />
                           )}
                         </div>
                         <div className="truncate text-xs text-surface-500">{u.email ?? '—'}</div>
                       </div>
                       {u.isActive ? (
-                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
                           Active
                         </span>
                       ) : (
@@ -251,12 +269,15 @@ export default function Admin() {
                     return (
                       <tr key={u.id} className={u.isActive ? '' : 'bg-surface-50/50 opacity-75'}>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-surface-900">
+                          <div className="flex flex-wrap items-center gap-2 font-medium text-surface-900">
                             {u.displayName || u.email?.split('@')[0] || 'Unnamed'}
                             {isSelf && (
-                              <span className="ml-2 rounded bg-accent-100 px-1.5 py-0.5 text-xs font-medium text-accent-700">
+                              <span className="rounded bg-accent-100 px-1.5 py-0.5 text-xs font-medium text-accent-700">
                                 You
                               </span>
+                            )}
+                            {u.waitlistInterest !== 'none' && (
+                              <WaitlistChip interest={u.waitlistInterest} />
                             )}
                           </div>
                           <div className="text-xs text-surface-500">{u.email ?? '—'}</div>
@@ -275,7 +296,7 @@ export default function Admin() {
                         </td>
                         <td className="px-4 py-3">
                           {u.isActive ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
                               Active
                             </span>
                           ) : (
@@ -317,10 +338,18 @@ export default function Admin() {
   )
 }
 
+function WaitlistChip({ interest }: { interest: 'plus' | 'pro' }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-accent-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-600">
+      {interest}
+    </span>
+  )
+}
+
 function CountCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'

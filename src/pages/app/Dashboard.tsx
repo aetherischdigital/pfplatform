@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, AlertTriangle, ListPlus, Home } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ArrowDownRight, AlertTriangle, Home } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
   fetchPfs,
   totals,
@@ -18,6 +19,7 @@ import {
 } from '../../lib/mortgage'
 import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
+import OnboardingCard from '../../components/app/OnboardingCard'
 
 export default function Dashboard() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -56,7 +58,7 @@ export default function Dashboard() {
 
   if (!hasAnyData) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-fade-in">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
             {greeting}, {name}.
@@ -65,13 +67,13 @@ export default function Dashboard() {
             Let&rsquo;s build your ledger. Once you add a few PFS entries, this dashboard fills in.
           </p>
         </div>
-        <EmptyDashboard />
+        <OnboardingCard hasAnyPfs={false} hasMortgage={false} />
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
@@ -83,6 +85,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <OnboardingCard hasAnyPfs={hasAnyData} hasMortgage={!!pfs.mortgage} />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Net worth" value={formatUSD(t.netWorth)} />
         <Stat label="Home equity" value={formatUSD(t.homeEquity)} accent />
@@ -90,6 +94,7 @@ export default function Dashboard() {
           label="Monthly cash flow"
           value={`${t.monthlyCashFlow >= 0 ? '+' : '−'}${formatUSD(Math.abs(t.monthlyCashFlow))}`}
           delta={`${formatUSD(t.monthlyIncome)} in / ${formatUSD(t.monthlyExpenses)} out`}
+          trend={t.monthlyCashFlow >= 0 ? 'positive' : 'negative'}
         />
         <PayoffStat pfs={pfs} />
       </div>
@@ -142,7 +147,7 @@ export default function Dashboard() {
         </div>
         <Link
           to="/app/financials"
-          className="text-sm font-medium text-surface-900 hover:underline"
+          className="rounded text-sm font-medium text-surface-900 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
         >
           View full PFS →
         </Link>
@@ -177,7 +182,7 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-surface-400">At payoff</div>
+          <div className="text-xs uppercase tracking-wider text-surface-500">At payoff</div>
           <div className="font-display text-xl font-semibold text-accent-600">
             {formatUSD(peakEquity)}
           </div>
@@ -186,10 +191,10 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
       <div className="mt-5 h-56">
         <EquityProjectionChart points={points} className="h-full w-full" />
       </div>
-      <div className="mt-4 flex items-center gap-5 text-xs text-surface-500">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-surface-500">
         <span className="flex items-center gap-1.5">
           <span className="block h-2.5 w-2.5 rounded-sm bg-accent-500/30" />
-          Equity (gold area)
+          Equity
         </span>
         <span className="flex items-center gap-1.5">
           <span className="block h-2.5 w-2.5 rounded-sm bg-surface-200" />
@@ -238,7 +243,7 @@ function PayoffStat({ pfs }: { pfs: Pfs }) {
         <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
           Projected payoff
         </div>
-        <div className="mt-2 font-display text-base font-medium text-surface-400">
+        <div className="mt-2 font-display text-base font-medium text-surface-500">
           Add mortgage
         </div>
       </div>
@@ -264,15 +269,24 @@ function Stat({
   value,
   delta,
   accent,
+  trend = 'positive',
 }: {
   label: string
   value: string
   delta?: string
   accent?: boolean
+  trend?: 'positive' | 'negative' | 'neutral'
 }) {
+  const TrendIcon = trend === 'negative' ? ArrowDownRight : ArrowUpRight
+  const trendColor =
+    trend === 'negative'
+      ? 'text-danger-600'
+      : trend === 'neutral'
+        ? 'text-surface-400'
+        : 'text-success-600'
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -282,7 +296,7 @@ function Stat({
       </div>
       {delta && (
         <div className="mt-1 flex items-center gap-1 text-xs text-surface-500">
-          <ArrowUpRight size={12} className="text-emerald-600" />
+          {trend !== 'neutral' && <TrendIcon size={12} className={trendColor} />}
           {delta}
         </div>
       )}
@@ -306,7 +320,7 @@ function Row({
       <dt className="text-sm text-surface-500">{label}</dt>
       <dd
         className={`font-mono text-sm font-medium ${
-          accent ? 'text-accent-600' : muted ? 'text-surface-400' : 'text-surface-900'
+          accent ? 'text-accent-600' : muted ? 'text-surface-500' : 'text-surface-900'
         }`}
       >
         {value}
@@ -360,51 +374,44 @@ function SummaryCard({
   )
 }
 
-function NoMortgagePrompt() {
+function EmptyStateCard({
+  icon: Icon,
+  title,
+  body,
+  ctaLabel,
+  ctaTo,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+  ctaLabel: string
+  ctaTo: string
+}) {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-8 shadow-card sm:p-10">
-      <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
-        <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-accent-100 text-accent-600">
-          <Home size={20} />
-        </div>
-        <div className="flex-1">
-          <h2 className="font-display text-xl font-semibold text-surface-900">
-            Add your mortgage to unlock equity &amp; payoff projections
-          </h2>
-          <p className="mt-2 text-sm text-surface-500">
-            Enter your balance, rate, and monthly payment from your Note. The platform projects
-            equity, compares payoff scenarios, and shows interest saved against the baseline.
-          </p>
-          <div className="mt-5">
-            <ButtonLink to="/app/financials" variant="primary" size="md">
-              Add mortgage <ArrowRight size={14} />
-            </ButtonLink>
-          </div>
-        </div>
+    <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-card sm:p-10">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
+        <Icon size={20} />
+      </div>
+      <h2 className="mt-4 font-display text-xl font-semibold text-surface-900">{title}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-surface-500">{body}</p>
+      <div className="mt-6">
+        <ButtonLink to={ctaTo} variant="primary" size="md">
+          {ctaLabel} <ArrowRight size={14} />
+        </ButtonLink>
       </div>
     </div>
   )
 }
 
-function EmptyDashboard() {
+function NoMortgagePrompt() {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center shadow-card">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
-        <ListPlus size={20} />
-      </div>
-      <h2 className="mt-4 font-display text-xl font-semibold text-surface-900">
-        Start your Personal Financial Statement
-      </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-surface-500">
-        Add a few assets, liabilities, and your mortgage. Net worth, equity projection, and payoff
-        plan will all populate automatically.
-      </p>
-      <div className="mt-6">
-        <ButtonLink to="/app/financials" variant="primary" size="md">
-          Open the PFS <ArrowRight size={14} />
-        </ButtonLink>
-      </div>
-    </div>
+    <EmptyStateCard
+      icon={Home}
+      title="Add your mortgage to unlock equity & payoff projections"
+      body="Enter your balance, rate, and monthly payment from your Note. The platform projects equity, compares payoff scenarios, and shows interest saved against the baseline."
+      ctaLabel="Add mortgage"
+      ctaTo="/app/financials"
+    />
   )
 }
 
@@ -427,9 +434,9 @@ function SkeletonState() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-      <AlertTriangle size={24} className="mx-auto text-red-600" />
-      <p className="mt-3 text-sm text-red-700">{message}</p>
+    <div className="rounded-2xl border border-danger-200 bg-danger-50 p-8 text-center">
+      <AlertTriangle size={24} className="mx-auto text-danger-600" />
+      <p className="mt-3 text-sm text-danger-700">{message}</p>
       <Button
         variant="secondary"
         size="sm"

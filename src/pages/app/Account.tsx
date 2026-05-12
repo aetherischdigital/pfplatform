@@ -10,13 +10,15 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Button } from '../../components/ui/Button'
+import { Button, ButtonLink } from '../../components/ui/Button'
 import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
   updateOwnDisplayName,
   updateOwnPassword,
+  updateOwnWaitlistInterest,
   type Profile,
+  type WaitlistInterest,
 } from '../../lib/profile'
 
 export default function Account() {
@@ -27,6 +29,13 @@ export default function Account() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Success banner auto-dismisses after 4s; errors stick until the next action.
+  useEffect(() => {
+    if (!successMessage) return
+    const t = setTimeout(() => setSuccessMessage(null), 4000)
+    return () => clearTimeout(t)
+  }, [successMessage])
 
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
@@ -140,13 +149,13 @@ export default function Account() {
       </header>
 
       {error && (
-        <div role="alert" className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="flex items-start gap-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700 animate-enter">
           <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
       {successMessage && (
-        <div role="status" className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div role="status" className="flex items-start gap-3 rounded-md border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-700 animate-enter">
           <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" />
           <span>{successMessage}</span>
         </div>
@@ -160,7 +169,7 @@ export default function Account() {
           {editingName ? (
             <form onSubmit={saveName} className="flex flex-col gap-3 border-b border-surface-100 pb-4 sm:flex-row sm:items-end">
               <label className="flex-1">
-                <span className="text-xs uppercase tracking-wider text-surface-400">Name</span>
+                <span className="text-xs uppercase tracking-wider text-surface-500">Name</span>
                 <input
                   type="text"
                   required
@@ -191,7 +200,7 @@ export default function Account() {
                   <button
                     type="button"
                     onClick={startEditingName}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-surface-500 hover:text-surface-900"
+                    className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
                   >
                     <Pencil size={12} /> Edit
                   </button>
@@ -203,7 +212,7 @@ export default function Account() {
           {changingPassword ? (
             <form onSubmit={savePassword} className="flex flex-col gap-3 py-3">
               <label className="block">
-                <span className="text-xs uppercase tracking-wider text-surface-400">New password</span>
+                <span className="text-xs uppercase tracking-wider text-surface-500">New password</span>
                 <input
                   type="password"
                   required
@@ -217,7 +226,7 @@ export default function Account() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs uppercase tracking-wider text-surface-400">Confirm new password</span>
+                <span className="text-xs uppercase tracking-wider text-surface-500">Confirm new password</span>
                 <input
                   type="password"
                   required
@@ -260,8 +269,27 @@ export default function Account() {
         <header className="border-b border-surface-200 px-6 py-4">
           <h2 className="font-display text-lg font-semibold text-surface-900">Subscription</h2>
         </header>
-        <div className="px-6 py-6 text-sm text-surface-500">
-          No active subscription.
+        <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-surface-600">
+            <div className="font-medium text-surface-900">Free plan</div>
+            <div className="mt-0.5 text-surface-500">
+              Plus and Pro tiers land in the next release.
+            </div>
+          </div>
+          <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
+            See plans
+          </ButtonLink>
+        </div>
+        <div className="border-t border-surface-100 px-6 py-5">
+          <WaitlistInterestRow
+            profile={profile}
+            onSaved={async (interest) => {
+              await updateOwnWaitlistInterest(interest)
+              setProfile((p) => (p ? { ...p, waitlistInterest: interest } : p))
+              setSuccessMessage('Saved your tier interest.')
+            }}
+            onError={(msg) => setError(msg)}
+          />
         </div>
       </section>
 
@@ -274,17 +302,65 @@ export default function Account() {
             Signed in as{' '}
             <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={handleSignOut}
-            className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-md border border-surface-300 bg-white px-4 py-2 text-sm font-medium text-surface-900 hover:bg-surface-50"
+            className="flex-shrink-0"
           >
             <LogOut size={14} />
             Sign out
-          </button>
+          </Button>
         </div>
       </section>
     </div>
+  )
+}
+
+function WaitlistInterestRow({
+  profile,
+  onSaved,
+  onError,
+}: {
+  profile: Profile | null
+  onSaved: (interest: WaitlistInterest) => Promise<void>
+  onError: (msg: string) => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const current = profile?.waitlistInterest ?? 'none'
+
+  const onChange = async (next: WaitlistInterest) => {
+    if (next === current || saving) return
+    setSaving(true)
+    try {
+      await onSaved(next)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Could not save tier interest.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <label className="block">
+      <span className="text-xs uppercase tracking-wider text-surface-500">
+        Paid-tier interest
+      </span>
+      <select
+        value={current}
+        disabled={saving || !profile}
+        onChange={(e) => onChange(e.target.value as WaitlistInterest)}
+        className="mt-1 w-full rounded-md border border-surface-200 bg-white px-3 py-2 text-sm text-surface-900 outline-none transition-colors focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-md"
+      >
+        <option value="none">Just the free plan for now</option>
+        <option value="plus">Plus — for homeowners with a living plan</option>
+        <option value="pro">Pro — for realtors managing clients</option>
+      </select>
+      <p className="mt-1 text-xs text-surface-500">
+        Pricing is TBD. We&rsquo;ll email when your selected tier goes live.
+      </p>
+    </label>
   )
 }
 
@@ -303,7 +379,7 @@ function Field({
     <div className="flex items-center gap-4 border-b border-surface-100 py-3 last:border-b-0">
       <Icon size={16} className="text-surface-400" />
       <div className="min-w-0 flex-1">
-        <div className="text-xs uppercase tracking-wider text-surface-400">{label}</div>
+        <div className="text-xs uppercase tracking-wider text-surface-500">{label}</div>
         <div className="truncate text-sm font-medium text-surface-900">{value}</div>
       </div>
       {action}

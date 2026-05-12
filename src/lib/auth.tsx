@@ -103,18 +103,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const effectiveRole: UserRole | null =
     profile?.role === 'admin' && viewAsRole ? viewAsRole : profile?.role ?? null
 
-  const signUp = useCallback(async ({ email, password, fullName }: SignUpArgs) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/app/dashboard`,
-      },
-    })
-    if (error) return { error: error.message, needsConfirmation: false }
-    return { error: null, needsConfirmation: !data.session }
-  }, [])
+  const signUp = useCallback(
+    async ({ email, password, fullName, waitlistInterest }: SignUpArgs) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            // Optional: indicates Plus/Pro interest. handle_new_user trigger
+            // copies this into profiles.waitlist_interest when present.
+            ...(waitlistInterest && waitlistInterest !== 'none'
+              ? { waitlist_interest: waitlistInterest }
+              : {}),
+          },
+          emailRedirectTo: `${window.location.origin}/app/dashboard`,
+        },
+      })
+      if (error) return { error: error.message, needsConfirmation: false }
+      return { error: null, needsConfirmation: !data.session }
+    },
+    [],
+  )
 
   const signIn = useCallback(async ({ email, password }: SignInArgs) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import Modal, { modalFieldClass } from '../ui/Modal'
+import Modal from '../ui/Modal'
+import { formFieldClass as modalFieldClass } from '../ui/formStyles'
 import { Button } from '../ui/Button'
 import {
   ASSET_CATEGORY_LABELS,
@@ -152,7 +153,10 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
         </Field>
 
         {kind === 'liability' && (
-          <Field label="Interest rate (optional)">
+          <Field
+            label="Interest rate (optional)"
+            hint="Annual rate (e.g. 6.5 for 6.5%). Used to show APR alongside the balance."
+          >
             <div className="relative">
               <input
                 type="number"
@@ -172,7 +176,7 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
         )}
 
         {error && (
-          <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </div>
         )}
@@ -190,11 +194,20 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-surface-700">{label}</span>
       <div className="mt-1">{children}</div>
+      {hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>}
     </label>
   )
 }

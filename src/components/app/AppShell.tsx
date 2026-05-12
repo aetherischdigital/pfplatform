@@ -39,6 +39,12 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-surface-50">
+      <a
+        href="#app-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-card-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside className="hidden w-60 flex-col border-r border-surface-200 bg-white md:flex">
         <SidebarContent />
@@ -52,9 +58,10 @@ export default function AppShell() {
             <ThemeToggle />
             <button
               type="button"
-              className="text-surface-700"
+              className="rounded-md p-1 text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -76,7 +83,7 @@ export default function AppShell() {
           </div>
         )}
 
-        <main key={pathname} className="flex-1">
+        <main id="app-main" key={pathname} className="flex-1">
           <div className="mx-auto max-w-6xl px-6 py-8 md:py-10">
             <Outlet />
           </div>
@@ -87,16 +94,17 @@ export default function AppShell() {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, profile, effectiveRole, signOut } = useAuth()
+  const { user, profile, profileLoading, effectiveRole, signOut } = useAuth()
   const navigate = useNavigate()
 
   const fullName =
     profile?.displayName ??
     (user?.user_metadata?.full_name as string | undefined) ??
     user?.email?.split('@')[0] ??
-    'You'
+    ''
   const email = user?.email ?? ''
-  const initial = (fullName[0] ?? 'U').toUpperCase()
+  const initial = (fullName[0] ?? '').toUpperCase()
+  const showSkeleton = profileLoading || (!fullName && !email)
 
   const items = navItemsFor(effectiveRole)
   const showAdminSection = profile?.role === 'admin' && effectiveRole === 'admin'
@@ -139,19 +147,32 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="border-t border-surface-200 p-3">
         <div className="flex items-center gap-3 rounded-md px-3 py-2">
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-accent-100 text-sm font-medium text-accent-600">
-            {initial}
+          <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-accent-100 text-sm font-medium text-accent-600">
+            {showSkeleton ? (
+              <span className="h-3 w-3 animate-pulse rounded-full bg-accent-200" aria-hidden />
+            ) : (
+              initial
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-surface-900">
-              {fullName}
-            </div>
-            <div className="truncate text-xs text-surface-500">{email}</div>
+            {showSkeleton ? (
+              <>
+                <div className="h-3.5 w-20 animate-pulse rounded bg-surface-100" />
+                <div className="mt-1 h-3 w-28 animate-pulse rounded bg-surface-100" />
+              </>
+            ) : (
+              <>
+                <div className="truncate text-sm font-medium text-surface-900">
+                  {fullName || 'You'}
+                </div>
+                <div className="truncate text-xs text-surface-500">{email}</div>
+              </>
+            )}
           </div>
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-surface-400 hover:text-surface-700"
+            className="text-surface-400 transition-colors hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 rounded-md p-1"
             title="Sign out"
             aria-label="Sign out"
           >
@@ -175,7 +196,7 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="mt-6 border-t border-surface-200 pt-4">
-      <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-400">
+      <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-500">
         Admin tools
       </div>
       <NavLink
@@ -201,14 +222,14 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
           <button
             type="button"
             onClick={() => enterViewAs('homeowner')}
-            className="rounded-md border border-surface-200 bg-white px-2 py-1.5 text-xs font-medium text-surface-700 hover:bg-surface-100"
+            className="rounded-md border border-surface-200 bg-white px-2 py-1.5 text-xs font-medium text-surface-700 transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
           >
             Homeowner
           </button>
           <button
             type="button"
             onClick={() => enterViewAs('realtor')}
-            className="rounded-md border border-surface-200 bg-white px-2 py-1.5 text-xs font-medium text-surface-700 hover:bg-surface-100"
+            className="rounded-md border border-surface-200 bg-white px-2 py-1.5 text-xs font-medium text-surface-700 transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
           >
             Realtor
           </button>

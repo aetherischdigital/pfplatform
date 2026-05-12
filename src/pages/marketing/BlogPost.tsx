@@ -68,7 +68,7 @@ export default function BlogPost() {
         <Container size="md" className="py-16">
           <Link
             to="/blog"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 hover:text-surface-900"
+            className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
           >
             <ArrowLeft size={14} />
             All posts
@@ -81,7 +81,7 @@ export default function BlogPost() {
               {post.title}
             </h1>
             <p className="mt-4 text-lg text-surface-500">{post.excerpt}</p>
-            <div className="mt-6 flex items-center gap-3 text-xs text-surface-400">
+            <div className="mt-6 flex items-center gap-3 text-xs text-surface-500">
               <span>{formatDate(post.publishedAt)}</span>
               <span aria-hidden>·</span>
               <span>{post.readingMinutes} min read</span>
@@ -170,7 +170,7 @@ export default function BlogPost() {
               <Link
                 key={p.slug}
                 to={`/blog/${p.slug}`}
-                className="group flex items-center justify-between gap-4 rounded-xl border border-surface-200 bg-white p-5 transition-colors hover:border-surface-300"
+                className="group flex items-center justify-between gap-4 rounded-xl border border-surface-200 bg-white p-5 transition-[colors,transform] duration-200 hover:-translate-y-0.5 hover:border-surface-300 motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               >
                 <div className="min-w-0">
                   <div className="text-xs font-medium uppercase tracking-wider text-accent-600">

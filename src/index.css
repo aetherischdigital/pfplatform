@@ -20,3 +20,89 @@ h1, h2, h3 {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
 }
+
+/* Subtle enter + hover-lift animations for post-load content. Always gated by
+   prefers-reduced-motion below so users who've dialed motion down at the OS
+   level see instant transitions. Utilities are picked up by Tailwind v4's
+   `@utility` directive. */
+@keyframes pfp-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pfp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@utility animate-enter {
+  animation: pfp-fade-up 0.32s ease-out both;
+}
+
+@utility animate-fade-in {
+  animation: pfp-fade-in 0.24s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print: tuned so a homeowner can hand a banker their dashboard.
+   - Force a paper-friendly background regardless of theme.
+   - Hide chrome that doesn't translate to paper: sidebar, mobile drawer,
+     ViewAsBanner, route fallback, theme toggle, dismissable cards.
+   - Avoid breaking section cards across pages where possible. */
+@media print {
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    --color-surface-50: #ffffff;
+    --color-surface-100: #ffffff;
+    --color-white: #ffffff;
+  }
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+  /* Hide app chrome */
+  [data-print-hide],
+  header[role="banner"],
+  nav,
+  aside,
+  footer,
+  .sticky,
+  button[aria-label="Sign out"],
+  button[aria-label="Toggle menu"],
+  button[aria-label="Dismiss onboarding"] {
+    display: none !important;
+  }
+  /* Drop shadows + rounded corners — bad on paper. */
+  * {
+    box-shadow: none !important;
+  }
+  .rounded-2xl,
+  .rounded-xl,
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+  /* Keep cards from being split across pages where we can. */
+  section, article, .shadow-card, .shadow-card-lg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Visible link hrefs for tables/lists where the URL helps a reader. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #555;
+  }
+  /* Don't render the route-fallback spinner if it slips through. */
+  [role="status"][aria-label="Loading"] {
+    display: none !important;
+  }
+}

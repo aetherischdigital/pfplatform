@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
 import EquityChart from '../../components/EquityChart'
+import Term from '../../components/ui/Term'
 import { BRAND } from '../../config/brand'
 
 const features = [
@@ -137,8 +138,10 @@ export default function Landing() {
                 Your equity, your payoff date, and the moves that change them.
               </h2>
               <p className="mt-4 text-surface-500">
-                Every number on your dashboard is grounded in the amortization schedule generated from your Note —
-                so when the bank's statement disagrees, you'll know who to call and what to point at.
+                Every number on your dashboard is grounded in the{' '}
+                <Term term="amortization">amortization</Term> schedule generated from your{' '}
+                <Term term="note">Note</Term> — so when the bank's statement disagrees, you'll know
+                who to call and what to point at.
               </p>
             </div>
             <HeroDashboardCard />
@@ -154,7 +157,7 @@ export default function Landing() {
             <Stat value="9.4 yrs" label="Payoff acceleration (modeled)" />
             <Stat value="0" label="Bank logins required" />
           </div>
-          <p className="mt-6 text-center text-xs text-surface-400">
+          <p className="mt-6 text-center text-xs text-surface-500">
             Modeled on a $400,000 30-year fixed at 6.5% with $250/month redirected to principal as exact-amount prepayments.
             Run your own numbers in the <Link to="/calculator" className="underline decoration-surface-300 underline-offset-2 hover:text-surface-600">calculator</Link>.
           </p>
@@ -180,7 +183,7 @@ export default function Landing() {
               return (
                 <div
                   key={f.title}
-                  className="group rounded-2xl border border-surface-200 bg-white p-7 shadow-card transition-shadow hover:shadow-card-lg"
+                  className="group rounded-2xl border border-surface-200 bg-white p-7 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-900 text-accent-400 group-hover:bg-surface-800">
                     <Icon size={18} />
@@ -222,13 +225,23 @@ export default function Landing() {
 
       {/* Section break — pull-quote over photo */}
       <section className="relative isolate overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=2400&q=80"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 -z-20 h-full w-full object-cover"
-          loading="lazy"
-        />
+        <picture className="absolute inset-0 -z-20 block h-full w-full">
+          <source
+            type="image/webp"
+            srcSet="/img/hero-section-break-1200.webp 1200w, /img/hero-section-break-2000.webp 2000w"
+            sizes="100vw"
+          />
+          <img
+            src="/img/hero-section-break-2000.jpg"
+            srcSet="/img/hero-section-break-1200.jpg 1200w, /img/hero-section-break-2000.jpg 2000w"
+            sizes="100vw"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
         <div className="absolute inset-0 -z-10 bg-surface-900/60" />
         <Container className="relative py-28 lg:py-36">
           <blockquote className="max-w-3xl">
@@ -283,9 +296,9 @@ export default function Landing() {
                 Let's face the facts.
               </h2>
               <p className="mt-3 text-surface-300">
-                A single $100 error in the first year of a 7% mortgage costs you over $800 by the time it
-                pays off. Most homeowners never catch it. Of course this happens, more often than you'd think
-                — and the bigger problem is that nobody's looking. You can be.
+                A single $100 error in the first year of a 7% mortgage costs you over $800 by the time
+                it pays off. It happens more often than you'd think — and the bigger problem is that
+                nobody's checking the bank's math. Be the one who is.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -358,19 +371,19 @@ function HeroDashboardCard() {
             <span className="h-2.5 w-2.5 rounded-full bg-surface-200" />
             <span className="h-2.5 w-2.5 rounded-full bg-surface-200" />
           </div>
-          <span className="font-mono text-xs text-surface-400">{BRAND.domain}</span>
+          <span className="font-mono text-xs text-surface-500">{BRAND.domain}</span>
         </div>
         <div className="p-6">
           <div className="flex items-baseline justify-between">
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
+              <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
                 Projected equity
               </div>
               <div className="mt-1 font-display text-4xl font-semibold tracking-tight text-surface-900">
                 $312,400
               </div>
             </div>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <span className="rounded-full bg-success-50 px-2.5 py-1 text-xs font-medium text-success-700">
               +$48,200 / yr
             </span>
           </div>
@@ -379,11 +392,11 @@ function HeroDashboardCard() {
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-surface-200 pt-4">
             <div>
-              <div className="text-xs text-surface-400">Mortgage paid off</div>
+              <div className="text-xs text-surface-500">Mortgage paid off</div>
               <div className="font-mono text-sm font-medium text-surface-900">April 2032</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-surface-400">vs. baseline</div>
+              <div className="text-xs text-surface-500">vs. baseline</div>
               <div className="font-mono text-sm font-medium text-accent-600">10y 2m sooner</div>
             </div>
           </div>

@@ -21,7 +21,7 @@ export default function ViewAsBanner() {
   }
 
   return (
-    <div className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-amber-300/70 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+    <div className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-warning-200 bg-warning-50 px-4 py-2 text-sm text-warning-700">
       <div className="flex items-center gap-2">
         <Eye size={14} className="flex-shrink-0" />
         <span>
@@ -32,7 +32,7 @@ export default function ViewAsBanner() {
       <button
         type="button"
         onClick={exit}
-        className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+        className="inline-flex items-center gap-1.5 rounded-md border border-warning-200 bg-surface-50 px-2.5 py-1 text-xs font-medium text-warning-700 hover:bg-warning-50"
       >
         <X size={12} /> Exit view-as
       </button>

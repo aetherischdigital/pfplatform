@@ -31,7 +31,7 @@ export default function ConfirmDialog({
     <Modal open={open} onClose={onCancel} title={title} size="sm">
       <div className="flex items-start gap-3">
         {variant === 'danger' && (
-          <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+          <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-danger-50 text-danger-600">
             <AlertTriangle size={18} />
           </div>
         )}

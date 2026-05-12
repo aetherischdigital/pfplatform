@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { UserRole } from './profile'
+import type { UserRole, WaitlistInterest } from './profile'
 
 export type AdminUser = {
   id: string
@@ -7,6 +7,7 @@ export type AdminUser = {
   role: UserRole
   displayName: string | null
   isActive: boolean
+  waitlistInterest: WaitlistInterest
   createdAt: string
 }
 
@@ -16,6 +17,7 @@ type Row = {
   role: UserRole
   display_name: string | null
   is_active: boolean
+  waitlist_interest: WaitlistInterest | null
   created_at: string
 }
 
@@ -28,6 +30,7 @@ export async function listUsers(): Promise<AdminUser[]> {
     role: r.role,
     displayName: r.display_name,
     isActive: r.is_active,
+    waitlistInterest: r.waitlist_interest ?? 'none',
     createdAt: r.created_at,
   }))
 }

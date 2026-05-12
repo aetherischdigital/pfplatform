@@ -44,7 +44,7 @@ export default function LegalSkeletonLayout({ title, description, url }: Props) 
           <h1 className="mt-3 font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
             {title}
           </h1>
-          <p className="mt-4 text-sm text-surface-400">
+          <p className="mt-4 text-sm text-surface-500">
             Last updated: <em>pending counsel review</em>
           </p>
         </Container>
@@ -52,7 +52,7 @@ export default function LegalSkeletonLayout({ title, description, url }: Props) 
 
       <section className="bg-white">
         <Container size="md" className="pb-24">
-          <div className="flex items-center gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-5 text-sm text-amber-900">
+          <div className="flex items-center gap-3 rounded-xl border border-warning-200 bg-warning-50 p-5 text-sm text-warning-700">
             <AlertTriangle size={16} className="flex-shrink-0" />
             <span><strong className="font-semibold">Draft template.</strong> Awaiting counsel-provided content.</span>
           </div>

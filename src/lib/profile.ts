@@ -2,11 +2,14 @@ import { supabase } from './supabase'
 
 export type UserRole = 'homeowner' | 'realtor' | 'admin'
 
+export type WaitlistInterest = 'none' | 'plus' | 'pro'
+
 export type Profile = {
   id: string
   role: UserRole
   displayName: string | null
   email: string | null
+  waitlistInterest: WaitlistInterest
 }
 
 type Row = {
@@ -14,6 +17,7 @@ type Row = {
   role: UserRole
   display_name: string | null
   email: string | null
+  waitlist_interest: WaitlistInterest
 }
 
 export async function fetchOwnProfile(): Promise<Profile | null> {
@@ -22,7 +26,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, display_name, email')
+    .select('id, role, display_name, email, waitlist_interest')
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
 
@@ -34,6 +38,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
     role: data.role,
     displayName: data.display_name,
     email: data.email,
+    waitlistInterest: data.waitlist_interest ?? 'none',
   }
 }
 
@@ -68,5 +73,17 @@ export async function updateOwnDisplayName(displayName: string): Promise<void> {
 
 export async function updateOwnPassword(password: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password })
+  if (error) throw error
+}
+
+export async function updateOwnWaitlistInterest(
+  interest: WaitlistInterest,
+): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('profiles')
+    .update({ waitlist_interest: interest })
+    .eq('id', auth.user.id)
   if (error) throw error
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Menu, X, LayoutDashboard, LogOut } from 'lucide-react'
 import Container from '../ui/Container'
 import { Button, ButtonLink } from '../ui/Button'
@@ -7,6 +7,7 @@ import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
 import { useAuthModal } from '../../lib/useAuthModal'
 import { useAuth } from '../../lib/useAuth'
+import { displayLabel } from '../../lib/profile'
 
 const links = [
   { to: '/how-it-works', label: 'How it works' },
@@ -17,16 +18,23 @@ const links = [
 ]
 
 const linkClasses = ({ isActive }: { isActive: boolean }) =>
-  `text-sm font-medium transition-colors ${
+  `rounded text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 ${
     isActive ? 'text-surface-900' : 'text-surface-500 hover:text-surface-900'
   }`
 
 export default function Header() {
   const [open, setOpen] = useState(false)
   const { openModal } = useAuthModal()
-  const { user, signOut } = useAuth()
+  const { user, profile, profileLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const signedIn = !!user
+
+  const initial = (
+    profile?.displayName?.trim()?.[0] ??
+    user?.email?.[0] ??
+    ''
+  ).toUpperCase()
+  const accountLabel = signedIn ? `Account — ${displayLabel(profile)}` : ''
 
   const onSignIn = () => {
     setOpen(false)
@@ -64,9 +72,18 @@ export default function Header() {
                 <ButtonLink to="/app/dashboard" variant="primary" size="sm">
                   <LayoutDashboard size={14} /> Dashboard
                 </ButtonLink>
-                <Button onClick={onSignOut} variant="ghost" size="sm" aria-label="Sign out">
-                  <LogOut size={14} />
-                </Button>
+                <Link
+                  to="/app/account"
+                  className="ml-1 grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-accent-100 text-sm font-medium text-accent-600 transition-colors hover:bg-accent-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                  title={accountLabel}
+                  aria-label={accountLabel || 'Account'}
+                >
+                  {profileLoading || !initial ? (
+                    <span className="h-3 w-3 animate-pulse rounded-full bg-accent-200" aria-hidden />
+                  ) : (
+                    initial
+                  )}
+                </Link>
               </>
             ) : (
               <>
@@ -80,9 +97,10 @@ export default function Header() {
             <ThemeToggle />
             <button
               type="button"
-              className="text-surface-700"
+              className="rounded-md p-1 text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               onClick={() => setOpen((v) => !v)}
               aria-label="Toggle menu"
+              aria-expanded={open}
             >
               {open ? <X size={22} /> : <Menu size={22} />}
             </button>

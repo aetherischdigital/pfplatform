@@ -4,8 +4,10 @@ import { ButtonLink } from '../../components/ui/Button'
 
 type Tier = {
   name: string
-  price: string
+  price?: string
   cadence?: string
+  /** When true, show "Pricing TBD" in place of price/cadence. */
+  comingSoon?: boolean
   blurb: string
   cta: string
   highlighted?: boolean
@@ -28,10 +30,9 @@ const tiers: Tier[] = [
   },
   {
     name: 'Plus',
-    price: '$X',
-    cadence: '/ month',
+    comingSoon: true,
     blurb: 'For homeowners who want a living plan they update over time.',
-    cta: 'Go Plus',
+    cta: 'Join the waitlist',
     highlighted: true,
     features: [
       'Everything in Free',
@@ -44,10 +45,9 @@ const tiers: Tier[] = [
   },
   {
     name: 'Pro',
-    price: '$Y',
-    cadence: '/ month',
+    comingSoon: true,
     blurb: 'For realtors who want to stay top-of-mind with their book.',
-    cta: 'Go Pro',
+    cta: 'Join the waitlist',
     features: [
       'Everything in Plus',
       'Manage up to 25 clients',
@@ -77,13 +77,14 @@ export default function Pricing() {
         <Container className="py-20 text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-100 px-3 py-1 text-xs font-medium text-accent-600">
             <Sparkles size={12} />
-            Indicative pricing
+            Free today — paid tiers in preview
           </div>
           <h1 className="mx-auto mt-5 max-w-2xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
             Simple pricing. Real value at every tier.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
-            Start free. Upgrade when you want a living plan instead of a one-time check-in.
+            Start free today. Plus and Pro are in the works — reserve your spot now and we'll let you
+            know the moment they're live.
           </p>
         </Container>
       </section>
@@ -100,9 +101,18 @@ export default function Pricing() {
                     : 'border-surface-200 bg-white shadow-card'
                 }`}
               >
-                {t.highlighted && (
+                {t.highlighted && !t.comingSoon && (
                   <span className="absolute -top-3 left-7 rounded-full bg-accent-500 px-3 py-1 text-xs font-medium text-white">
                     Most popular
+                  </span>
+                )}
+                {t.comingSoon && (
+                  <span className={`absolute -top-3 left-7 rounded-full px-3 py-1 text-xs font-medium ${
+                    t.highlighted
+                      ? 'bg-accent-500 text-white'
+                      : 'bg-accent-100 text-accent-600'
+                  }`}>
+                    Coming soon
                   </span>
                 )}
                 <div>
@@ -113,14 +123,27 @@ export default function Pricing() {
                     {t.blurb}
                   </p>
                 </div>
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className={`font-display text-5xl font-semibold ${t.highlighted ? 'text-white' : 'text-surface-900'}`}>
-                    {t.price}
-                  </span>
-                  {t.cadence && (
-                    <span className={`text-sm ${t.highlighted ? 'text-surface-300' : 'text-surface-500'}`}>
-                      {t.cadence}
-                    </span>
+                <div className="mt-6">
+                  {t.comingSoon ? (
+                    <div className="flex flex-col">
+                      <span className={`font-display text-2xl font-semibold ${t.highlighted ? 'text-white' : 'text-surface-900'}`}>
+                        Pricing TBD
+                      </span>
+                      <span className={`mt-1 text-sm ${t.highlighted ? 'text-surface-300' : 'text-surface-500'}`}>
+                        Reserve your spot — no card required.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className={`font-display text-5xl font-semibold ${t.highlighted ? 'text-white' : 'text-surface-900'}`}>
+                        {t.price}
+                      </span>
+                      {t.cadence && (
+                        <span className={`text-sm ${t.highlighted ? 'text-surface-300' : 'text-surface-500'}`}>
+                          {t.cadence}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 <ul className={`mt-6 flex-1 space-y-3 text-sm ${t.highlighted ? 'text-surface-100' : 'text-surface-700'}`}>
@@ -167,7 +190,14 @@ export default function Pricing() {
                       key={t.name}
                       className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-surface-500"
                     >
-                      {t.name}
+                      <span className="inline-flex items-center gap-2">
+                        {t.name}
+                        {t.comingSoon && (
+                          <span className="rounded-full bg-accent-100 px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-accent-600">
+                            Soon
+                          </span>
+                        )}
+                      </span>
                     </th>
                   ))}
                 </tr>

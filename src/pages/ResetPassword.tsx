@@ -74,7 +74,7 @@ export default function ResetPassword() {
 
         {phase === 'no-session' && (
           <div className="text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-red-50 text-red-600">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-danger-50 text-danger-600">
               <AlertTriangle size={20} />
             </div>
             <h1 className="mt-4 font-display text-xl font-semibold text-surface-900">
@@ -135,7 +135,7 @@ export default function ResetPassword() {
                 />
               </label>
               {error && (
-                <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
                   {error}
                 </div>
               )}
@@ -148,7 +148,7 @@ export default function ResetPassword() {
 
         {phase === 'success' && (
           <div className="text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-success-50 text-success-600">
               <CheckCircle2 size={20} />
             </div>
             <h1 className="mt-4 font-display text-xl font-semibold text-surface-900">

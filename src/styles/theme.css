@@ -35,6 +35,23 @@
   --color-accent-500: #7A5C3A;
   --color-accent-600: #5C4628;
 
+  /* Semantic scales — tuned to harmonize with sage + walnut.
+     50 = tinted background, 200 = border, 600 = solid icon, 700 = text. */
+  --color-success-50:  #ECF1E5;
+  --color-success-200: #C7D4B4;
+  --color-success-600: #4F7A3A;
+  --color-success-700: #3D5F2C;
+
+  --color-warning-50:  #F7EEDB;
+  --color-warning-200: #E6D2A0;
+  --color-warning-600: #9B7724;
+  --color-warning-700: #735717;
+
+  --color-danger-50:  #F6E4DF;
+  --color-danger-200: #E4B7AB;
+  --color-danger-600: #B0432A;
+  --color-danger-700: #863121;
+
   /* Type stack */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Fraunces", "Inter Tight", "Inter", Georgia, serif;
@@ -72,6 +89,22 @@
     --color-accent-500: #B89571;
     --color-accent-600: #C9A87E;
 
+    /* Semantic scales — dark mode: deep tinted bg, muted border, light text */
+    --color-success-50:  #1F2A18;
+    --color-success-200: #3D5126;
+    --color-success-600: #8FB07A;
+    --color-success-700: #B6CEA6;
+
+    --color-warning-50:  #2A2110;
+    --color-warning-200: #4E3D17;
+    --color-warning-600: #D8B764;
+    --color-warning-700: #E8D29A;
+
+    --color-danger-50:  #2A1612;
+    --color-danger-200: #4E251D;
+    --color-danger-600: #D88871;
+    --color-danger-700: #ECB4A2;
+
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
     --shadow-card-lg: 0 10px 30px -10px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.35);
   }
@@ -96,6 +129,21 @@
   --color-accent-400: #C9A87E;
   --color-accent-500: #B89571;
   --color-accent-600: #C9A87E;
+
+  --color-success-50:  #1F2A18;
+  --color-success-200: #3D5126;
+  --color-success-600: #8FB07A;
+  --color-success-700: #B6CEA6;
+
+  --color-warning-50:  #2A2110;
+  --color-warning-200: #4E3D17;
+  --color-warning-600: #D8B764;
+  --color-warning-700: #E8D29A;
+
+  --color-danger-50:  #2A1612;
+  --color-danger-200: #4E251D;
+  --color-danger-600: #D88871;
+  --color-danger-700: #ECB4A2;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
   --shadow-card-lg: 0 10px 30px -10px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.35);

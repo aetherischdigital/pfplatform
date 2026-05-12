@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import Modal, { modalFieldClass } from '../ui/Modal'
+import Modal from '../ui/Modal'
+import { formFieldClass as modalFieldClass } from '../ui/formStyles'
 import { Button } from '../ui/Button'
 import { upsertMortgage, type Mortgage, type MortgageInput } from '../../lib/pfs'
 
@@ -80,7 +81,7 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
   return (
     <Modal open={open} onClose={onClose} title={`${isEdit ? 'Edit' : 'Add'} mortgage`} size="lg">
       <form className="space-y-4" onSubmit={onSubmit}>
-        <Field label="Property label">
+        <Field label="Property label" hint="How this property is named in your dashboard.">
           <input
             type="text"
             required
@@ -92,16 +93,22 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Starting home value">
+          <Field
+            label="Starting home value"
+            hint="The home's market value at purchase or refinance — anchors the equity projection."
+          >
             <CurrencyInput value={startingHomeValue} onChange={setStartingHomeValue} required />
           </Field>
-          <Field label="Current balance">
+          <Field
+            label="Current balance"
+            hint="Today's principal balance, straight from your latest statement."
+          >
             <CurrencyInput value={balance} onChange={setBalance} required />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Interest rate">
+          <Field label="Interest rate" hint="Your loan's annual rate (e.g. 6.5 for 6.5%).">
             <div className="relative">
               <input
                 type="number"
@@ -119,7 +126,10 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
               </span>
             </div>
           </Field>
-          <Field label="Months remaining">
+          <Field
+            label="Months remaining"
+            hint="How many scheduled payments are left (e.g. 336 for 28 years left on a 30-year loan)."
+          >
             <input
               type="number"
               required
@@ -136,16 +146,22 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Monthly P&amp;I payment">
+          <Field
+            label="Monthly P&amp;I payment"
+            hint="Principal & interest only — the loan-payment portion of your monthly bill. Skip taxes and insurance."
+          >
             <CurrencyInput value={monthlyPayment} onChange={setMonthlyPayment} required />
           </Field>
-          <Field label="Extra principal / mo">
+          <Field
+            label="Extra principal / mo"
+            hint="Optional. Extra principal you send each month to accelerate the payoff."
+          >
             <CurrencyInput value={extraPrincipal} onChange={setExtraPrincipal} />
           </Field>
         </div>
 
         {error && (
-          <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </div>
         )}
@@ -163,11 +179,20 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-surface-700">{label}</span>
       <div className="mt-1">{children}</div>
+      {hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>}
     </label>
   )
 }

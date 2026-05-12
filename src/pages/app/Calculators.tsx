@@ -13,6 +13,7 @@ import PayoffCalculator, {
 } from '../../components/calculators/PayoffCalculator'
 import { fetchPfs, type Pfs } from '../../lib/pfs'
 import { Button } from '../../components/ui/Button'
+import { markCalculatorVisited } from '../../lib/onboarding'
 
 export default function Calculators() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -21,6 +22,8 @@ export default function Calculators() {
 
   useEffect(() => {
     let cancelled = false
+    // Onboarding step 3: visiting this page checks off "Run a what-if scenario."
+    markCalculatorVisited()
     fetchPfs()
       .then((data) => {
         if (!cancelled) setPfs(data)
@@ -52,7 +55,7 @@ export default function Calculators() {
       </header>
 
       {error && (
-        <div role="alert" className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="flex items-start gap-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
           <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -73,11 +76,7 @@ export default function Calculators() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="h-96 animate-pulse rounded-xl bg-surface-100" />
-        ) : (
-          <PayoffCalculator defaults={defaults} />
-        )}
+        {loading ? <PayoffCalculatorSkeleton /> : <PayoffCalculator defaults={defaults} />}
       </section>
 
       <section>
@@ -108,6 +107,43 @@ export default function Calculators() {
           />
         </div>
       </section>
+    </div>
+  )
+}
+
+function PayoffCalculatorSkeleton() {
+  return (
+    <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
+      <div className="lg:col-span-5">
+        <div className="space-y-5 rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
+          <div className="h-5 w-32 animate-pulse rounded bg-surface-100" />
+          <div className="space-y-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-24 animate-pulse rounded bg-surface-100" />
+                <div className="h-10 w-full animate-pulse rounded-md bg-surface-100" />
+              </div>
+            ))}
+          </div>
+          <div className="h-20 animate-pulse rounded-lg bg-surface-100" />
+        </div>
+      </div>
+      <div className="lg:col-span-7">
+        <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card-lg">
+          <div className="grid grid-cols-1 divide-y divide-surface-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="space-y-2 p-6">
+                <div className="h-3 w-20 animate-pulse rounded bg-surface-100" />
+                <div className="h-7 w-28 animate-pulse rounded bg-surface-100" />
+                <div className="h-3 w-32 animate-pulse rounded bg-surface-100" />
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-surface-200 p-6">
+            <div className="h-72 w-full animate-pulse rounded bg-surface-100" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
