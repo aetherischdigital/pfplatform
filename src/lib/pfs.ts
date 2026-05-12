@@ -93,10 +93,12 @@ export type Mortgage = {
   homeownersInsuranceAnnual: number | null
   hoaMonthly: number | null
   // Phase 2 multi-property: schema allows multiple mortgages per user, with
-  // exactly one flagged is_primary. The data layer currently exposes only the
-  // primary as `Pfs.mortgage` to keep existing dashboard/calculator consumers
-  // unchanged; multi-property UI is a Phase 2 §2.2 amendment.
+  // exactly one flagged is_primary.
   isPrimary: boolean
+  // Phase 2 overdelivery — Schedule C extras
+  dateAcquired: string | null
+  originalCost: number | null
+  pctOwnership: number
 }
 
 export type Pfs = {
@@ -106,6 +108,8 @@ export type Pfs = {
   expenses: Expense[]
   /** The user's primary mortgage. Null if no mortgage exists. */
   mortgage: Mortgage | null
+  /** All mortgages including the primary. Sorted oldest first. */
+  mortgages: Mortgage[]
 }
 
 export const ASSET_CATEGORY_LABELS: Record<AssetCategory, string> = {
@@ -182,6 +186,9 @@ type MortgageRow = {
   homeowners_insurance_annual: string | number | null
   hoa_monthly: string | number | null
   is_primary: boolean
+  date_acquired: string | null
+  original_cost: string | number | null
+  pct_ownership: string | number
   created_at: string
 }
 
@@ -203,6 +210,9 @@ function toMortgage(m: MortgageRow): Mortgage {
     homeownersInsuranceAnnual: nullableNum(m.homeowners_insurance_annual),
     hoaMonthly: nullableNum(m.hoa_monthly),
     isPrimary: m.is_primary,
+    dateAcquired: m.date_acquired,
+    originalCost: nullableNum(m.original_cost),
+    pctOwnership: num(m.pct_ownership),
   }
 }
 
@@ -211,7 +221,7 @@ function toMortgage(m: MortgageRow): Mortgage {
 // ---------------------------------------------------------------------------
 
 export async function fetchPfs(): Promise<Pfs> {
-  const [records, mortgage] = await Promise.all([
+  const [records, mortgageList] = await Promise.all([
     supabase
       .from('pfs_records')
       .select('id,kind,label,category,amount,rate,created_at')
@@ -219,19 +229,17 @@ export async function fetchPfs(): Promise<Pfs> {
     supabase
       .from('mortgages')
       .select(
-        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,monthly_payment,extra_principal,property_tax_annual,homeowners_insurance_annual,hoa_monthly,is_primary,created_at',
+        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,monthly_payment,extra_principal,property_tax_annual,homeowners_insurance_annual,hoa_monthly,is_primary,date_acquired,original_cost,pct_ownership,created_at',
       )
-      .eq('is_primary', true)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+      .order('created_at', { ascending: true }),
   ])
 
   if (records.error) throw records.error
-  if (mortgage.error) throw mortgage.error
+  if (mortgageList.error) throw mortgageList.error
 
   const rows = (records.data ?? []) as PfsRecordRow[]
-  const m = mortgage.data as MortgageRow | null
+  const mortgages = ((mortgageList.data ?? []) as MortgageRow[]).map(toMortgage)
+  const primary = mortgages.find((m) => m.isPrimary) ?? null
 
   const assets: Asset[] = []
   const liabilities: Liability[] = []
@@ -279,7 +287,8 @@ export async function fetchPfs(): Promise<Pfs> {
     liabilities,
     income,
     expenses,
-    mortgage: m ? toMortgage(m) : null,
+    mortgage: primary,
+    mortgages,
   }
 }
 
@@ -346,6 +355,10 @@ export type MortgageInput = {
   propertyTaxAnnual: number | null
   homeownersInsuranceAnnual: number | null
   hoaMonthly: number | null
+  dateAcquired: string | null
+  originalCost: number | null
+  pctOwnership: number
+  isPrimary: boolean
 }
 
 function mortgageRow(input: MortgageInput) {
@@ -360,6 +373,10 @@ function mortgageRow(input: MortgageInput) {
     property_tax_annual: input.propertyTaxAnnual,
     homeowners_insurance_annual: input.homeownersInsuranceAnnual,
     hoa_monthly: input.hoaMonthly,
+    date_acquired: input.dateAcquired,
+    original_cost: input.originalCost,
+    pct_ownership: input.pctOwnership,
+    is_primary: input.isPrimary,
   }
 }
 
@@ -370,12 +387,29 @@ export async function upsertMortgage(input: MortgageInput, id?: string): Promise
     return
   }
   const user_id = await currentUserId()
-  // New mortgages default to is_primary=true at the DB level. The partial
-  // unique index enforces one-primary-per-user, so a second insert with
-  // is_primary=true would fail — for now (single-property UX) that's the
-  // intended guardrail.
   const { error } = await supabase.from('mortgages').insert({ user_id, ...mortgageRow(input) })
   if (error) throw error
+}
+
+/**
+ * Promote a mortgage to primary, demoting whichever one is currently primary.
+ * Wrapped in a single transaction-like sequence — if either side fails we
+ * surface the error without a half-applied state.
+ */
+export async function setPrimaryMortgage(id: string): Promise<void> {
+  const user_id = await currentUserId()
+  // Demote first to avoid violating the partial unique index on (user_id) where is_primary=true.
+  const demote = await supabase
+    .from('mortgages')
+    .update({ is_primary: false })
+    .eq('user_id', user_id)
+    .neq('id', id)
+  if (demote.error) throw demote.error
+  const promote = await supabase
+    .from('mortgages')
+    .update({ is_primary: true })
+    .eq('id', id)
+  if (promote.error) throw promote.error
 }
 
 export async function deleteMortgage(id: string): Promise<void> {

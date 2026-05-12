@@ -13,6 +13,11 @@ export type Profile = {
   // Phase 2 §3.4 additions — both optional, support null until user fills them in.
   birthdate: string | null
   dependents: number | null
+  // Phase 2 overdelivery — WSFS Section 2 lite (spouse demographic only,
+  // not a parallel PFS).
+  spouseName: string | null
+  spouseBirthdate: string | null
+  spouseOccupation: string | null
 }
 
 type Row = {
@@ -23,6 +28,9 @@ type Row = {
   waitlist_interest: WaitlistInterest
   birthdate: string | null
   dependents: number | null
+  spouse_name: string | null
+  spouse_birthdate: string | null
+  spouse_occupation: string | null
 }
 
 export async function fetchOwnProfile(): Promise<Profile | null> {
@@ -31,7 +39,9 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, display_name, email, waitlist_interest, birthdate, dependents')
+    .select(
+      'id, role, display_name, email, waitlist_interest, birthdate, dependents, spouse_name, spouse_birthdate, spouse_occupation',
+    )
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
 
@@ -46,7 +56,29 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
     waitlistInterest: data.waitlist_interest ?? 'none',
     birthdate: data.birthdate,
     dependents: data.dependents,
+    spouseName: data.spouse_name,
+    spouseBirthdate: data.spouse_birthdate,
+    spouseOccupation: data.spouse_occupation,
   }
+}
+
+/** Update the user's spouse demographic fields. Pass null to clear any. */
+export async function updateOwnSpouse(input: {
+  spouseName: string | null
+  spouseBirthdate: string | null
+  spouseOccupation: string | null
+}): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      spouse_name: input.spouseName,
+      spouse_birthdate: input.spouseBirthdate,
+      spouse_occupation: input.spouseOccupation,
+    })
+    .eq('id', auth.user.id)
+  if (error) throw error
 }
 
 /** Update the user's own birthdate. ISO date string (yyyy-mm-dd) or null to clear. */

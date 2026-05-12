@@ -9,6 +9,7 @@ import {
   payoffDate,
 } from '../../lib/mortgage'
 import { NumberField } from '../ui/NumberField'
+import PitiLine from './PitiLine'
 
 export type PayoffCalculatorDefaults = {
   balance?: number
@@ -16,6 +17,10 @@ export type PayoffCalculatorDefaults = {
   termYears?: number
   extra?: number
   monthlyPayment?: number
+  /** Annual property tax — when present, surfaces true PITI line in the summary. */
+  propertyTaxAnnual?: number | null
+  homeownersInsuranceAnnual?: number | null
+  hoaMonthly?: number | null
 }
 
 type Props = {
@@ -100,11 +105,18 @@ export default function PayoffCalculator({ defaults, footer }: Props) {
               </span>
             </div>
             <div className="mt-2 flex items-baseline justify-between text-sm">
-              <span className="text-surface-500">Total monthly outflow</span>
+              <span className="text-surface-500">P&amp;I + extra principal</span>
               <span className="font-mono font-medium text-surface-900">
                 {formatUSD(monthlyPayment + extra)}
               </span>
             </div>
+            <PitiLine
+              monthlyPayment={monthlyPayment}
+              extraPrincipal={extra}
+              propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+              homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+              hoaMonthly={defaults?.hoaMonthly ?? null}
+            />
           </div>
         </div>
       </div>

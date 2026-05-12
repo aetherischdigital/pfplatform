@@ -7,11 +7,15 @@ import {
 } from '../../lib/mortgage'
 import { Button } from '../ui/Button'
 import { NumberField } from '../ui/NumberField'
+import PitiLine from './PitiLine'
 
 export type AmortizationCalculatorDefaults = {
   balance?: number
   rate?: number
   termYears?: number
+  propertyTaxAnnual?: number | null
+  homeownersInsuranceAnnual?: number | null
+  hoaMonthly?: number | null
 }
 
 type Props = {
@@ -95,6 +99,12 @@ export default function AmortizationCalculator({ defaults }: Props) {
             <Row label="Monthly payment" value={formatUSD(payment)} accent />
             <Row label="Total interest" value={formatUSD(totals.interest)} />
             <Row label="Total paid" value={formatUSD(totals.totalPaid)} />
+            <PitiLine
+              monthlyPayment={payment}
+              propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+              homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+              hoaMonthly={defaults?.hoaMonthly ?? null}
+            />
           </div>
         </div>
       </div>

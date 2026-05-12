@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Pencil, Trash2, AlertTriangle, Home, Star } from 'lucide-react'
 import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
@@ -9,7 +9,10 @@ import {
   deleteMortgage,
   deletePfsRecord,
   fetchPfs,
+  setPrimaryMortgage,
   totals,
+  totalMonthlyHousingOutflow,
+  type Mortgage,
   type Pfs,
   type PfsRecordKind,
 } from '../../lib/pfs'
@@ -34,8 +37,8 @@ export default function Financials() {
   )
   // Auto-open the mortgage modal when arriving via the onboarding "Add mortgage"
   // CTA (?add=mortgage). Strip the param immediately so refresh doesn't reopen.
-  const [mortgageModalOpen, setMortgageModalOpen] = useState(
-    () => searchParams.get('add') === 'mortgage',
+  const [mortgageModal, setMortgageModal] = useState<{ existing: Mortgage | null } | null>(
+    searchParams.get('add') === 'mortgage' ? { existing: null } : null,
   )
   useEffect(() => {
     if (searchParams.get('add') === 'mortgage') {
@@ -83,13 +86,22 @@ export default function Financials() {
   const onDeleteRecord = (id: string, label: string) =>
     setPendingDelete({ kind: 'record', id, label })
 
-  const onDeleteMortgage = () => {
-    if (!pfs?.mortgage) return
+  const onDeleteMortgage = (mortgage: Mortgage) => {
     setPendingDelete({
       kind: 'mortgage',
-      id: pfs.mortgage.id,
-      propertyLabel: pfs.mortgage.propertyLabel,
+      id: mortgage.id,
+      propertyLabel: mortgage.propertyLabel,
     })
+  }
+
+  const onSetPrimary = async (id: string) => {
+    setError(null)
+    try {
+      await setPrimaryMortgage(id)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not set primary property.')
+    }
   }
 
   const confirmDelete = async () => {
@@ -189,46 +201,38 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Mortgage details"
+        title="Properties"
         subtitle={
-          pfs.mortgage
-            ? `${pfs.mortgage.propertyLabel} • ${pfs.mortgage.ratePct}% • ${pfs.mortgage.termMonthsRemaining} mo left`
-            : 'Used by payoff projections and equity math.'
+          pfs.mortgages.length === 0
+            ? 'Used by payoff projections and equity math.'
+            : `${pfs.mortgages.length} ${pfs.mortgages.length === 1 ? 'property' : 'properties'} • primary drives the dashboard.`
         }
         rightAction={
-          pfs.mortgage ? (
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
-                <Pencil size={14} /> Edit
-              </Button>
-              <Button variant="secondary" size="sm" onClick={onDeleteMortgage}>
-                <Trash2 size={14} /> Delete
-              </Button>
-            </div>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
-              <Plus size={14} /> Add
-            </Button>
-          )
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setMortgageModal({ existing: null })}
+          >
+            <Plus size={14} /> {pfs.mortgages.length === 0 ? 'Add' : 'Add another'}
+          </Button>
         }
       >
-        {pfs.mortgage ? (
-          <dl className="divide-y divide-surface-200">
-            <DetailRow label="Balance" value={formatUSD(pfs.mortgage.balance)} />
-            <DetailRow label="Monthly P&I" value={formatUSD(pfs.mortgage.monthlyPayment)} />
-            <DetailRow
-              label="Extra principal / mo"
-              value={formatUSD(pfs.mortgage.extraPrincipal)}
-            />
-            <DetailRow
-              label="Starting home value"
-              value={formatUSD(pfs.mortgage.startingHomeValue)}
-            />
-          </dl>
-        ) : (
+        {pfs.mortgages.length === 0 ? (
           <div className="px-6 py-8 text-center text-sm text-surface-500">
-            No mortgage on file. Add one to enable payoff projections.
+            No properties on file. Add one to enable payoff projections.
           </div>
+        ) : (
+          <ul className="divide-y divide-surface-200">
+            {pfs.mortgages.map((m) => (
+              <PropertyRow
+                key={m.id}
+                mortgage={m}
+                onEdit={() => setMortgageModal({ existing: m })}
+                onDelete={() => onDeleteMortgage(m)}
+                onSetPrimary={() => onSetPrimary(m.id)}
+              />
+            ))}
+          </ul>
         )}
       </Section>
 
@@ -290,12 +294,13 @@ export default function Financials() {
         />
       )}
 
-      {mortgageModalOpen && (
+      {mortgageModal && (
         <MortgageModal
           open
-          onClose={() => setMortgageModalOpen(false)}
+          onClose={() => setMortgageModal(null)}
           onSaved={load}
-          existing={pfs.mortgage}
+          existing={mortgageModal.existing}
+          defaultIsPrimary={pfs.mortgages.length === 0}
         />
       )}
 
@@ -397,13 +402,144 @@ function Section({
   )
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function PropertyRow({
+  mortgage: m,
+  onEdit,
+  onDelete,
+  onSetPrimary,
+}: {
+  mortgage: Mortgage
+  onEdit: () => void
+  onDelete: () => void
+  onSetPrimary: () => void
+}) {
+  const piti = totalMonthlyHousingOutflow(m)
   return (
-    <div className="flex items-center justify-between px-6 py-3">
-      <dt className="text-sm text-surface-500">{label}</dt>
-      <dd className="font-mono text-sm font-medium text-surface-900">{value}</dd>
+    <li className="px-6 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Home size={14} className="text-surface-400" />
+            <span className="font-medium text-surface-900">{m.propertyLabel}</span>
+            {m.isPrimary && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-700">
+                <Star size={10} fill="currentColor" /> Primary
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-xs text-surface-500">
+            {m.ratePct}% • {m.termMonthsRemaining} mo left • {m.pctOwnership}% ownership
+            {m.dateAcquired && ` • acquired ${formatAcquired(m.dateAcquired)}`}
+          </div>
+        </div>
+        <div className="flex flex-shrink-0 gap-1">
+          {!m.isPrimary && (
+            <button
+              type="button"
+              onClick={onSetPrimary}
+              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              aria-label={`Make ${m.propertyLabel} primary`}
+              title="Make primary"
+            >
+              <Star size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            aria-label={`Edit ${m.propertyLabel}`}
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-md p-2 text-surface-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            aria-label={`Delete ${m.propertyLabel}`}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+        <PropertyDetail label="Balance" value={formatUSD(m.balance)} />
+        <PropertyDetail label="P&amp;I / mo" value={formatUSD(m.monthlyPayment)} />
+        <PropertyDetail label="Home value" value={formatUSD(m.startingHomeValue)} />
+        <PropertyDetail label="Extra principal" value={formatUSD(m.extraPrincipal)} />
+      </dl>
+
+      {(piti?.hasPiti || m.originalCost != null) && (
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-surface-100 pt-3 text-xs text-surface-600 sm:grid-cols-4">
+          {m.propertyTaxAnnual != null && (
+            <PropertyDetail
+              label="Property tax / yr"
+              value={formatUSD(m.propertyTaxAnnual)}
+              muted
+            />
+          )}
+          {m.homeownersInsuranceAnnual != null && (
+            <PropertyDetail
+              label="Insurance / yr"
+              value={formatUSD(m.homeownersInsuranceAnnual)}
+              muted
+            />
+          )}
+          {m.hoaMonthly != null && m.hoaMonthly > 0 && (
+            <PropertyDetail label="HOA / mo" value={formatUSD(m.hoaMonthly)} muted />
+          )}
+          {m.originalCost != null && (
+            <PropertyDetail
+              label="Original cost"
+              value={formatUSD(m.originalCost)}
+              muted
+            />
+          )}
+          {piti?.hasPiti && (
+            <PropertyDetail
+              label="True PITI / mo"
+              value={formatUSD(piti.total)}
+              muted
+              highlight
+            />
+          )}
+        </dl>
+      )}
+    </li>
+  )
+}
+
+function PropertyDetail({
+  label,
+  value,
+  muted,
+  highlight,
+}: {
+  label: string
+  value: string
+  muted?: boolean
+  highlight?: boolean
+}) {
+  return (
+    <div>
+      <dt className={`text-xs ${muted ? 'text-surface-500' : 'text-surface-500'}`}>{label}</dt>
+      <dd
+        className={`mt-0.5 font-mono text-sm font-medium ${highlight ? 'text-accent-700' : 'text-surface-900'}`}
+      >
+        {value}
+      </dd>
     </div>
   )
+}
+
+function formatAcquired(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 function ItemList({ rows }: { rows: Row[] }) {

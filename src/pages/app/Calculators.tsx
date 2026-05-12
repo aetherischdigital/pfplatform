@@ -226,6 +226,9 @@ function pfsToCalculatorDefaults(pfs: Pfs | null): PayoffCalculatorDefaults | un
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     extra: m.extraPrincipal,
     monthlyPayment: m.monthlyPayment,
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
   }
 }
 
@@ -236,6 +239,9 @@ function pfsToAmortizationDefaults(pfs: Pfs | null): AmortizationCalculatorDefau
     balance: m.balance,
     rate: m.ratePct,
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
   }
 }
 
@@ -260,6 +266,9 @@ function pfsToMultiScenarioDefaults(pfs: Pfs | null): MultiScenarioCalculatorDef
     rate: m.ratePct,
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     monthlyPayment: m.monthlyPayment,
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
   }
 }
 
@@ -270,5 +279,8 @@ function pfsToRefinanceDefaults(pfs: Pfs | null): RefinanceCalculatorDefaults | 
     currentBalance: m.balance,
     currentRatePct: m.ratePct,
     currentRemainingYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
   }
 }

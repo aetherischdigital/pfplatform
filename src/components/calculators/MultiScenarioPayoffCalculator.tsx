@@ -9,12 +9,16 @@ import {
 } from '../../lib/mortgage'
 import type { Simulation } from '../../lib/mortgage'
 import { NumberField } from '../ui/NumberField'
+import PitiLine from './PitiLine'
 
 export type MultiScenarioCalculatorDefaults = {
   balance?: number
   rate?: number
   termYears?: number
   monthlyPayment?: number
+  propertyTaxAnnual?: number | null
+  homeownersInsuranceAnnual?: number | null
+  hoaMonthly?: number | null
 }
 
 type Props = {
@@ -183,6 +187,12 @@ export default function MultiScenarioPayoffCalculator({ defaults }: Props) {
                 {formatUSD(monthlyPayment)}
               </span>
             </div>
+            <PitiLine
+              monthlyPayment={monthlyPayment}
+              propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+              homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+              hoaMonthly={defaults?.hoaMonthly ?? null}
+            />
           </div>
         </div>
       </div>

@@ -11,12 +11,24 @@ type Props = {
    *  parent's refetch completes — avoids a flash of stale UI after save. */
   onSaved: () => void | Promise<void>
   existing?: Mortgage | null
+  /** When creating a new mortgage, whether to default the "primary" toggle on.
+   *  Parent passes false when a primary already exists, so we don't violate
+   *  the partial unique index on commit. */
+  defaultIsPrimary?: boolean
 }
 
-export default function MortgageModal({ open, onClose, onSaved, existing }: Props) {
+export default function MortgageModal({
+  open,
+  onClose,
+  onSaved,
+  existing,
+  defaultIsPrimary = true,
+}: Props) {
   const isEdit = !!existing
 
-  const [propertyLabel, setPropertyLabel] = useState(existing?.propertyLabel ?? 'Primary residence')
+  const [propertyLabel, setPropertyLabel] = useState(
+    existing?.propertyLabel ?? 'Primary residence',
+  )
   const [startingHomeValue, setStartingHomeValue] = useState(
     existing ? String(existing.startingHomeValue) : '',
   )
@@ -43,6 +55,15 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
   const [hoaMonthly, setHoaMonthly] = useState(
     existing?.hoaMonthly != null ? String(existing.hoaMonthly) : '',
   )
+  // Schedule C extras (overdelivery)
+  const [dateAcquired, setDateAcquired] = useState(existing?.dateAcquired ?? '')
+  const [originalCost, setOriginalCost] = useState(
+    existing?.originalCost != null ? String(existing.originalCost) : '',
+  )
+  const [pctOwnership, setPctOwnership] = useState(
+    existing != null ? String(existing.pctOwnership) : '100',
+  )
+  const [isPrimary, setIsPrimary] = useState<boolean>(existing?.isPrimary ?? defaultIsPrimary)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{
     startingHomeValue?: string
@@ -111,6 +132,10 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
       propertyTaxAnnual: parseOptional(propertyTaxAnnual),
       homeownersInsuranceAnnual: parseOptional(homeownersInsuranceAnnual),
       hoaMonthly: parseOptional(hoaMonthly),
+      dateAcquired: dateAcquired.trim() === '' ? null : dateAcquired,
+      originalCost: parseOptional(originalCost),
+      pctOwnership: Math.max(0.01, Math.min(100, Number(pctOwnership) || 100)),
+      isPrimary,
     }
 
     const errs = validate(input)
@@ -289,6 +314,61 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
             invalid={!!fieldErrors.hoaMonthly}
           />
         </Field>
+
+        <div className="border-t border-surface-200 pt-4">
+          <h3 className="font-display text-sm font-semibold text-surface-900">
+            Property record (optional)
+          </h3>
+          <p className="mt-1 text-xs text-surface-500">
+            Acquisition details for your records. Doesn&rsquo;t affect calculations.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Date acquired" hint="When did you close?">
+            <input
+              type="date"
+              value={dateAcquired}
+              onChange={(e) => setDateAcquired(e.target.value)}
+              className={modalFieldClass}
+            />
+          </Field>
+          <Field label="Original cost" hint="Purchase price before any appreciation.">
+            <CurrencyInput value={originalCost} onChange={setOriginalCost} />
+          </Field>
+          <Field label="% ownership" hint="Default 100. Lower if you co-own.">
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="1"
+                min="0.01"
+                max="100"
+                value={pctOwnership}
+                onChange={(e) => setPctOwnership(e.target.value)}
+                className={`${modalFieldClass} pr-9`}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
+                %
+              </span>
+            </div>
+          </Field>
+        </div>
+
+        <label className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            checked={isPrimary}
+            onChange={(e) => setIsPrimary(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-medium text-surface-900">Primary residence</span>
+            <span className="ml-2 text-xs text-surface-500">
+              Drives the dashboard&rsquo;s headline equity and payoff cards. Only one property can be primary.
+            </span>
+          </span>
+        </label>
 
         {error && (
           <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">

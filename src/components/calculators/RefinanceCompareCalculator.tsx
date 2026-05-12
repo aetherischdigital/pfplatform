@@ -2,11 +2,15 @@ import { useMemo, useState } from 'react'
 import { compareRefinance } from '../../lib/refinance'
 import { formatUSD, formatYearsMonths } from '../../lib/mortgage'
 import { NumberField } from '../ui/NumberField'
+import PitiLine from './PitiLine'
 
 export type RefinanceCalculatorDefaults = {
   currentBalance?: number
   currentRatePct?: number
   currentRemainingYears?: number
+  propertyTaxAnnual?: number | null
+  homeownersInsuranceAnnual?: number | null
+  hoaMonthly?: number | null
 }
 
 type Props = {
@@ -186,7 +190,39 @@ export default function RefinanceCompareCalculator({ defaults }: Props) {
               />
               <DetailRow label="Closing costs (out of pocket)" value={formatUSD(closingCosts)} />
             </dl>
-            <p className="mt-5 rounded-lg border border-surface-200 bg-surface-50 px-4 py-3 text-xs text-surface-600">
+            <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-surface-500">
+                True PITI comparison
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-surface-500">Current loan</p>
+                  <PitiLine
+                    monthlyPayment={result.currentMonthly}
+                    propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+                    homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+                    hoaMonthly={defaults?.hoaMonthly ?? null}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-500">After refinance</p>
+                  <PitiLine
+                    monthlyPayment={result.newMonthly}
+                    propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+                    homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+                    hoaMonthly={defaults?.hoaMonthly ?? null}
+                  />
+                </div>
+              </div>
+              {defaults?.propertyTaxAnnual == null &&
+                defaults?.homeownersInsuranceAnnual == null &&
+                defaults?.hoaMonthly == null && (
+                  <p className="mt-2 text-xs text-surface-500">
+                    Add property tax, insurance, or HOA to your mortgage in Financials to see true monthly costs here.
+                  </p>
+                )}
+            </div>
+            <p className="mt-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-3 text-xs text-surface-600">
               <strong className="font-semibold text-surface-900">Heads up:</strong>{' '}
               Break-even only pays off if you stay in the home (and keep this loan) past
               that date. Extending the term lowers your monthly but can add lifetime
