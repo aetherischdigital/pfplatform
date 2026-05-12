@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   Pencil,
   CheckCircle2,
+  Cake,
+  Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
@@ -16,6 +18,8 @@ import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
   requestOwnEmailChange,
+  updateOwnBirthdate,
+  updateOwnDependents,
   updateOwnDisplayName,
   updateOwnPassword,
   updateOwnWaitlistInterest,
@@ -60,6 +64,15 @@ export default function Account() {
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<{
     new?: string
     confirm?: string
+  }>({})
+
+  const [editingPersonal, setEditingPersonal] = useState(false)
+  const [birthdateDraft, setBirthdateDraft] = useState('')
+  const [dependentsDraft, setDependentsDraft] = useState('')
+  const [savingPersonal, setSavingPersonal] = useState(false)
+  const [personalFieldErrors, setPersonalFieldErrors] = useState<{
+    birthdate?: string
+    dependents?: string
   }>({})
 
   useEffect(() => {
@@ -174,6 +187,64 @@ export default function Account() {
     setNewPassword('')
     setConfirmPassword('')
     setPasswordFieldErrors({})
+  }
+
+  const startEditingPersonal = () => {
+    setBirthdateDraft(profile?.birthdate ?? '')
+    setDependentsDraft(profile?.dependents != null ? String(profile.dependents) : '')
+    setPersonalFieldErrors({})
+    setEditingPersonal(true)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const cancelEditingPersonal = () => {
+    setEditingPersonal(false)
+    setBirthdateDraft('')
+    setDependentsDraft('')
+    setPersonalFieldErrors({})
+  }
+
+  const savePersonal = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const errs: typeof personalFieldErrors = {}
+    const trimmedBirthdate = birthdateDraft.trim()
+    const nextBirthdate = trimmedBirthdate === '' ? null : trimmedBirthdate
+    if (nextBirthdate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(nextBirthdate)) {
+      errs.birthdate = 'Use YYYY-MM-DD.'
+    }
+
+    const trimmedDeps = dependentsDraft.trim()
+    let nextDependents: number | null = null
+    if (trimmedDeps !== '') {
+      const n = Number(trimmedDeps)
+      if (!Number.isInteger(n) || n < 0 || n > 20) {
+        errs.dependents = 'Whole number between 0 and 20.'
+      } else {
+        nextDependents = n
+      }
+    }
+
+    setPersonalFieldErrors(errs)
+    if (Object.keys(errs).length > 0) return
+
+    setSavingPersonal(true)
+    try {
+      await Promise.all([
+        updateOwnBirthdate(nextBirthdate),
+        updateOwnDependents(nextDependents),
+      ])
+      const fresh = await fetchOwnProfile()
+      setProfile(fresh)
+      setEditingPersonal(false)
+      setSuccessMessage('Personal details saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save personal details.')
+    } finally {
+      setSavingPersonal(false)
+    }
   }
 
   const savePassword = async (e: FormEvent) => {
@@ -334,6 +405,107 @@ export default function Account() {
                 )
               }
             />
+          )}
+          {editingPersonal ? (
+            <form
+              onSubmit={savePersonal}
+              className="flex flex-col gap-3 border-b border-surface-100 py-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Birthdate
+                  </span>
+                  <input
+                    type="date"
+                    autoFocus
+                    aria-invalid={personalFieldErrors.birthdate ? true : undefined}
+                    value={birthdateDraft}
+                    onChange={(e) => setBirthdateDraft(e.target.value)}
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none focus:bg-white ${
+                      personalFieldErrors.birthdate
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {personalFieldErrors.birthdate && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {personalFieldErrors.birthdate}
+                    </p>
+                  )}
+                </label>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Dependents
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    step="1"
+                    min="0"
+                    max="20"
+                    aria-invalid={personalFieldErrors.dependents ? true : undefined}
+                    value={dependentsDraft}
+                    onChange={(e) => setDependentsDraft(e.target.value)}
+                    placeholder="0"
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                      personalFieldErrors.dependents
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {personalFieldErrors.dependents && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {personalFieldErrors.dependents}
+                    </p>
+                  )}
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelEditingPersonal}
+                  disabled={savingPersonal}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingPersonal}>
+                  {savingPersonal ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <Field
+                icon={Cake}
+                label="Birthdate"
+                value={loading ? '…' : formatBirthdate(profile?.birthdate)}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingPersonal}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Users}
+                label="Dependents"
+                value={
+                  loading
+                    ? '…'
+                    : profile?.dependents != null
+                      ? String(profile.dependents)
+                      : '—'
+                }
+              />
+            </>
           )}
           {changingPassword ? (
             <form onSubmit={savePassword} className="flex flex-col gap-3 py-3">
@@ -524,6 +696,18 @@ function WaitlistInterestRow({
       </p>
     </label>
   )
+}
+
+function formatBirthdate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  // ISO date is YYYY-MM-DD; render as "Mon D, YYYY" without TZ drift.
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 function Field({

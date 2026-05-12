@@ -10,6 +10,9 @@ export type Profile = {
   displayName: string | null
   email: string | null
   waitlistInterest: WaitlistInterest
+  // Phase 2 §3.4 additions — both optional, support null until user fills them in.
+  birthdate: string | null
+  dependents: number | null
 }
 
 type Row = {
@@ -18,6 +21,8 @@ type Row = {
   display_name: string | null
   email: string | null
   waitlist_interest: WaitlistInterest
+  birthdate: string | null
+  dependents: number | null
 }
 
 export async function fetchOwnProfile(): Promise<Profile | null> {
@@ -26,7 +31,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, display_name, email, waitlist_interest')
+    .select('id, role, display_name, email, waitlist_interest, birthdate, dependents')
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
 
@@ -39,7 +44,34 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
     displayName: data.display_name,
     email: data.email,
     waitlistInterest: data.waitlist_interest ?? 'none',
+    birthdate: data.birthdate,
+    dependents: data.dependents,
   }
+}
+
+/** Update the user's own birthdate. ISO date string (yyyy-mm-dd) or null to clear. */
+export async function updateOwnBirthdate(birthdate: string | null): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('profiles')
+    .update({ birthdate })
+    .eq('id', auth.user.id)
+  if (error) throw error
+}
+
+/** Update the user's own dependents count. Non-negative int or null to clear. */
+export async function updateOwnDependents(dependents: number | null): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  if (dependents !== null && (dependents < 0 || !Number.isInteger(dependents))) {
+    throw new Error('Dependents must be a non-negative whole number.')
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({ dependents })
+    .eq('id', auth.user.id)
+  if (error) throw error
 }
 
 export function displayLabel(p: Profile | null): string {

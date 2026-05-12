@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 
 // ---------------------------------------------------------------------------
 // Types — mirror the DB schema in 20260512000000_pfs_records.sql
+// + Phase 2 §3.4 expansion in 20260513000000_pfs_expansion.sql
 // ---------------------------------------------------------------------------
 
 export type AssetCategory =
@@ -10,6 +11,9 @@ export type AssetCategory =
   | 'investments'
   | 'cash'
   | 'vehicle'
+  | 'life_insurance_cash'
+  | 'securities_marketable'
+  | 'securities_nonmarketable'
   | 'other'
 
 export type LiabilityCategory =
@@ -17,9 +21,32 @@ export type LiabilityCategory =
   | 'auto_loan'
   | 'student_loan'
   | 'credit_card'
+  | 'heloc'
+  | 'personal_loan'
+  | 'tax_debt'
+  | 'medical_debt'
+  | 'notes_due_others'
   | 'other'
 
-export type ExpenseCategory = 'housing' | 'transportation' | 'food' | 'other'
+export type IncomeCategory =
+  | 'salary'
+  | 'dividends'
+  | 'rental'
+  | 'self_employment'
+  | 'pension'
+  | 'social_security'
+  | 'other'
+
+export type ExpenseCategory =
+  | 'housing'
+  | 'transportation'
+  | 'food'
+  | 'taxes'
+  | 'insurance'
+  | 'healthcare'
+  | 'debt_service'
+  | 'utilities'
+  | 'other'
 
 export type PfsRecordKind = 'asset' | 'liability' | 'income' | 'expense'
 
@@ -41,6 +68,7 @@ export type Liability = {
 export type IncomeSource = {
   id: string
   label: string
+  category: IncomeCategory
   monthly: number
 }
 
@@ -60,6 +88,15 @@ export type Mortgage = {
   termMonthsRemaining: number
   monthlyPayment: number
   extraPrincipal: number
+  // Phase 2 PITI extras (nullable until users opt in).
+  propertyTaxAnnual: number | null
+  homeownersInsuranceAnnual: number | null
+  hoaMonthly: number | null
+  // Phase 2 multi-property: schema allows multiple mortgages per user, with
+  // exactly one flagged is_primary. The data layer currently exposes only the
+  // primary as `Pfs.mortgage` to keep existing dashboard/calculator consumers
+  // unchanged; multi-property UI is a Phase 2 §2.2 amendment.
+  isPrimary: boolean
 }
 
 export type Pfs = {
@@ -67,6 +104,7 @@ export type Pfs = {
   liabilities: Liability[]
   income: IncomeSource[]
   expenses: Expense[]
+  /** The user's primary mortgage. Null if no mortgage exists. */
   mortgage: Mortgage | null
 }
 
@@ -76,6 +114,9 @@ export const ASSET_CATEGORY_LABELS: Record<AssetCategory, string> = {
   investments: 'Investments',
   cash: 'Cash',
   vehicle: 'Vehicle',
+  life_insurance_cash: 'Life insurance (cash value)',
+  securities_marketable: 'Marketable securities',
+  securities_nonmarketable: 'Non-marketable securities',
   other: 'Other',
 }
 
@@ -84,6 +125,21 @@ export const LIABILITY_CATEGORY_LABELS: Record<LiabilityCategory, string> = {
   auto_loan: 'Auto loan',
   student_loan: 'Student loan',
   credit_card: 'Credit card',
+  heloc: 'HELOC / second mortgage',
+  personal_loan: 'Personal loan',
+  tax_debt: 'Tax debt',
+  medical_debt: 'Medical debt',
+  notes_due_others: 'Notes due to others',
+  other: 'Other',
+}
+
+export const INCOME_CATEGORY_LABELS: Record<IncomeCategory, string> = {
+  salary: 'Salary / bonus / commission',
+  dividends: 'Dividends & interest',
+  rental: 'Rental income',
+  self_employment: 'Self-employment',
+  pension: 'Pension',
+  social_security: 'Social Security',
   other: 'Other',
 }
 
@@ -91,6 +147,11 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   housing: 'Housing',
   transportation: 'Transportation',
   food: 'Food',
+  taxes: 'Taxes',
+  insurance: 'Insurance',
+  healthcare: 'Healthcare',
+  debt_service: 'Debt service',
+  utilities: 'Utilities',
   other: 'Other',
 }
 
@@ -117,10 +178,33 @@ type MortgageRow = {
   term_months_remaining: number
   monthly_payment: string | number
   extra_principal: string | number
+  property_tax_annual: string | number | null
+  homeowners_insurance_annual: string | number | null
+  hoa_monthly: string | number | null
+  is_primary: boolean
   created_at: string
 }
 
 const num = (v: string | number): number => (typeof v === 'string' ? Number(v) : v)
+const nullableNum = (v: string | number | null): number | null =>
+  v === null ? null : typeof v === 'string' ? Number(v) : v
+
+function toMortgage(m: MortgageRow): Mortgage {
+  return {
+    id: m.id,
+    propertyLabel: m.property_label,
+    startingHomeValue: num(m.starting_home_value),
+    balance: num(m.balance),
+    ratePct: num(m.rate_pct),
+    termMonthsRemaining: m.term_months_remaining,
+    monthlyPayment: num(m.monthly_payment),
+    extraPrincipal: num(m.extra_principal),
+    propertyTaxAnnual: nullableNum(m.property_tax_annual),
+    homeownersInsuranceAnnual: nullableNum(m.homeowners_insurance_annual),
+    hoaMonthly: nullableNum(m.hoa_monthly),
+    isPrimary: m.is_primary,
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Fetch — one round-trip per table, parallel
@@ -135,8 +219,9 @@ export async function fetchPfs(): Promise<Pfs> {
     supabase
       .from('mortgages')
       .select(
-        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,monthly_payment,extra_principal,created_at',
+        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,monthly_payment,extra_principal,property_tax_annual,homeowners_insurance_annual,hoa_monthly,is_primary,created_at',
       )
+      .eq('is_primary', true)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
@@ -169,7 +254,14 @@ export async function fetchPfs(): Promise<Pfs> {
         })
         break
       case 'income':
-        income.push({ id: r.id, label: r.label, monthly: amount })
+        income.push({
+          id: r.id,
+          label: r.label,
+          // Migration backfills any NULL income.category to 'other', so the
+          // cast is safe — the DB constraint guarantees a value.
+          category: (r.category ?? 'other') as IncomeCategory,
+          monthly: amount,
+        })
         break
       case 'expense':
         expenses.push({
@@ -187,18 +279,7 @@ export async function fetchPfs(): Promise<Pfs> {
     liabilities,
     income,
     expenses,
-    mortgage: m
-      ? {
-          id: m.id,
-          propertyLabel: m.property_label,
-          startingHomeValue: num(m.starting_home_value),
-          balance: num(m.balance),
-          ratePct: num(m.rate_pct),
-          termMonthsRemaining: m.term_months_remaining,
-          monthlyPayment: num(m.monthly_payment),
-          extraPrincipal: num(m.extra_principal),
-        }
-      : null,
+    mortgage: m ? toMortgage(m) : null,
   }
 }
 
@@ -209,7 +290,7 @@ export async function fetchPfs(): Promise<Pfs> {
 export type PfsRecordInput =
   | { kind: 'asset'; label: string; category: AssetCategory; amount: number }
   | { kind: 'liability'; label: string; category: LiabilityCategory; amount: number; rate?: number }
-  | { kind: 'income'; label: string; amount: number }
+  | { kind: 'income'; label: string; category: IncomeCategory; amount: number }
   | { kind: 'expense'; label: string; category: ExpenseCategory; amount: number }
 
 async function currentUserId(): Promise<string> {
@@ -225,7 +306,7 @@ export async function createPfsRecord(input: PfsRecordInput): Promise<void> {
     user_id,
     kind: input.kind,
     label: input.label.trim(),
-    category: input.kind === 'income' ? null : input.category,
+    category: input.category,
     amount: input.amount,
     rate: input.kind === 'liability' ? input.rate ?? null : null,
   }
@@ -237,7 +318,7 @@ export async function updatePfsRecord(id: string, input: PfsRecordInput): Promis
   const patch = {
     kind: input.kind,
     label: input.label.trim(),
-    category: input.kind === 'income' ? null : input.category,
+    category: input.category,
     amount: input.amount,
     rate: input.kind === 'liability' ? input.rate ?? null : null,
   }
@@ -262,6 +343,9 @@ export type MortgageInput = {
   termMonthsRemaining: number
   monthlyPayment: number
   extraPrincipal: number
+  propertyTaxAnnual: number | null
+  homeownersInsuranceAnnual: number | null
+  hoaMonthly: number | null
 }
 
 function mortgageRow(input: MortgageInput) {
@@ -273,6 +357,9 @@ function mortgageRow(input: MortgageInput) {
     term_months_remaining: input.termMonthsRemaining,
     monthly_payment: input.monthlyPayment,
     extra_principal: input.extraPrincipal,
+    property_tax_annual: input.propertyTaxAnnual,
+    homeowners_insurance_annual: input.homeownersInsuranceAnnual,
+    hoa_monthly: input.hoaMonthly,
   }
 }
 
@@ -283,6 +370,10 @@ export async function upsertMortgage(input: MortgageInput, id?: string): Promise
     return
   }
   const user_id = await currentUserId()
+  // New mortgages default to is_primary=true at the DB level. The partial
+  // unique index enforces one-primary-per-user, so a second insert with
+  // is_primary=true would fail — for now (single-property UX) that's the
+  // intended guardrail.
   const { error } = await supabase.from('mortgages').insert({ user_id, ...mortgageRow(input) })
   if (error) throw error
 }
@@ -322,5 +413,29 @@ export function totals(pfs: Pfs): Totals {
     monthlyIncome,
     monthlyExpenses,
     monthlyCashFlow: monthlyIncome - monthlyExpenses,
+  }
+}
+
+/**
+ * Estimated total monthly housing outflow (true PITI). P+I from
+ * monthlyPayment, T+I prorated from annual fields, plus HOA. Returns null if
+ * we don't have enough data to make the math meaningful (no mortgage at all).
+ *
+ * Returns just P+I if PITI extras haven't been entered — the cells are NULL
+ * until the user fills them in, and we don't want to silently understate by
+ * pretending those costs are zero. Caller decides how to render the gap.
+ */
+export function totalMonthlyHousingOutflow(m: Mortgage | null): {
+  total: number
+  hasPiti: boolean
+} | null {
+  if (!m) return null
+  const taxes = m.propertyTaxAnnual ?? 0
+  const insurance = m.homeownersInsuranceAnnual ?? 0
+  const hoa = m.hoaMonthly ?? 0
+  const piti = m.propertyTaxAnnual != null || m.homeownersInsuranceAnnual != null || m.hoaMonthly != null
+  return {
+    total: m.monthlyPayment + taxes / 12 + insurance / 12 + hoa,
+    hasPiti: piti,
   }
 }

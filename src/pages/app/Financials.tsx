@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
+  INCOME_CATEGORY_LABELS,
   EXPENSE_CATEGORY_LABELS,
   deleteMortgage,
   deletePfsRecord,
@@ -245,7 +246,7 @@ export default function Financials() {
             rows={pfs.income.map((i) => ({
               id: i.id,
               label: i.label,
-              sub: 'Monthly',
+              sub: INCOME_CATEGORY_LABELS[i.category],
               value: formatUSD(i.monthly),
               onEdit: () =>
                 setRecordModal({ kind: 'income', existing: { kind: 'income', ...i } }),

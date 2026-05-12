@@ -31,6 +31,18 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
   const [extraPrincipal, setExtraPrincipal] = useState(
     existing ? String(existing.extraPrincipal) : '0',
   )
+  // PITI extras. Persisted as nullable in the DB; the UI surfaces empty as null
+  // so we never silently fabricate "$0 of property tax" for users who haven't
+  // looked it up yet.
+  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(
+    existing?.propertyTaxAnnual != null ? String(existing.propertyTaxAnnual) : '',
+  )
+  const [homeownersInsuranceAnnual, setHomeownersInsuranceAnnual] = useState(
+    existing?.homeownersInsuranceAnnual != null ? String(existing.homeownersInsuranceAnnual) : '',
+  )
+  const [hoaMonthly, setHoaMonthly] = useState(
+    existing?.hoaMonthly != null ? String(existing.hoaMonthly) : '',
+  )
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{
     startingHomeValue?: string
@@ -39,6 +51,9 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
     termMonthsRemaining?: string
     monthlyPayment?: string
     extraPrincipal?: string
+    propertyTaxAnnual?: string
+    homeownersInsuranceAnnual?: string
+    hoaMonthly?: string
   }>({})
   const [saving, setSaving] = useState(false)
 
@@ -61,7 +76,24 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
     } else if (input.termMonthsRemaining <= 0 || input.termMonthsRemaining > 600) {
       errs.termMonthsRemaining = 'Must be between 1 and 600.'
     }
+    if (input.propertyTaxAnnual !== null && (!Number.isFinite(input.propertyTaxAnnual) || input.propertyTaxAnnual < 0)) {
+      errs.propertyTaxAnnual = 'Enter a positive number or leave blank.'
+    }
+    if (input.homeownersInsuranceAnnual !== null && (!Number.isFinite(input.homeownersInsuranceAnnual) || input.homeownersInsuranceAnnual < 0)) {
+      errs.homeownersInsuranceAnnual = 'Enter a positive number or leave blank.'
+    }
+    if (input.hoaMonthly !== null && (!Number.isFinite(input.hoaMonthly) || input.hoaMonthly < 0)) {
+      errs.hoaMonthly = 'Enter a positive number or leave blank.'
+    }
     return errs
+  }
+
+  // Treat empty strings as "not entered" → null. Anything else is parsed and
+  // validated. Lets users leave property tax / insurance / HOA blank without
+  // the math fabricating zeros.
+  const parseOptional = (s: string): number | null => {
+    if (s.trim() === '') return null
+    return Number(s)
   }
 
   const onSubmit = async (e: FormEvent) => {
@@ -76,6 +108,9 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
       termMonthsRemaining: Number(termMonthsRemaining),
       monthlyPayment: Number(monthlyPayment),
       extraPrincipal: Number(extraPrincipal || '0'),
+      propertyTaxAnnual: parseOptional(propertyTaxAnnual),
+      homeownersInsuranceAnnual: parseOptional(homeownersInsuranceAnnual),
+      hoaMonthly: parseOptional(hoaMonthly),
     }
 
     const errs = validate(input)
@@ -208,6 +243,52 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
             />
           </Field>
         </div>
+
+        <div className="border-t border-surface-200 pt-4">
+          <h3 className="font-display text-sm font-semibold text-surface-900">
+            Property costs (optional)
+          </h3>
+          <p className="mt-1 text-xs text-surface-500">
+            For true PITI math. Leave blank if you&rsquo;re not sure — we&rsquo;ll show just P&amp;I.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Property tax / yr"
+            hint="Annual property tax (check your tax bill or escrow statement)."
+            error={fieldErrors.propertyTaxAnnual}
+          >
+            <CurrencyInput
+              value={propertyTaxAnnual}
+              onChange={setPropertyTaxAnnual}
+              invalid={!!fieldErrors.propertyTaxAnnual}
+            />
+          </Field>
+          <Field
+            label="Homeowners insurance / yr"
+            hint="Annual premium. Skip if rolled into your mortgage payment escrow."
+            error={fieldErrors.homeownersInsuranceAnnual}
+          >
+            <CurrencyInput
+              value={homeownersInsuranceAnnual}
+              onChange={setHomeownersInsuranceAnnual}
+              invalid={!!fieldErrors.homeownersInsuranceAnnual}
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="HOA / mo"
+          hint="Monthly HOA, condo, or co-op fees. Zero or blank if none."
+          error={fieldErrors.hoaMonthly}
+        >
+          <CurrencyInput
+            value={hoaMonthly}
+            onChange={setHoaMonthly}
+            invalid={!!fieldErrors.hoaMonthly}
+          />
+        </Field>
 
         {error && (
           <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">

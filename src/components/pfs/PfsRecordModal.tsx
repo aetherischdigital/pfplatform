@@ -5,11 +5,13 @@ import { Button } from '../ui/Button'
 import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
+  INCOME_CATEGORY_LABELS,
   EXPENSE_CATEGORY_LABELS,
   createPfsRecord,
   updatePfsRecord,
   type AssetCategory,
   type LiabilityCategory,
+  type IncomeCategory,
   type ExpenseCategory,
   type PfsRecordKind,
   type Asset,
@@ -87,7 +89,7 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
                 rate: rateNum,
               }
             : kind === 'income'
-              ? { kind, label, amount: amountNum }
+              ? { kind, label, category: category as IncomeCategory, amount: amountNum }
               : { kind, label, category: category as ExpenseCategory, amount: amountNum }
 
       if (existing) await updatePfsRecord(existing.id, input)
@@ -237,7 +239,7 @@ function defaultCategory(kind: PfsRecordKind): string {
     case 'expense':
       return 'housing'
     case 'income':
-      return ''
+      return 'salary'
   }
 }
 
@@ -260,7 +262,12 @@ function initialFormState(
     }
   }
   if (existing.kind === 'income') {
-    return { label: existing.label, amount: String(existing.monthly), category: '', rate: '' }
+    return {
+      label: existing.label,
+      amount: String(existing.monthly),
+      category: existing.category,
+      rate: '',
+    }
   }
   return { label: existing.label, amount: String(existing.monthly), category: existing.category, rate: '' }
 }
@@ -286,6 +293,9 @@ function categoryOptionsFor(
   }
   if (kind === 'liability') {
     return Object.entries(LIABILITY_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+  }
+  if (kind === 'income') {
+    return Object.entries(INCOME_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
   }
   if (kind === 'expense') {
     return Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
