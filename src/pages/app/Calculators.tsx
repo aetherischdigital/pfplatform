@@ -4,7 +4,7 @@ import {
   Calculator as CalculatorIcon,
   ListOrdered,
   RefreshCw,
-  Scale,
+  Split,
   TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -17,6 +17,9 @@ import AmortizationCalculator, {
 import EquityProjectionCalculator, {
   type EquityCalculatorDefaults,
 } from '../../components/calculators/EquityProjectionCalculator'
+import MultiScenarioPayoffCalculator, {
+  type MultiScenarioCalculatorDefaults,
+} from '../../components/calculators/MultiScenarioPayoffCalculator'
 import { fetchPfs, type Pfs } from '../../lib/pfs'
 import { Button } from '../../components/ui/Button'
 import { markCalculatorVisited } from '../../lib/onboarding'
@@ -129,21 +132,38 @@ export default function Calculators() {
         )}
       </section>
 
+      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
+            <Split size={18} />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-surface-900">
+              Payoff scenarios
+            </h2>
+            <p className="mt-0.5 text-sm text-surface-500">
+              Compare no-extra, monthly-extra, biweekly, and lump-sum strategies side-by-side.
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <PayoffCalculatorSkeleton />
+        ) : (
+          <MultiScenarioPayoffCalculator defaults={pfsToMultiScenarioDefaults(pfs)} />
+        )}
+      </section>
+
       <section>
         <h2 className="font-display text-lg font-semibold text-surface-900">More calculators</h2>
         <p className="mt-1 text-sm text-surface-500">
           Still to come in the Phase 2 release.
         </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-4 sm:grid-cols-1">
           <ComingSoonTile
             icon={RefreshCw}
             title="Refinance compare"
             description="Side-by-side: current loan vs. a new rate and term, with break-even."
-          />
-          <ComingSoonTile
-            icon={Scale}
-            title="Scenarios side-by-side"
-            description="Compare no-extra, monthly-extra, biweekly, and lump-sum payoff strategies."
           />
         </div>
       </section>
@@ -246,5 +266,16 @@ function pfsToEquityDefaults(pfs: Pfs | null): EquityCalculatorDefaults | undefi
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     monthlyPayment: m.monthlyPayment,
     extra: m.extraPrincipal,
+  }
+}
+
+function pfsToMultiScenarioDefaults(pfs: Pfs | null): MultiScenarioCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    monthlyPayment: m.monthlyPayment,
   }
 }

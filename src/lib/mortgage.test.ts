@@ -3,6 +3,7 @@ import {
   amortizationSchedule,
   monthlyPaymentForLoan,
   simulate,
+  simulateScenario,
 } from './mortgage'
 
 describe('monthlyPaymentForLoan', () => {
@@ -67,5 +68,93 @@ describe('amortizationSchedule', () => {
     const totalFromSchedule = rows.reduce((acc, r) => acc + r.interest, 0)
     const fromSimulate = simulate(balance, ratePct, payment, 0).totalInterest
     expect(totalFromSchedule).toBeCloseTo(fromSimulate, 1)
+  })
+})
+
+describe('simulateScenario', () => {
+  const balance = 300_000
+  const ratePct = 6
+  const payment = monthlyPaymentForLoan(balance, ratePct, 360)
+
+  it('matches simulate() exactly when no extras are passed', () => {
+    const a = simulate(balance, ratePct, payment, 0)
+    const b = simulateScenario({ startingBalance: balance, annualRatePct: ratePct, monthlyPayment: payment })
+    expect(b.months).toBe(a.months)
+    expect(b.totalInterest).toBeCloseTo(a.totalInterest, 2)
+  })
+
+  it('matches simulate(..., extra) when only extraPrincipal is passed', () => {
+    const a = simulate(balance, ratePct, payment, 250)
+    const b = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      extraPrincipal: 250,
+    })
+    expect(b.months).toBe(a.months)
+    expect(b.totalInterest).toBeCloseTo(a.totalInterest, 2)
+  })
+
+  it('biweekly (extra = payment/12) shortens the loan and reduces interest vs. baseline', () => {
+    const baseline = simulateScenario({ startingBalance: balance, annualRatePct: ratePct, monthlyPayment: payment })
+    const biweekly = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      extraPrincipal: payment / 12,
+    })
+    expect(biweekly.months).toBeLessThan(baseline.months)
+    expect(biweekly.totalInterest).toBeLessThan(baseline.totalInterest)
+  })
+
+  it('lump sum at month 1 saves more interest than the same amount at month 240', () => {
+    const early = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      lumpSum: { month: 1, amount: 10_000 },
+    })
+    const late = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      lumpSum: { month: 240, amount: 10_000 },
+    })
+    expect(early.totalInterest).toBeLessThan(late.totalInterest)
+  })
+
+  it('a lump sum equal to the balance pays the loan off the same month', () => {
+    const result = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      lumpSum: { month: 1, amount: 1_000_000 },
+    })
+    expect(result.months).toBe(1)
+  })
+
+  it('lump sum past the natural payoff month is a no-op', () => {
+    const noLump = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+    })
+    const lateLump = simulateScenario({
+      startingBalance: balance,
+      annualRatePct: ratePct,
+      monthlyPayment: payment,
+      lumpSum: { month: 500, amount: 50_000 },
+    })
+    expect(lateLump.months).toBe(noLump.months)
+    expect(lateLump.totalInterest).toBeCloseTo(noLump.totalInterest, 2)
+  })
+
+  it('returns Infinity when payment does not cover interest', () => {
+    const result = simulateScenario({
+      startingBalance: 300_000,
+      annualRatePct: 6,
+      monthlyPayment: 100, // way too low
+    })
+    expect(result.months).toBe(Infinity)
   })
 })

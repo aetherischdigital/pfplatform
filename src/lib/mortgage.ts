@@ -88,6 +88,78 @@ export function simulate(
   return { months: month, totalInterest: cumulativeInterest, history }
 }
 
+export type LumpSum = {
+  /** 1-indexed month to apply the lump sum (1 = first month after start) */
+  month: number
+  amount: number
+}
+
+export type ScenarioInput = {
+  startingBalance: number
+  annualRatePct: number
+  monthlyPayment: number
+  /** Extra principal added each month on top of the scheduled payment */
+  extraPrincipal?: number
+  /** One-time lump-sum principal payment at a specific month */
+  lumpSum?: LumpSum
+}
+
+/**
+ * Run a payoff scenario forward month-by-month. Supports the union of the
+ * extra-monthly and lump-sum payment modes that the multi-scenario payoff
+ * calculator compares.
+ *
+ * Biweekly is modeled as extraPrincipal = monthlyPayment / 12 (i.e., 13
+ * payments/year, per the MMS framing — 4 months a year have 5 weeks).
+ *
+ * Same 50-year cap as simulate() to guard against degenerate inputs.
+ */
+export function simulateScenario(input: ScenarioInput): Simulation {
+  const {
+    startingBalance,
+    annualRatePct,
+    monthlyPayment,
+    extraPrincipal = 0,
+    lumpSum,
+  } = input
+  const r = annualRatePct / 100 / 12
+  let balance = startingBalance
+  let cumulativeInterest = 0
+  let month = 0
+  const history: SimulationPoint[] = [
+    { month: 0, balance, cumulativeInterest: 0 },
+  ]
+
+  while (balance > 0.01 && month < 600) {
+    const interest = balance * r
+    const principalPayment = monthlyPayment + extraPrincipal - interest
+
+    if (principalPayment <= 0) {
+      return { months: Infinity, totalInterest: Infinity, history }
+    }
+
+    // Apply the scheduled + extra payment to principal.
+    const principalApplied = Math.min(principalPayment, balance)
+    balance -= principalApplied
+    cumulativeInterest += interest
+    month++
+
+    // Lump sum lands at the END of its month (after the regular payment),
+    // which matches how a one-time prepay check is typically processed.
+    if (lumpSum && month === lumpSum.month && balance > 0) {
+      balance = Math.max(0, balance - lumpSum.amount)
+    }
+
+    history.push({ month, balance: Math.max(0, balance), cumulativeInterest })
+  }
+
+  if (balance > 0.01) {
+    return { months: Infinity, totalInterest: Infinity, history }
+  }
+
+  return { months: month, totalInterest: cumulativeInterest, history }
+}
+
 /**
  * Compare a scenario (with extra principal) against a baseline (without).
  * Both runs use the same scheduled monthly payment.
