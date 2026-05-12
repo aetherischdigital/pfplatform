@@ -1,4 +1,5 @@
 import { ArrowRight, FileText, ListChecks, ScanSearch, Wallet, Users, ShieldCheck, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
 import EquityChart from '../../components/EquityChart'
@@ -155,7 +156,7 @@ export default function Landing() {
           </div>
           <p className="mt-6 text-center text-xs text-surface-400">
             Modeled on a $400,000 30-year fixed at 6.5% with $250/month redirected to principal as exact-amount prepayments.
-            Run your own numbers in the <a href="/calculator" className="underline decoration-surface-300 underline-offset-2 hover:text-surface-600">calculator</a>.
+            Run your own numbers in the <Link to="/calculator" className="underline decoration-surface-300 underline-offset-2 hover:text-surface-600">calculator</Link>.
           </p>
         </Container>
       </section>

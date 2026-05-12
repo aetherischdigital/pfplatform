@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 type Props = {
@@ -16,7 +16,12 @@ const sizeClass: Record<NonNullable<Props['size']>, string> = {
   lg: 'max-w-lg',
 }
 
-export default function Modal({ open, onClose, title, titleId = 'modal-title', children, size = 'md' }: Props) {
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+export default function Modal({ open, onClose, title, titleId, children, size = 'md' }: Props) {
+  const generatedId = useId()
+  const resolvedTitleId = titleId ?? generatedId
   const cardRef = useRef<HTMLDivElement>(null)
   const lastFocusedRef = useRef<HTMLElement | null>(null)
 
@@ -25,7 +30,29 @@ export default function Modal({ open, onClose, title, titleId = 'modal-title', c
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !cardRef.current) return
+      const focusables = Array.from(
+        cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null)
+      if (focusables.length === 0) {
+        e.preventDefault()
+        cardRef.current.focus()
+        return
+      }
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (e.shiftKey && (active === first || !cardRef.current.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !cardRef.current.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKey)
 
@@ -59,7 +86,8 @@ export default function Modal({ open, onClose, title, titleId = 'modal-title', c
         ref={cardRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={resolvedTitleId}
+        tabIndex={-1}
         className={`relative w-full ${sizeClass[size]} rounded-2xl border border-surface-200 bg-white p-7 shadow-card-lg sm:p-8`}
       >
         <button
@@ -70,7 +98,7 @@ export default function Modal({ open, onClose, title, titleId = 'modal-title', c
         >
           <X size={16} />
         </button>
-        <h2 id={titleId} className="pr-8 font-display text-xl font-semibold text-surface-900">
+        <h2 id={resolvedTitleId} className="pr-8 font-display text-xl font-semibold text-surface-900">
           {title}
         </h2>
         <div className="mt-5">{children}</div>

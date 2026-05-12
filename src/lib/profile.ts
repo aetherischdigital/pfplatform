@@ -54,3 +54,19 @@ export function homePathFor(role: UserRole | null | undefined): string {
       return '/app/dashboard'
   }
 }
+
+export async function updateOwnDisplayName(displayName: string): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const trimmed = displayName.trim()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: trimmed.length > 0 ? trimmed : null })
+    .eq('id', auth.user.id)
+  if (error) throw error
+}
+
+export async function updateOwnPassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) throw error
+}

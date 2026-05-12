@@ -27,6 +27,7 @@ import Account from './pages/app/Account'
 import Admin from './pages/app/Admin'
 
 import NotFound from './pages/NotFound'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   useEffect(() => {
@@ -57,6 +58,11 @@ export default function App() {
         {/* Auth — modal-based; legacy URLs redirect home and pop the modal */}
         <Route path="/login" element={<AuthModalRedirect view="login" />} />
         <Route path="/signup" element={<AuthModalRedirect view="signup" />} />
+
+        {/* Password recovery landing — handled outside RequireAuth so the
+            recovery session (set by Supabase from the email-link hash)
+            doesn't redirect through the auth gate. */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Authenticated homeowner/realtor app */}
         <Route element={<RequireAuth />}>

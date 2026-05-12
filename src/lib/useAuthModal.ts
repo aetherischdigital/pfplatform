@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type AuthView = 'login' | 'signup'
+export type AuthView = 'login' | 'signup' | 'forgot'
 
 export type AuthModalContextValue = {
   open: boolean

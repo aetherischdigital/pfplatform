@@ -133,6 +133,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(p)
   }, [])
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const resendSignupConfirmation = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app/dashboard`,
+      },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -148,6 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         refreshProfile,
+        requestPasswordReset,
+        resendSignupConfirmation,
       }}
     >
       {children}

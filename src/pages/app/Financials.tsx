@@ -13,8 +13,13 @@ import {
 } from '../../lib/pfs'
 import { formatUSD } from '../../lib/mortgage'
 import { Button } from '../../components/ui/Button'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import PfsRecordModal, { type ExistingRecord } from '../../components/pfs/PfsRecordModal'
 import MortgageModal from '../../components/pfs/MortgageModal'
+
+type PendingDelete =
+  | { kind: 'record'; id: string; label: string }
+  | { kind: 'mortgage'; id: string; propertyLabel: string }
 
 export default function Financials() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -25,6 +30,8 @@ export default function Financials() {
     null,
   )
   const [mortgageModalOpen, setMortgageModalOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(() => {
     return fetchPfs()
@@ -59,24 +66,34 @@ export default function Financials() {
     }
   }, [])
 
-  const onDeleteRecord = async (id: string, label: string) => {
-    if (!window.confirm(`Delete "${label}"? This can't be undone.`)) return
-    try {
-      await deletePfsRecord(id)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed.')
-    }
+  const onDeleteRecord = (id: string, label: string) =>
+    setPendingDelete({ kind: 'record', id, label })
+
+  const onDeleteMortgage = () => {
+    if (!pfs?.mortgage) return
+    setPendingDelete({
+      kind: 'mortgage',
+      id: pfs.mortgage.id,
+      propertyLabel: pfs.mortgage.propertyLabel,
+    })
   }
 
-  const onDeleteMortgage = async () => {
-    if (!pfs?.mortgage) return
-    if (!window.confirm(`Delete mortgage for "${pfs.mortgage.propertyLabel}"?`)) return
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
+    setError(null)
     try {
-      await deleteMortgage(pfs.mortgage.id)
+      if (pendingDelete.kind === 'record') {
+        await deletePfsRecord(pendingDelete.id)
+      } else {
+        await deleteMortgage(pendingDelete.id)
+      }
       await load()
+      setPendingDelete(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed.')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -267,6 +284,23 @@ export default function Financials() {
           existing={pfs.mortgage}
         />
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={pendingDelete?.kind === 'mortgage' ? 'Delete mortgage?' : 'Delete entry?'}
+        message={
+          pendingDelete?.kind === 'mortgage'
+            ? `Delete the mortgage for "${pendingDelete.propertyLabel}"? Payoff projections and equity math will go with it.`
+            : pendingDelete?.kind === 'record'
+              ? `Delete "${pendingDelete.label}"? This can't be undone.`
+              : ''
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => (deleting ? null : setPendingDelete(null))}
+      />
     </div>
   )
 }

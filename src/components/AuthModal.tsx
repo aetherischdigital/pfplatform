@@ -18,7 +18,31 @@ export default function AuthModal() {
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal()
+      if (e.key === 'Escape') {
+        closeModal()
+        return
+      }
+      if (e.key !== 'Tab' || !cardRef.current) return
+      const focusables = Array.from(
+        cardRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null)
+      if (focusables.length === 0) {
+        e.preventDefault()
+        cardRef.current.focus()
+        return
+      }
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (e.shiftKey && (active === first || !cardRef.current.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !cardRef.current.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKey)
 
@@ -51,6 +75,7 @@ export default function AuthModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
+        tabIndex={-1}
         className="relative w-full max-w-md rounded-2xl border border-surface-200 bg-white p-7 shadow-card-lg sm:p-8"
       >
         <button
@@ -62,17 +87,25 @@ export default function AuthModal() {
           <X size={16} />
         </button>
 
-        <div className="flex gap-1 rounded-lg bg-surface-100 p-1">
-          <TabButton active={view === 'login'} onClick={() => openModal('login')}>
-            Sign in
-          </TabButton>
-          <TabButton active={view === 'signup'} onClick={() => openModal('signup')}>
-            Create account
-          </TabButton>
-        </div>
+        {view !== 'forgot' && (
+          <div className="flex gap-1 rounded-lg bg-surface-100 p-1">
+            <TabButton active={view === 'login'} onClick={() => openModal('login')}>
+              Sign in
+            </TabButton>
+            <TabButton active={view === 'signup'} onClick={() => openModal('signup')}>
+              Create account
+            </TabButton>
+          </div>
+        )}
 
-        <div className="mt-6">
-          {view === 'login' ? <LoginPanel /> : <SignupPanel />}
+        <div className={view !== 'forgot' ? 'mt-6' : ''}>
+          {view === 'login' ? (
+            <LoginPanel />
+          ) : view === 'signup' ? (
+            <SignupPanel />
+          ) : (
+            <ForgotPanel />
+          )}
         </div>
       </div>
     </div>
@@ -106,7 +139,7 @@ function TabButton({
 
 function LoginPanel() {
   const { signIn } = useAuth()
-  const { closeModal } = useAuthModal()
+  const { closeModal, openModal } = useAuthModal()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -163,6 +196,15 @@ function LoginPanel() {
             className={fieldClass}
           />
         </Field>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => openModal('forgot')}
+            className="text-xs font-medium text-surface-500 hover:text-surface-900"
+          >
+            Forgot password?
+          </button>
+        </div>
         {error && <ErrorMessage>{error}</ErrorMessage>}
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
           {submitting ? 'Signing in…' : 'Sign in'}
@@ -172,8 +214,95 @@ function LoginPanel() {
   )
 }
 
+function ForgotPanel() {
+  const { requestPasswordReset } = useAuth()
+  const { openModal } = useAuthModal()
+
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    const { error } = await requestPasswordReset(email)
+    setSubmitting(false)
+    if (error) {
+      setError(error)
+      return
+    }
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="text-center">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
+          <CheckCircle2 size={24} />
+        </div>
+        <h2 id="auth-modal-title" className="mt-4 font-display text-xl font-semibold text-surface-900">
+          Check your email
+        </h2>
+        <p className="mt-2 text-sm text-surface-500">
+          If an account exists for <strong className="text-surface-900">{email}</strong>, we sent a
+          reset link. Click it to set a new password.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          onClick={() => openModal('login')}
+          className="mt-5 w-full"
+        >
+          Back to sign in
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <h2 id="auth-modal-title" className="font-display text-xl font-semibold text-surface-900">
+        Reset your password
+      </h2>
+      <p className="mt-1 text-sm text-surface-500">
+        Enter the email tied to your account. We&rsquo;ll send a reset link.
+      </p>
+
+      <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+        <Field label="Email" icon={Mail}>
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className={fieldClass}
+          />
+        </Field>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        <div className="flex flex-col gap-2">
+          <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
+            {submitting ? 'Sending…' : 'Send reset link'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => openModal('login')}
+            className="text-center text-xs font-medium text-surface-500 hover:text-surface-900"
+          >
+            Back to sign in
+          </button>
+        </div>
+      </form>
+    </>
+  )
+}
+
 function SignupPanel() {
-  const { signUp } = useAuth()
+  const { signUp, resendSignupConfirmation } = useAuth()
   const { closeModal } = useAuthModal()
   const navigate = useNavigate()
 
@@ -183,6 +312,21 @@ function SignupPanel() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [resendError, setResendError] = useState<string | null>(null)
+
+  const onResend = async () => {
+    if (!confirmationEmail) return
+    setResendStatus('sending')
+    setResendError(null)
+    const { error } = await resendSignupConfirmation(confirmationEmail)
+    if (error) {
+      setResendStatus('error')
+      setResendError(error)
+    } else {
+      setResendStatus('sent')
+    }
+  }
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -216,15 +360,32 @@ function SignupPanel() {
           We sent a confirmation link to <strong className="text-surface-900">{confirmationEmail}</strong>.
           Click it to activate your account.
         </p>
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={closeModal}
-          className="mt-5 w-full"
-        >
-          Got it
-        </Button>
+        <div className="mt-5 flex flex-col gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={closeModal}
+            className="w-full"
+          >
+            Got it
+          </Button>
+          {resendStatus === 'sent' ? (
+            <p className="text-xs text-emerald-700">Sent. Check your inbox again.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={onResend}
+              disabled={resendStatus === 'sending'}
+              className="text-xs font-medium text-surface-500 hover:text-surface-900 disabled:opacity-50"
+            >
+              {resendStatus === 'sending' ? 'Resending…' : "Didn't get it? Resend"}
+            </button>
+          )}
+          {resendError && (
+            <p className="text-xs text-red-600">{resendError}</p>
+          )}
+        </div>
       </div>
     )
   }
