@@ -95,10 +95,10 @@ export default function Pricing() {
             {tiers.map((t) => (
               <div
                 key={t.name}
-                className={`relative flex flex-col rounded-2xl border p-7 ${
+                className={`relative flex flex-col rounded-2xl border p-7 transition-[box-shadow,transform] duration-200 motion-reduce:hover:translate-y-0 ${
                   t.highlighted
-                    ? 'border-surface-900 bg-surface-900 text-white shadow-card-lg'
-                    : 'border-surface-200 bg-white shadow-card'
+                    ? 'border-surface-900 bg-surface-900 text-white shadow-card-lg hover:-translate-y-0.5'
+                    : 'border-surface-200 bg-white shadow-card hover:-translate-y-0.5 hover:shadow-card-lg'
                 }`}
               >
                 {t.highlighted && !t.comingSoon && (

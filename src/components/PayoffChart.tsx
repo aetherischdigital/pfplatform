@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react'
 import type { Simulation, SimulationPoint } from '../lib/mortgage'
+import { formatUSD, payoffDate } from '../lib/mortgage'
 
 type Props = {
   baseline: Simulation
@@ -18,14 +20,17 @@ const ACCENT_FAINT = 'var(--color-accent-100)'
 const SURFACE_DEEP = 'var(--color-surface-900)'
 const GRID = 'var(--color-surface-200)'
 const MUTED = 'var(--color-surface-300)'
-const LABEL = 'var(--color-surface-400)'
+const LABEL = 'var(--color-surface-500)'
 
 export default function PayoffChart({ baseline, scenario, className = '' }: Props) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+
   const maxMonths = Number.isFinite(baseline.months) ? baseline.months : 360
   const maxBalance = baseline.history[0]?.balance ?? 0
 
   if (maxMonths === 0 || maxBalance === 0) {
-    return <div className={`grid place-items-center text-sm text-surface-400 ${className}`}>—</div>
+    return <div className={`grid place-items-center text-sm text-surface-500 ${className}`}>—</div>
   }
 
   const xScale = (m: number) => PAD_L + ((W - PAD_L - PAD_R) * m) / maxMonths
@@ -36,13 +41,50 @@ export default function PayoffChart({ baseline, scenario, className = '' }: Prop
 
   const yearTicks = computeYearTicks(maxMonths)
 
+  // Map pointer x to the nearest month, then read both series' balances at
+  // that month for the tooltip. preserveAspectRatio="none" means we scale
+  // client coords back into the viewBox space ourselves.
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const svg = svgRef.current
+    if (!svg) return
+    const rect = svg.getBoundingClientRect()
+    if (rect.width === 0) return
+    const viewboxX = ((e.clientX - rect.left) / rect.width) * W
+    if (viewboxX < PAD_L || viewboxX > W - PAD_R) {
+      setHoverIndex(null)
+      return
+    }
+    const month = ((viewboxX - PAD_L) / (W - PAD_L - PAD_R)) * maxMonths
+    const idx = Math.max(0, Math.min(baseline.history.length - 1, Math.round(month)))
+    setHoverIndex(idx)
+  }
+  const onPointerLeave = () => setHoverIndex(null)
+
+  const hoveredMonth = hoverIndex !== null ? baseline.history[hoverIndex]?.month ?? null : null
+  const baselineAt = hoveredMonth !== null ? balanceAtMonth(baseline.history, hoveredMonth) : null
+  const scenarioAt = hoveredMonth !== null ? balanceAtMonth(scenario.history, hoveredMonth) : null
+
+  const tooltipPad = 8
+  const tooltipW = 168
+  const tooltipH = 72
+  let tooltipX = 0
+  let tooltipY = PAD_T
+  if (hoveredMonth !== null && baselineAt !== null) {
+    const rawX = xScale(hoveredMonth)
+    tooltipX = Math.max(PAD_L, Math.min(W - PAD_R - tooltipW, rawX - tooltipW / 2))
+    tooltipY = Math.max(PAD_T, yScale(baselineAt) - tooltipH - tooltipPad)
+  }
+
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className={className}
+      className={`cursor-crosshair ${className}`}
       role="img"
       aria-label="Loan balance over time, baseline vs. with extra principal"
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
     >
       {yearTicks.map((y) => {
         const x = xScale(y * 12)
@@ -98,6 +140,66 @@ export default function PayoffChart({ baseline, scenario, className = '' }: Prop
           }
         />
       )}
+
+      {hoveredMonth !== null && baselineAt !== null && (
+        <g pointerEvents="none">
+          <line
+            x1={xScale(hoveredMonth)}
+            x2={xScale(hoveredMonth)}
+            y1={PAD_T}
+            y2={H - PAD_B}
+            stroke="var(--color-surface-900)"
+            strokeWidth="1"
+            strokeOpacity="0.35"
+            strokeDasharray="2 3"
+          />
+          <circle
+            cx={xScale(hoveredMonth)}
+            cy={yScale(baselineAt)}
+            r="3.5"
+            fill="var(--color-surface-50)"
+            stroke={MUTED}
+            strokeWidth="1.5"
+          />
+          {scenarioAt !== null && (
+            <circle
+              cx={xScale(hoveredMonth)}
+              cy={yScale(scenarioAt)}
+              r="3.5"
+              fill="var(--color-surface-50)"
+              stroke={ACCENT}
+              strokeWidth="1.5"
+            />
+          )}
+          <g transform={`translate(${tooltipX} ${tooltipY})`}>
+            <rect
+              width={tooltipW}
+              height={tooltipH}
+              rx="6"
+              fill="var(--color-surface-900)"
+              opacity="0.95"
+            />
+            <text
+              x={10}
+              y={16}
+              fontSize="10"
+              fontFamily="var(--font-mono)"
+              fill="var(--color-surface-400)"
+              letterSpacing="0.5"
+            >
+              {payoffDate(hoveredMonth).toUpperCase()}
+            </text>
+            <text x={10} y={36} fontSize="12" fill="var(--color-surface-300)">
+              Baseline {formatUSD(baselineAt)}
+            </text>
+            {scenarioAt !== null && (
+              <text x={10} y={54} fontSize="12" fontWeight="600" fill="var(--color-accent-200)">
+                With extra {formatUSD(scenarioAt)}
+              </text>
+            )}
+          </g>
+        </g>
+      )}
     </svg>
   )
 }
@@ -143,6 +245,17 @@ function pathFor(
   return history
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.month).toFixed(2)},${yScale(p.balance).toFixed(2)}`)
     .join(' ')
+}
+
+/** Returns the balance at exactly `month` (or the closest available point). */
+function balanceAtMonth(history: SimulationPoint[], month: number): number | null {
+  if (history.length === 0) return null
+  // History is sorted by month ascending. Use the point at or just past the
+  // requested month. If we're past the last point, the loan is paid off — 0.
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].month >= month) return history[i].balance
+  }
+  return 0
 }
 
 function computeYearTicks(maxMonths: number): number[] {

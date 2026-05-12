@@ -13,8 +13,11 @@ export type BlogPost = {
   publishedAt: string
   readingMinutes: number
   /**
-   * Cover image URL. Currently hot-linked to royalty-free sources (Unsplash).
-   * The Phase 3 CMS will allow either URL paste OR upload-to-Supabase-Storage.
+   * Cover image base path (no extension). BlogCoverImage builds:
+   *   - `${coverImage}-800.webp`  + `${coverImage}-1600.webp` for modern browsers
+   *   - `${coverImage}-800.jpg`   + `${coverImage}-1600.jpg`  as fallback
+   * Files live under public/img/blog/; the Phase 3 CMS will swap this for
+   * a Supabase Storage URL with the same naming convention.
    */
   coverImage: string
 }
@@ -28,8 +31,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tag: 'Strategy',
     publishedAt: '2026-05-08',
     readingMinutes: 6,
-    coverImage:
-      'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1600&q=80',
+    coverImage: '/img/blog/biweekly-vs-extra-principal',
     body: `If you've talked to a lender about paying off your house faster, you've probably heard about
 two strategies: paying extra principal each month, or switching to **biweekly payments**. They're
 often pitched as identical. They're not.
@@ -82,8 +84,7 @@ Run both scenarios in our [calculator](/calculator) and compare side by side.`,
     tag: 'Explainer',
     publishedAt: '2026-04-29',
     readingMinutes: 5,
-    coverImage:
-      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1600&q=80',
+    coverImage: '/img/blog/recast-vs-refinance',
     body: `If you make a large lump-sum payment toward your mortgage, what happens to your monthly payment?
 
 **Nothing.** Your monthly stays the same. Your loan just pays off earlier.
@@ -130,8 +131,7 @@ That's where recast wins.`,
     tag: 'Explainer',
     publishedAt: '2026-04-15',
     readingMinutes: 7,
-    coverImage:
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1600&q=80',
+    coverImage: '/img/blog/equity-isnt-cash',
     body: `Your home is worth more than you owe on it. That difference — your **equity** — shows up on
 your net worth statement as a real number. But it's not cash. You can't pay your kid's tuition with it.
 You can't fix a broken HVAC.
@@ -190,8 +190,7 @@ work you did to build it.`,
     tag: 'Strategy',
     publishedAt: '2026-03-26',
     readingMinutes: 8,
-    coverImage:
-      'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1600&q=80',
+    coverImage: '/img/blog/velocity-banking',
     body: `Velocity banking is a payoff strategy that gets aggressive marketing online: "pay off your
 30-year mortgage in 7 years!" The pitch usually involves a HELOC, a "chunking" payment, and a lot of
 breathless YouTube energy.

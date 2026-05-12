@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Menu, X, LayoutDashboard, LogOut } from 'lucide-react'
 import Container from '../ui/Container'
@@ -49,6 +49,18 @@ export default function Header() {
     await signOut()
     navigate('/')
   }
+
+  // Auto-close the mobile menu when the viewport crosses md so a rotate-to-
+  // landscape doesn't leave the accordion open under the desktop nav.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(min-width: 768px)')
+    const onChange = () => {
+      if (mq.matches) setOpen(false)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   return (
     <header className="sticky top-0 z-30 border-b border-surface-200 bg-white/90 backdrop-blur">

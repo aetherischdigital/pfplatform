@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- iOS doesn't auto-link dollar amounts and other digit clusters as phone
+         numbers (would render numeric copy in low-contrast underlined blue). -->
+    <meta name="format-detection" content="telephone=no" />
+    <!-- iOS PWA: the status bar matches the deep-moss hero / app chrome. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PFPlatform" />
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-P5JG0XN2DZ"></script>

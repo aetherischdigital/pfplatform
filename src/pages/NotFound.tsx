@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, Compass } from 'lucide-react'
 import Container from '../components/ui/Container'
@@ -13,6 +14,20 @@ const SUGGESTIONS: { to: string; label: string; sub: string }[] = [
 
 export default function NotFound() {
   const { pathname } = useLocation()
+
+  // Fire-and-forget GA event so we can spot dead-link patterns
+  // (typo'd URLs, removed routes, scraper traffic, etc.) without a separate
+  // error-tracking SDK. No-op outside production where gtag isn't wired up.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const w = window as unknown as { gtag?: (...args: unknown[]) => void }
+    if (typeof w.gtag === 'function') {
+      w.gtag('event', 'page_not_found', {
+        path: pathname,
+        referrer: document.referrer || '(direct)',
+      })
+    }
+  }, [pathname])
   return (
     <Container className="py-24 sm:py-32">
       <div className="mx-auto max-w-xl text-center">

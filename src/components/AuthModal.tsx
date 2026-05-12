@@ -13,20 +13,41 @@ import { formFieldClass, formFieldWithIconClass } from './ui/formStyles'
 export default function AuthModal() {
   const { open, view, openModal, closeModal } = useAuthModal()
 
+  const showTabs = view !== 'forgot'
+
   return (
     <Modal open={open} onClose={closeModal} titleId="auth-modal-title">
-      {view !== 'forgot' && (
-        <div className="flex gap-1 rounded-lg bg-surface-100 p-1">
-          <TabButton active={view === 'login'} onClick={() => openModal('login')}>
+      {showTabs && (
+        <div
+          role="tablist"
+          aria-label="Sign in or create an account"
+          className="flex gap-1 rounded-lg bg-surface-100 p-1"
+        >
+          <Tab
+            id="auth-tab-login"
+            panelId="auth-panel-login"
+            active={view === 'login'}
+            onSelect={() => openModal('login')}
+          >
             Sign in
-          </TabButton>
-          <TabButton active={view === 'signup'} onClick={() => openModal('signup')}>
+          </Tab>
+          <Tab
+            id="auth-tab-signup"
+            panelId="auth-panel-signup"
+            active={view === 'signup'}
+            onSelect={() => openModal('signup')}
+          >
             Create account
-          </TabButton>
+          </Tab>
         </div>
       )}
 
-      <div className={view !== 'forgot' ? 'mt-6' : ''}>
+      <div
+        className={showTabs ? 'mt-6' : ''}
+        role={showTabs ? 'tabpanel' : undefined}
+        id={view === 'login' ? 'auth-panel-login' : view === 'signup' ? 'auth-panel-signup' : undefined}
+        aria-labelledby={view === 'login' ? 'auth-tab-login' : view === 'signup' ? 'auth-tab-signup' : undefined}
+      >
         {view === 'login' ? (
           <LoginPanel />
         ) : view === 'signup' ? (
@@ -39,21 +60,55 @@ export default function AuthModal() {
   )
 }
 
-function TabButton({
+/**
+ * Accessible tab. Renders a real <button role="tab"> with aria-selected,
+ * connects to its panel via aria-controls, and handles arrow-key navigation
+ * between siblings (Left/Right + Home/End). Inactive tabs are `tabIndex=-1`
+ * so Tab moves to the panel content, not the other tab — standard tablist
+ * pattern.
+ */
+function Tab({
+  id,
+  panelId,
   active,
-  onClick,
+  onSelect,
   children,
 }: {
+  id: string
+  panelId: string
   active: boolean
-  onClick: () => void
+  onSelect: () => void
   children: ReactNode
 }) {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') {
+      return
+    }
+    e.preventDefault()
+    const tablist = e.currentTarget.parentElement
+    if (!tablist) return
+    const tabs = Array.from(tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    const idx = tabs.indexOf(e.currentTarget)
+    if (idx < 0 || tabs.length === 0) return
+    let nextIdx = idx
+    if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length
+    else if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length
+    else if (e.key === 'Home') nextIdx = 0
+    else if (e.key === 'End') nextIdx = tabs.length - 1
+    tabs[nextIdx].focus()
+    tabs[nextIdx].click()
+  }
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+      role="tab"
+      id={id}
+      aria-selected={active}
+      aria-controls={panelId}
+      tabIndex={active ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={onKeyDown}
+      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
         active
           ? 'bg-white text-surface-900 shadow-card'
           : 'text-surface-500 hover:text-surface-900'

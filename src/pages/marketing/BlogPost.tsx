@@ -133,12 +133,33 @@ export default function BlogPost() {
                   <strong className="font-semibold text-surface-900" {...props} />
                 ),
                 em: (props) => <em className="italic" {...props} />,
-                a: (props) => (
-                  <a
-                    className="text-accent-600 underline underline-offset-2 hover:text-accent-500"
-                    {...props}
-                  />
-                ),
+                a: ({ href, children, ...rest }) => {
+                  // Internal links (anything starting with / that isn't a
+                  // protocol-relative URL) route through React Router so the
+                  // navigation stays SPA. External links get target=_blank
+                  // + rel hardening.
+                  const isInternal = typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')
+                  const className =
+                    'rounded text-accent-600 underline underline-offset-2 transition-colors hover:text-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50'
+                  if (isInternal && href) {
+                    return (
+                      <Link to={href} className={className}>
+                        {children}
+                      </Link>
+                    )
+                  }
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={className}
+                      {...rest}
+                    >
+                      {children}
+                    </a>
+                  )
+                },
                 code: (props) => (
                   <code
                     className="rounded bg-surface-100 px-1.5 py-0.5 font-mono text-[0.9em] text-surface-900"

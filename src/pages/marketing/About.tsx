@@ -105,7 +105,7 @@ export default function About() {
               return (
                 <div
                   key={v.title}
-                  className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card"
+                  className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-900 text-accent-400">
                     <Icon size={18} />

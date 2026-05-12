@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -36,6 +36,19 @@ function navItemsFor(role: UserRole | null): NavItem[] {
 export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
+
+  // Auto-close the mobile drawer when the viewport crosses Tailwind's md
+  // breakpoint (768px). Otherwise rotating an iPhone to landscape leaves the
+  // drawer mounted behind the desktop sidebar, still trapping focus.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(min-width: 768px)')
+    const onChange = () => {
+      if (mq.matches) setMobileOpen(false)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-surface-50">
