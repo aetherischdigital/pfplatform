@@ -164,23 +164,17 @@ export default function Admin() {
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-surface-500">No users match.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-surface-200 bg-surface-50 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">
-                <tr>
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Joined</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-200">
-                {filtered.map((u) => {
-                  const isSelf = u.id === authUser?.id
-                  return (
-                    <tr key={u.id} className={u.isActive ? '' : 'bg-surface-50/50 opacity-75'}>
-                      <td className="px-4 py-3">
+          <>
+            <ul className="divide-y divide-surface-200 md:hidden">
+              {filtered.map((u) => {
+                const isSelf = u.id === authUser?.id
+                return (
+                  <li
+                    key={u.id}
+                    className={`space-y-3 p-4 ${u.isActive ? '' : 'bg-surface-50/50 opacity-75'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <div className="font-medium text-surface-900">
                           {u.displayName || u.email?.split('@')[0] || 'Unnamed'}
                           {isSelf && (
@@ -189,57 +183,134 @@ export default function Admin() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-surface-500">{u.email ?? '—'}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={u.role}
-                          disabled={busyId === u.id || isSelf}
-                          onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
-                          className="rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="homeowner">Homeowner</option>
-                          <option value="realtor">Realtor</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
+                        <div className="truncate text-xs text-surface-500">{u.email ?? '—'}</div>
+                      </div>
+                      {u.isActive ? (
+                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-medium uppercase tracking-wider text-surface-500">
+                        Role
+                      </label>
+                      <select
+                        value={u.role}
+                        disabled={busyId === u.id || isSelf}
+                        onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
+                        className="flex-1 rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="homeowner">Homeowner</option>
+                        <option value="realtor">Realtor</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 text-xs text-surface-500">
+                      <span>Joined {formatDate(u.createdAt)}</span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={busyId === u.id || isSelf}
+                        onClick={() => handleActiveToggle(u)}
+                        title={isSelf ? 'Cannot change own status' : undefined}
+                      >
                         {u.isActive ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                            Active
-                          </span>
+                          <>
+                            <UserX size={14} /> Deactivate
+                          </>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
-                            Inactive
-                          </span>
+                          <>
+                            <UserCheck size={14} /> Activate
+                          </>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-surface-600">{formatDate(u.createdAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={busyId === u.id || isSelf}
-                          onClick={() => handleActiveToggle(u)}
-                          title={isSelf ? 'Cannot change own status' : undefined}
-                        >
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead className="border-b border-surface-200 bg-surface-50 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">
+                  <tr>
+                    <th className="px-4 py-3">User</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Joined</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-200">
+                  {filtered.map((u) => {
+                    const isSelf = u.id === authUser?.id
+                    return (
+                      <tr key={u.id} className={u.isActive ? '' : 'bg-surface-50/50 opacity-75'}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-surface-900">
+                            {u.displayName || u.email?.split('@')[0] || 'Unnamed'}
+                            {isSelf && (
+                              <span className="ml-2 rounded bg-accent-100 px-1.5 py-0.5 text-xs font-medium text-accent-700">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-surface-500">{u.email ?? '—'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={u.role}
+                            disabled={busyId === u.id || isSelf}
+                            onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
+                            className="rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="homeowner">Homeowner</option>
+                            <option value="realtor">Realtor</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
                           {u.isActive ? (
-                            <>
-                              <UserX size={14} /> Deactivate
-                            </>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                              Active
+                            </span>
                           ) : (
-                            <>
-                              <UserCheck size={14} /> Activate
-                            </>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
+                              Inactive
+                            </span>
                           )}
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-4 py-3 text-surface-600">{formatDate(u.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={busyId === u.id || isSelf}
+                            onClick={() => handleActiveToggle(u)}
+                            title={isSelf ? 'Cannot change own status' : undefined}
+                          >
+                            {u.isActive ? (
+                              <>
+                                <UserX size={14} /> Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck size={14} /> Activate
+                              </>
+                            )}
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

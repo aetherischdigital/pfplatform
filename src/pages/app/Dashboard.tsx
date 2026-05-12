@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, AlertTriangle, ListPlus } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, AlertTriangle, ListPlus, Home } from 'lucide-react'
 import {
   fetchPfs,
   totals,
@@ -94,14 +94,18 @@ export default function Dashboard() {
         <PayoffStat pfs={pfs} />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-12">
-        <div className="lg:col-span-7">
-          <EquitySection pfs={pfs} />
+      {pfs.mortgage ? (
+        <div className="grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <EquitySection mortgage={pfs.mortgage} />
+          </div>
+          <div className="lg:col-span-5">
+            <PayoffPlanSection mortgage={pfs.mortgage} />
+          </div>
         </div>
-        <div className="lg:col-span-5">
-          <PayoffPlanSection pfs={pfs} />
-        </div>
-      </div>
+      ) : (
+        <NoMortgagePrompt />
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
@@ -151,29 +155,7 @@ export default function Dashboard() {
 // Section components
 // ---------------------------------------------------------------------------
 
-function EquitySection({ pfs }: { pfs: Pfs }) {
-  if (!pfs.mortgage) {
-    return (
-      <div className="flex h-full flex-col justify-between rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
-        <div>
-          <h2 className="font-display text-lg font-semibold text-surface-900">Equity over time</h2>
-          <p className="mt-1 text-sm text-surface-500">
-            Add a mortgage to project equity and payoff.
-          </p>
-        </div>
-        <div className="mt-6 rounded-lg border border-dashed border-surface-300 bg-surface-50 px-5 py-8 text-center text-sm text-surface-500">
-          No mortgage on file.
-        </div>
-        <div className="mt-4">
-          <ButtonLink to="/app/financials" variant="secondary" size="sm" className="w-full">
-            Add mortgage <ArrowRight size={14} />
-          </ButtonLink>
-        </div>
-      </div>
-    )
-  }
-
-  const m = pfs.mortgage
+function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
   const points = projectEquity({
     startingHomeValue: m.startingHomeValue,
     startingBalance: m.balance,
@@ -222,24 +204,7 @@ function EquitySection({ pfs }: { pfs: Pfs }) {
   )
 }
 
-function PayoffPlanSection({ pfs }: { pfs: Pfs }) {
-  if (!pfs.mortgage) {
-    return (
-      <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
-        <h2 className="font-display text-lg font-semibold text-surface-900">Payoff plan</h2>
-        <p className="mt-1 text-sm text-surface-500">
-          The platform calculates your payoff date from your Note. Add mortgage details to begin.
-        </p>
-        <div className="mt-auto pt-5">
-          <ButtonLink to="/app/financials" variant="secondary" size="sm" className="w-full">
-            Add mortgage <ArrowRight size={14} />
-          </ButtonLink>
-        </div>
-      </div>
-    )
-  }
-
-  const m = pfs.mortgage
+function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
   const scenario = compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
 
   return (
@@ -391,6 +356,32 @@ function SummaryCard({
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+function NoMortgagePrompt() {
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-8 shadow-card sm:p-10">
+      <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
+        <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-accent-100 text-accent-600">
+          <Home size={20} />
+        </div>
+        <div className="flex-1">
+          <h2 className="font-display text-xl font-semibold text-surface-900">
+            Add your mortgage to unlock equity &amp; payoff projections
+          </h2>
+          <p className="mt-2 text-sm text-surface-500">
+            Enter your balance, rate, and monthly payment from your Note. The platform projects
+            equity, compares payoff scenarios, and shows interest saved against the baseline.
+          </p>
+          <div className="mt-5">
+            <ButtonLink to="/app/financials" variant="primary" size="md">
+              Add mortgage <ArrowRight size={14} />
+            </ButtonLink>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
