@@ -7,7 +7,6 @@ import {
   Split,
   TrendingUp,
 } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import PayoffCalculator, {
   type PayoffCalculatorDefaults,
 } from '../../components/calculators/PayoffCalculator'
@@ -20,8 +19,10 @@ import EquityProjectionCalculator, {
 import MultiScenarioPayoffCalculator, {
   type MultiScenarioCalculatorDefaults,
 } from '../../components/calculators/MultiScenarioPayoffCalculator'
+import RefinanceCompareCalculator, {
+  type RefinanceCalculatorDefaults,
+} from '../../components/calculators/RefinanceCompareCalculator'
 import { fetchPfs, type Pfs } from '../../lib/pfs'
-import { Button } from '../../components/ui/Button'
 import { markCalculatorVisited } from '../../lib/onboarding'
 
 export default function Calculators() {
@@ -154,18 +155,26 @@ export default function Calculators() {
         )}
       </section>
 
-      <section>
-        <h2 className="font-display text-lg font-semibold text-surface-900">More calculators</h2>
-        <p className="mt-1 text-sm text-surface-500">
-          Still to come in the Phase 2 release.
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-1">
-          <ComingSoonTile
-            icon={RefreshCw}
-            title="Refinance compare"
-            description="Side-by-side: current loan vs. a new rate and term, with break-even."
-          />
+      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
+            <RefreshCw size={18} />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-surface-900">
+              Refinance compare
+            </h2>
+            <p className="mt-0.5 text-sm text-surface-500">
+              Current loan vs. a new rate and term — with break-even and lifetime impact.
+            </p>
+          </div>
         </div>
+
+        {loading ? (
+          <PayoffCalculatorSkeleton />
+        ) : (
+          <RefinanceCompareCalculator defaults={pfsToRefinanceDefaults(pfs)} />
+        )}
       </section>
     </div>
   )
@@ -204,32 +213,6 @@ function PayoffCalculatorSkeleton() {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function ComingSoonTile({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon
-  title: string
-  description: string
-}) {
-  return (
-    <div className="relative rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <span className="absolute right-3 top-3 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-500">
-        Phase 2
-      </span>
-      <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface-100 text-surface-500">
-        <Icon size={16} />
-      </div>
-      <h3 className="mt-4 font-display text-base font-semibold text-surface-900">{title}</h3>
-      <p className="mt-1 text-sm text-surface-500">{description}</p>
-      <Button variant="secondary" size="sm" disabled className="mt-4 w-full">
-        Coming soon
-      </Button>
     </div>
   )
 }
@@ -277,5 +260,15 @@ function pfsToMultiScenarioDefaults(pfs: Pfs | null): MultiScenarioCalculatorDef
     rate: m.ratePct,
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     monthlyPayment: m.monthlyPayment,
+  }
+}
+
+function pfsToRefinanceDefaults(pfs: Pfs | null): RefinanceCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    currentBalance: m.balance,
+    currentRatePct: m.ratePct,
+    currentRemainingYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
   }
 }
