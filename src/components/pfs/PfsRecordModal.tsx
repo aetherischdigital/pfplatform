@@ -49,20 +49,25 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
   const [category, setCategory] = useState(initial.category)
   const [rate, setRate] = useState(initial.rate)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; rate?: string }>({})
   const [saving, setSaving] = useState(false)
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
 
     const amountNum = Number(amount)
+    const errs: { amount?: string; rate?: string } = {}
     if (!Number.isFinite(amountNum) || amountNum < 0) {
-      setError('Amount must be a positive number.')
-      return
+      errs.amount = 'Enter a positive number.'
     }
     const rateNum = rate.trim() === '' ? undefined : Number(rate)
     if (rate.trim() !== '' && (!Number.isFinite(rateNum) || (rateNum ?? -1) < 0)) {
-      setError('Rate must be a positive number (e.g. 6.5 for 6.5%).')
+      errs.rate = 'Rate must be a positive number (e.g. 6.5 for 6.5%).'
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
       return
     }
 
@@ -133,7 +138,7 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
           </Field>
         )}
 
-        <Field label={labels.amount}>
+        <Field label={labels.amount} error={fieldErrors.amount}>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
               $
@@ -141,13 +146,14 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
             <input
               type="number"
               required
+              aria-invalid={fieldErrors.amount ? true : undefined}
               inputMode="decimal"
               step="0.01"
               min="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className={`${modalFieldClass} pl-7`}
+              className={`${modalFieldClass} pl-7 ${fieldErrors.amount ? 'border-danger-200 focus:border-danger-600' : ''}`}
             />
           </div>
         </Field>
@@ -156,17 +162,19 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
           <Field
             label="Interest rate (optional)"
             hint="Annual rate (e.g. 6.5 for 6.5%). Used to show APR alongside the balance."
+            error={fieldErrors.rate}
           >
             <div className="relative">
               <input
                 type="number"
+                aria-invalid={fieldErrors.rate ? true : undefined}
                 inputMode="decimal"
                 step="0.001"
                 min="0"
                 value={rate}
                 onChange={(e) => setRate(e.target.value)}
                 placeholder="6.5"
-                className={`${modalFieldClass} pr-9`}
+                className={`${modalFieldClass} pr-9 ${fieldErrors.rate ? 'border-danger-200 focus:border-danger-600' : ''}`}
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
                 %
@@ -197,17 +205,23 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
 function Field({
   label,
   hint,
+  error,
   children,
 }: {
   label: string
   hint?: string
+  error?: string
   children: React.ReactNode
 }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-surface-700">{label}</span>
       <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>}
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-danger-700">{error}</p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>
+      )}
     </label>
   )
 }

@@ -30,7 +30,37 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
     existing ? String(existing.extraPrincipal) : '0',
   )
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{
+    startingHomeValue?: string
+    balance?: string
+    ratePct?: string
+    termMonthsRemaining?: string
+    monthlyPayment?: string
+    extraPrincipal?: string
+  }>({})
   const [saving, setSaving] = useState(false)
+
+  const validate = (input: MortgageInput): typeof fieldErrors => {
+    const errs: typeof fieldErrors = {}
+    if (!Number.isFinite(input.startingHomeValue))
+      errs.startingHomeValue = 'Enter a number.'
+    if (!Number.isFinite(input.balance)) errs.balance = 'Enter a number.'
+    if (!Number.isFinite(input.monthlyPayment))
+      errs.monthlyPayment = 'Enter a number.'
+    if (!Number.isFinite(input.extraPrincipal))
+      errs.extraPrincipal = 'Enter a number.'
+    if (!Number.isFinite(input.ratePct)) {
+      errs.ratePct = 'Enter a number.'
+    } else if (input.ratePct < 0 || input.ratePct > 100) {
+      errs.ratePct = 'Must be between 0 and 100.'
+    }
+    if (!Number.isInteger(input.termMonthsRemaining)) {
+      errs.termMonthsRemaining = 'Enter a whole number.'
+    } else if (input.termMonthsRemaining <= 0 || input.termMonthsRemaining > 600) {
+      errs.termMonthsRemaining = 'Must be between 1 and 600.'
+    }
+    return errs
+  }
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -46,23 +76,10 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
       extraPrincipal: Number(extraPrincipal || '0'),
     }
 
-    if (
-      !Number.isFinite(input.startingHomeValue) ||
-      !Number.isFinite(input.balance) ||
-      !Number.isFinite(input.ratePct) ||
-      !Number.isInteger(input.termMonthsRemaining) ||
-      !Number.isFinite(input.monthlyPayment) ||
-      !Number.isFinite(input.extraPrincipal)
-    ) {
-      setError('All numeric fields must be valid numbers.')
-      return
-    }
-    if (input.termMonthsRemaining <= 0 || input.termMonthsRemaining > 600) {
-      setError('Term must be between 1 and 600 months.')
-      return
-    }
-    if (input.ratePct < 0 || input.ratePct > 100) {
-      setError('Rate must be between 0 and 100 percent.')
+    const errs = validate(input)
+    setFieldErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      setError('Some fields need attention.')
       return
     }
 
@@ -96,30 +113,47 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
           <Field
             label="Starting home value"
             hint="The home's market value at purchase or refinance — anchors the equity projection."
+            error={fieldErrors.startingHomeValue}
           >
-            <CurrencyInput value={startingHomeValue} onChange={setStartingHomeValue} required />
+            <CurrencyInput
+              value={startingHomeValue}
+              onChange={setStartingHomeValue}
+              required
+              invalid={!!fieldErrors.startingHomeValue}
+            />
           </Field>
           <Field
             label="Current balance"
             hint="Today's principal balance, straight from your latest statement."
+            error={fieldErrors.balance}
           >
-            <CurrencyInput value={balance} onChange={setBalance} required />
+            <CurrencyInput
+              value={balance}
+              onChange={setBalance}
+              required
+              invalid={!!fieldErrors.balance}
+            />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Interest rate" hint="Your loan's annual rate (e.g. 6.5 for 6.5%).">
+          <Field
+            label="Interest rate"
+            hint="Your loan's annual rate (e.g. 6.5 for 6.5%)."
+            error={fieldErrors.ratePct}
+          >
             <div className="relative">
               <input
                 type="number"
                 required
+                aria-invalid={fieldErrors.ratePct ? true : undefined}
                 inputMode="decimal"
                 step="0.001"
                 min="0"
                 value={ratePct}
                 onChange={(e) => setRatePct(e.target.value)}
                 placeholder="6.5"
-                className={`${modalFieldClass} pr-9`}
+                className={`${modalFieldClass} pr-9 ${fieldErrors.ratePct ? 'border-danger-200 focus:border-danger-600' : ''}`}
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
                 %
@@ -129,10 +163,12 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
           <Field
             label="Months remaining"
             hint="How many scheduled payments are left (e.g. 336 for 28 years left on a 30-year loan)."
+            error={fieldErrors.termMonthsRemaining}
           >
             <input
               type="number"
               required
+              aria-invalid={fieldErrors.termMonthsRemaining ? true : undefined}
               inputMode="numeric"
               step="1"
               min="1"
@@ -140,7 +176,7 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
               value={termMonthsRemaining}
               onChange={(e) => setTermMonthsRemaining(e.target.value)}
               placeholder="336"
-              className={modalFieldClass}
+              className={`${modalFieldClass} ${fieldErrors.termMonthsRemaining ? 'border-danger-200 focus:border-danger-600' : ''}`}
             />
           </Field>
         </div>
@@ -149,14 +185,25 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
           <Field
             label="Monthly P&amp;I payment"
             hint="Principal & interest only — the loan-payment portion of your monthly bill. Skip taxes and insurance."
+            error={fieldErrors.monthlyPayment}
           >
-            <CurrencyInput value={monthlyPayment} onChange={setMonthlyPayment} required />
+            <CurrencyInput
+              value={monthlyPayment}
+              onChange={setMonthlyPayment}
+              required
+              invalid={!!fieldErrors.monthlyPayment}
+            />
           </Field>
           <Field
             label="Extra principal / mo"
             hint="Optional. Extra principal you send each month to accelerate the payoff."
+            error={fieldErrors.extraPrincipal}
           >
-            <CurrencyInput value={extraPrincipal} onChange={setExtraPrincipal} />
+            <CurrencyInput
+              value={extraPrincipal}
+              onChange={setExtraPrincipal}
+              invalid={!!fieldErrors.extraPrincipal}
+            />
           </Field>
         </div>
 
@@ -182,17 +229,23 @@ export default function MortgageModal({ open, onClose, onSaved, existing }: Prop
 function Field({
   label,
   hint,
+  error,
   children,
 }: {
   label: string
   hint?: string
+  error?: string
   children: React.ReactNode
 }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-surface-700">{label}</span>
       <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>}
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-danger-700">{error}</p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-surface-500">{hint}</p>
+      )}
     </label>
   )
 }
@@ -201,10 +254,12 @@ function CurrencyInput({
   value,
   onChange,
   required,
+  invalid,
 }: {
   value: string
   onChange: (v: string) => void
   required?: boolean
+  invalid?: boolean
 }) {
   return (
     <div className="relative">
@@ -214,13 +269,14 @@ function CurrencyInput({
       <input
         type="number"
         required={required}
+        aria-invalid={invalid || undefined}
         inputMode="decimal"
         step="0.01"
         min="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0.00"
-        className={`${modalFieldClass} pl-7`}
+        className={`${modalFieldClass} pl-7 ${invalid ? 'border-danger-200 focus:border-danger-600' : ''}`}
       />
     </div>
   )

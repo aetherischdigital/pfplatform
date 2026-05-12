@@ -115,7 +115,7 @@ export default function Landing() {
                 See how it works
               </ButtonLink>
             </div>
-            <div className="flex items-center gap-6 pt-2 text-xs text-white/60">
+            <div className="flex items-center gap-6 pt-2 text-xs text-white/80">
               <div className="flex items-center gap-1.5">
                 <ShieldCheck size={14} />
                 No bank logins required

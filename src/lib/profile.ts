@@ -76,6 +76,27 @@ export async function updateOwnPassword(password: string): Promise<void> {
   if (error) throw error
 }
 
+/**
+ * Initiates an email-change. Supabase sends a confirmation link to the NEW
+ * address; the change only takes effect once that link is clicked. While the
+ * change is pending, `auth.users.new_email` holds the requested address and
+ * `auth.users.email` still reflects the current one. The Account UI shows a
+ * "pending confirmation" hint while that's the case.
+ */
+export async function requestOwnEmailChange(newEmail: string): Promise<void> {
+  const trimmed = newEmail.trim()
+  if (!trimmed) throw new Error('Email is required.')
+  const { error } = await supabase.auth.updateUser({
+    email: trimmed,
+    options: {
+      // Send the user back to their dashboard after they confirm. Domain
+      // is provided at runtime so dev / preview / prod all behave correctly.
+      emailRedirectTo: `${window.location.origin}/app/dashboard`,
+    },
+  } as Parameters<typeof supabase.auth.updateUser>[0])
+  if (error) throw error
+}
+
 export async function updateOwnWaitlistInterest(
   interest: WaitlistInterest,
 ): Promise<void> {

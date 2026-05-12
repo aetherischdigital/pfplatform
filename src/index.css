@@ -35,12 +35,21 @@ h1, h2, h3 {
   to   { opacity: 1; }
 }
 
+@keyframes pfp-slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
 @utility animate-enter {
   animation: pfp-fade-up 0.32s ease-out both;
 }
 
 @utility animate-fade-in {
   animation: pfp-fade-in 0.24s ease-out both;
+}
+
+@utility animate-slide-in-left {
+  animation: pfp-slide-in-left 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

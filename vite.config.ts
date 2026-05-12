@@ -6,11 +6,12 @@ import { PUBLIC_ROUTES, DISALLOWED_PATHS } from './src/config/site'
 import { BLOG_POSTS } from './src/lib/blogPosts'
 
 /**
- * Path of the OG/social preview image, served from /public.
- * When client provides a real image, drop it at this path (or update here
- * + the file at public/) and every meta tag picks it up.
+ * Path of the OG/social preview image, served from /public. PNG (not SVG)
+ * because legacy iMessage / Slack-classic and a few crawlers won't render
+ * SVG previews. The SVG source is kept as the build origin (see
+ * scripts/generate-og-image.mjs) and the PNG ships to /public.
  */
-const OG_IMAGE_PATH = '/og-image.svg'
+const OG_IMAGE_PATH = '/og-image.png'
 
 const HTML_REPLACEMENTS: Record<string, string> = {
   '%BRAND_NAME%': BRAND.name,

@@ -238,10 +238,21 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Branded auth email templates. The Supabase CLI config controls only the
+# LOCAL dev instance (paths are relative to this config.toml). Production
+# emails are configured via the Supabase dashboard — see
+# ./templates/README.md for the dashboard-paste procedure.
+[auth.email.template.confirmation]
+subject = "Confirm your Personal Financial Platform account"
+content_path = "./templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Personal Financial Platform password"
+content_path = "./templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email — Personal Financial Platform"
+content_path = "./templates/email_change.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

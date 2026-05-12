@@ -242,13 +242,40 @@ function SignupPanel() {
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null)
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [resendError, setResendError] = useState<string | null>(null)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  // Decrement the cooldown timer once per second while > 0. The button stays
+  // disabled and the label shows the countdown until it hits zero.
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const t = setTimeout(() => setCooldownSeconds((s) => Math.max(0, s - 1)), 1000)
+    return () => clearTimeout(t)
+  }, [cooldownSeconds])
 
   const onResend = async () => {
-    if (!confirmationEmail) return
+    if (!confirmationEmail || cooldownSeconds > 0) return
     setResendStatus('sending')
     setResendError(null)
     const { error } = await resendSignupConfirmation(confirmationEmail)
     if (error) {
+      // Supabase rate-limit errors look like:
+      //   "For security purposes, you can only request this after 47 seconds."
+      // or contain "rate limit". Parse the seconds out and start a countdown
+      // so the user gets a useful "Resend again in 47s" hint instead of the
+      // raw error string.
+      const match = /(\d+)\s*seconds?/i.exec(error)
+      if (match) {
+        setCooldownSeconds(parseInt(match[1], 10))
+        setResendStatus('idle')
+        setResendError(null)
+        return
+      }
+      if (/rate limit/i.test(error)) {
+        setCooldownSeconds(30)
+        setResendStatus('idle')
+        setResendError(null)
+        return
+      }
       setResendStatus('error')
       setResendError(error)
     } else {
@@ -309,10 +336,14 @@ function SignupPanel() {
             <button
               type="button"
               onClick={onResend}
-              disabled={resendStatus === 'sending'}
+              disabled={resendStatus === 'sending' || cooldownSeconds > 0}
               className="rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 disabled:opacity-50"
             >
-              {resendStatus === 'sending' ? 'Resending…' : "Didn't get it? Resend"}
+              {resendStatus === 'sending'
+                ? 'Resending…'
+                : cooldownSeconds > 0
+                  ? `Resend again in ${cooldownSeconds}s`
+                  : "Didn't get it? Resend"}
             </button>
           )}
           {resendError && (

@@ -43,7 +43,7 @@ export default function BlogPost() {
             url: BRAND.siteUrl,
             logo: {
               '@type': 'ImageObject',
-              url: `${BRAND.siteUrl}/favicon.svg`,
+              url: `${BRAND.siteUrl}/og-image.png`,
             },
           },
           mainEntityOfPage: {

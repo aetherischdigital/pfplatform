@@ -3,7 +3,9 @@ import { BRAND } from '../../config/brand'
 import Container from '../ui/Container'
 import Wordmark from '../Wordmark'
 
-const sections = [
+type FooterLink = { to: string; label: string; external?: boolean }
+
+const sections: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
     links: [
@@ -19,6 +21,7 @@ const sections = [
       { to: '/blog', label: 'Blog' },
       { to: '/about', label: 'About' },
       { to: '/how-it-works#realtors', label: 'For realtors' },
+      { to: `mailto:${BRAND.supportEmail}`, label: 'Contact', external: true },
     ],
   },
   {
@@ -50,9 +53,21 @@ export default function Footer() {
               <ul className="mt-3 space-y-2">
                 {s.links.map((l) => (
                   <li key={l.label}>
-                    <Link to={l.to} className="text-sm text-surface-600 hover:text-surface-900">
-                      {l.label}
-                    </Link>
+                    {l.external ? (
+                      <a
+                        href={l.to}
+                        className="text-sm text-surface-600 transition-colors hover:text-surface-900"
+                      >
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={l.to}
+                        className="text-sm text-surface-600 transition-colors hover:text-surface-900"
+                      >
+                        {l.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

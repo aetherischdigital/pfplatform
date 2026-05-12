@@ -75,7 +75,7 @@
     --color-surface-200: #3A4A38;
     --color-surface-300: #4A5A48;
     --color-surface-400: #6B7A66;
-    --color-surface-500: #8B9785;
+    --color-surface-500: #A1ACA1;
     --color-surface-600: #B5BDA8;
     --color-surface-700: #D2D5C2;
     --color-surface-800: #E4DCC9;
@@ -86,7 +86,7 @@
     --color-accent-100: #2A1F12;
     --color-accent-200: #3D2D1B;
     --color-accent-400: #C9A87E;
-    --color-accent-500: #B89571;
+    --color-accent-500: #C9A87E;
     --color-accent-600: #C9A87E;
 
     /* Semantic scales — dark mode: deep tinted bg, muted border, light text */

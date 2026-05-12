@@ -109,7 +109,7 @@ export default function Header() {
       </Container>
 
       {open && (
-        <div className="border-t border-surface-200 bg-white md:hidden">
+        <div className="border-t border-surface-200 bg-white animate-fade-in md:hidden">
           <Container className="py-4">
             <nav className="flex flex-col gap-3">
               {links.map((l) => (

@@ -71,11 +71,12 @@ export default function AppShell() {
         {/* Mobile drawer */}
         {mobileOpen && (
           <div
-            className="fixed inset-0 z-40 bg-surface-900/50 md:hidden"
+            className="fixed inset-0 z-40 bg-surface-900/50 animate-fade-in md:hidden"
             onClick={() => setMobileOpen(false)}
+            aria-hidden={!mobileOpen}
           >
             <aside
-              className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-card-lg"
+              className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-card-lg animate-slide-in-left"
               onClick={(e) => e.stopPropagation()}
             >
               <SidebarContent onNavigate={() => setMobileOpen(false)} />

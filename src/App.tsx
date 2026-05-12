@@ -8,6 +8,7 @@ import AuthModal, { AuthModalRedirect } from './components/AuthModal'
 import RequireAuth from './components/RequireAuth'
 import ViewAsBanner from './components/ViewAsBanner'
 import RouteFallback from './components/RouteFallback'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Landing eager — first paint on cold cache
 import Landing from './pages/marketing/Landing'
@@ -40,57 +41,59 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <ViewAsBanner />
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          {/* Public marketing */}
-          <Route element={<MarketingLayout />}>
-            <Route path="/" element={<Landing />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/calculator" element={<Calculator />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/about" element={<About />} />
-            {/* Legal placeholders — skeleton only, awaiting counsel-provided content.
-                noindex'd in usePageMeta and excluded from PUBLIC_ROUTES until live. */}
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/disclosures" element={<Disclosures />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-
-          {/* Auth — modal-based; legacy URLs redirect home and pop the modal */}
-          <Route path="/login" element={<AuthModalRedirect view="login" />} />
-          <Route path="/signup" element={<AuthModalRedirect view="signup" />} />
-
-          {/* Password recovery landing — handled outside RequireAuth so the
-              recovery session (set by Supabase from the email-link hash)
-              doesn't redirect through the auth gate. */}
-          <Route path="/reset-password" element={<ResetPassword />} />
-
-          {/* Authenticated homeowner/realtor app */}
-          <Route element={<RequireAuth />}>
-            <Route element={<AppShell />}>
-              <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="/app/dashboard" element={<Dashboard />} />
-              <Route path="/app/financials" element={<Financials />} />
-              <Route path="/app/calculators" element={<Calculators />} />
-              <Route path="/app/clients" element={<Clients />} />
-              <Route path="/app/account" element={<Account />} />
+      <ErrorBoundary>
+        <ViewAsBanner />
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            {/* Public marketing */}
+            <Route element={<MarketingLayout />}>
+              <Route path="/" element={<Landing />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/calculator" element={<Calculator />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/about" element={<About />} />
+              {/* Legal placeholders — skeleton only, awaiting counsel-provided content.
+                  noindex'd in usePageMeta and excluded from PUBLIC_ROUTES until live. */}
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/disclosures" element={<Disclosures />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
-          </Route>
 
-          {/* Admin — role-gated, same AppShell so admins keep the full sidebar */}
-          <Route element={<RequireAuth requiredRole="admin" />}>
-            <Route element={<AppShell />}>
-              <Route path="/admin" element={<Admin />} />
+            {/* Auth — modal-based; legacy URLs redirect home and pop the modal */}
+            <Route path="/login" element={<AuthModalRedirect view="login" />} />
+            <Route path="/signup" element={<AuthModalRedirect view="signup" />} />
+
+            {/* Password recovery landing — handled outside RequireAuth so the
+                recovery session (set by Supabase from the email-link hash)
+                doesn't redirect through the auth gate. */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Authenticated homeowner/realtor app */}
+            <Route element={<RequireAuth />}>
+              <Route element={<AppShell />}>
+                <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="/app/dashboard" element={<Dashboard />} />
+                <Route path="/app/financials" element={<Financials />} />
+                <Route path="/app/calculators" element={<Calculators />} />
+                <Route path="/app/clients" element={<Clients />} />
+                <Route path="/app/account" element={<Account />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Suspense>
 
-      <AuthModal />
+            {/* Admin — role-gated, same AppShell so admins keep the full sidebar */}
+            <Route element={<RequireAuth requiredRole="admin" />}>
+              <Route element={<AppShell />}>
+                <Route path="/admin" element={<Admin />} />
+              </Route>
+            </Route>
+          </Routes>
+        </Suspense>
+
+        <AuthModal />
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

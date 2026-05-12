@@ -11,9 +11,11 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
+import { BRAND } from '../../config/brand'
 import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
+  requestOwnEmailChange,
   updateOwnDisplayName,
   updateOwnPassword,
   updateOwnWaitlistInterest,
@@ -22,8 +24,13 @@ import {
 } from '../../lib/profile'
 
 export default function Account() {
-  const { signOut, refreshProfile } = useAuth()
+  const { user, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  // Supabase's User exposes `new_email` while a change is pending confirmation
+  // — we surface that under the Email field so the user knows the link is
+  // waiting in their NEW inbox.
+  const pendingNewEmail =
+    (user as unknown as { new_email?: string | null } | null)?.new_email ?? null
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -41,10 +48,19 @@ export default function Account() {
   const [nameDraft, setNameDraft] = useState('')
   const [savingName, setSavingName] = useState(false)
 
+  const [changingEmail, setChangingEmail] = useState(false)
+  const [emailDraft, setEmailDraft] = useState('')
+  const [emailFieldError, setEmailFieldError] = useState<string | undefined>()
+  const [savingEmail, setSavingEmail] = useState(false)
+
   const [changingPassword, setChangingPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<{
+    new?: string
+    confirm?: string
+  }>({})
 
   useEffect(() => {
     let cancelled = false
@@ -108,23 +124,70 @@ export default function Account() {
     setSuccessMessage(null)
   }
 
+  const startChangingEmail = () => {
+    setEmailDraft(profile?.email ?? '')
+    setEmailFieldError(undefined)
+    setChangingEmail(true)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const cancelChangingEmail = () => {
+    setChangingEmail(false)
+    setEmailDraft('')
+    setEmailFieldError(undefined)
+  }
+
+  const saveEmail = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setEmailFieldError(undefined)
+    const next = emailDraft.trim()
+    if (!next) {
+      setEmailFieldError('Email is required.')
+      return
+    }
+    if (!/^\S+@\S+\.\S+$/.test(next)) {
+      setEmailFieldError("Doesn't look like a valid email address.")
+      return
+    }
+    if (next === profile?.email) {
+      setEmailFieldError('Same as your current email.')
+      return
+    }
+    setSavingEmail(true)
+    try {
+      await requestOwnEmailChange(next)
+      cancelChangingEmail()
+      setSuccessMessage(
+        `Sent a confirmation link to ${next}. Click it to finish the change — until then your sign-in stays on the current email.`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not change email.')
+    } finally {
+      setSavingEmail(false)
+    }
+  }
+
   const cancelChangingPassword = () => {
     setChangingPassword(false)
     setNewPassword('')
     setConfirmPassword('')
+    setPasswordFieldErrors({})
   }
 
   const savePassword = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+    const errs: typeof passwordFieldErrors = {}
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
+      errs.new = 'Must be at least 8 characters.'
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
+      errs.confirm = 'Passwords don’t match.'
     }
+    setPasswordFieldErrors(errs)
+    if (Object.keys(errs).length > 0) return
     setSavingPassword(true)
     try {
       await updateOwnPassword(newPassword)
@@ -208,7 +271,70 @@ export default function Account() {
               }
             />
           )}
-          <Field icon={Mail} label="Email" value={loading ? '…' : profile?.email ?? '—'} />
+          {changingEmail ? (
+            <form
+              onSubmit={saveEmail}
+              className="flex flex-col gap-3 border-b border-surface-100 py-3 sm:flex-row sm:items-end"
+            >
+              <label className="flex-1">
+                <span className="text-xs uppercase tracking-wider text-surface-500">Email</span>
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  autoComplete="email"
+                  aria-invalid={emailFieldError ? true : undefined}
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  placeholder="you@example.com"
+                  className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                    emailFieldError
+                      ? 'border-danger-200 focus:border-danger-600'
+                      : 'border-surface-200 focus:border-surface-400'
+                  }`}
+                />
+                {emailFieldError && (
+                  <p className="mt-1 text-xs font-medium text-danger-700">{emailFieldError}</p>
+                )}
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelChangingEmail}
+                  disabled={savingEmail}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingEmail}>
+                  {savingEmail ? 'Sending…' : 'Send confirmation'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <Field
+              icon={Mail}
+              label="Email"
+              value={loading ? '…' : profile?.email ?? '—'}
+              sub={
+                pendingNewEmail
+                  ? `Pending change to ${pendingNewEmail} — confirm via the link we sent.`
+                  : undefined
+              }
+              action={
+                !loading && (
+                  <button
+                    type="button"
+                    onClick={startChangingEmail}
+                    className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                  >
+                    <Pencil size={12} /> Change
+                  </button>
+                )
+              }
+            />
+          )}
           {changingPassword ? (
             <form onSubmit={savePassword} className="flex flex-col gap-3 py-3">
               <label className="block">
@@ -219,11 +345,21 @@ export default function Account() {
                   autoFocus
                   autoComplete="new-password"
                   minLength={8}
+                  aria-invalid={passwordFieldErrors.new ? true : undefined}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                    passwordFieldErrors.new
+                      ? 'border-danger-200 focus:border-danger-600'
+                      : 'border-surface-200 focus:border-surface-400'
+                  }`}
                 />
+                {passwordFieldErrors.new && (
+                  <p className="mt-1 text-xs font-medium text-danger-700">
+                    {passwordFieldErrors.new}
+                  </p>
+                )}
               </label>
               <label className="block">
                 <span className="text-xs uppercase tracking-wider text-surface-500">Confirm new password</span>
@@ -232,10 +368,20 @@ export default function Account() {
                   required
                   autoComplete="new-password"
                   minLength={8}
+                  aria-invalid={passwordFieldErrors.confirm ? true : undefined}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                    passwordFieldErrors.confirm
+                      ? 'border-danger-200 focus:border-danger-600'
+                      : 'border-surface-200 focus:border-surface-400'
+                  }`}
                 />
+                {passwordFieldErrors.confirm && (
+                  <p className="mt-1 text-xs font-medium text-danger-700">
+                    {passwordFieldErrors.confirm}
+                  </p>
+                )}
               </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" size="sm" onClick={cancelChangingPassword} disabled={savingPassword}>
@@ -290,6 +436,22 @@ export default function Account() {
             }}
             onError={(msg) => setError(msg)}
           />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
+        <header className="border-b border-surface-200 px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-surface-900">Help</h2>
+        </header>
+        <div className="px-6 py-5 text-sm text-surface-600">
+          Stuck or have feedback? Email{' '}
+          <a
+            href={`mailto:${BRAND.supportEmail}`}
+            className="font-medium text-accent-600 underline underline-offset-2 transition-colors hover:text-accent-500"
+          >
+            {BRAND.supportEmail}
+          </a>{' '}
+          — we read every message.
         </div>
       </section>
 
@@ -368,11 +530,13 @@ function Field({
   icon: Icon,
   label,
   value,
+  sub,
   action,
 }: {
   icon: LucideIcon
   label: string
   value: string
+  sub?: string
   action?: React.ReactNode
 }) {
   return (
@@ -381,6 +545,7 @@ function Field({
       <div className="min-w-0 flex-1">
         <div className="text-xs uppercase tracking-wider text-surface-500">{label}</div>
         <div className="truncate text-sm font-medium text-surface-900">{value}</div>
+        {sub && <div className="mt-0.5 text-xs text-warning-700">{sub}</div>}
       </div>
       {action}
     </div>

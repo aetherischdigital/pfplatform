@@ -14,6 +14,7 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirm?: string }>({})
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -38,14 +39,11 @@ export default function ResetPassword() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
+    const errs: typeof fieldErrors = {}
+    if (password.length < 8) errs.password = 'Must be at least 8 characters.'
+    if (password !== confirmPassword) errs.confirm = 'Passwords don’t match.'
+    setFieldErrors(errs)
+    if (Object.keys(errs).length > 0) return
     setSaving(true)
     try {
       await updateOwnPassword(password)
@@ -116,11 +114,21 @@ export default function ResetPassword() {
                   autoFocus
                   autoComplete="new-password"
                   minLength={8}
+                  aria-invalid={fieldErrors.password ? true : undefined}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2.5 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2.5 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                    fieldErrors.password
+                      ? 'border-danger-200 focus:border-danger-600'
+                      : 'border-surface-200 focus:border-surface-400'
+                  }`}
                 />
+                {fieldErrors.password && (
+                  <p className="mt-1 text-xs font-medium text-danger-700">
+                    {fieldErrors.password}
+                  </p>
+                )}
               </label>
               <label className="block">
                 <span className="text-sm font-medium text-surface-700">Confirm password</span>
@@ -129,10 +137,20 @@ export default function ResetPassword() {
                   required
                   autoComplete="new-password"
                   minLength={8}
+                  aria-invalid={fieldErrors.confirm ? true : undefined}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2.5 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2.5 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                    fieldErrors.confirm
+                      ? 'border-danger-200 focus:border-danger-600'
+                      : 'border-surface-200 focus:border-surface-400'
+                  }`}
                 />
+                {fieldErrors.confirm && (
+                  <p className="mt-1 text-xs font-medium text-danger-700">
+                    {fieldErrors.confirm}
+                  </p>
+                )}
               </label>
               {error && (
                 <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
