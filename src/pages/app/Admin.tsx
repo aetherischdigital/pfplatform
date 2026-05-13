@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Search, Shield, UserX, UserCheck, Eye } from 'lucide-react'
+import { AlertTriangle, Search, Users, UserX, UserCheck, Eye } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { listUsers, setUserActive, updateUserRole, type AdminUser } from '../../lib/admin'
 import type { UserRole } from '../../lib/profile'
@@ -120,9 +120,9 @@ export default function Admin() {
     <div className="space-y-8">
       <header>
         <div className="flex items-center gap-2">
-          <Shield size={18} className="text-accent-600" />
+          <Users size={18} className="text-accent-600" />
           <h1 className="font-display text-2xl font-semibold tracking-tight text-surface-900">
-            Admin
+            Users
           </h1>
         </div>
         <p className="mt-1 text-sm text-surface-500">
