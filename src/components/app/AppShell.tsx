@@ -208,25 +208,42 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
     navigate(homePathFor(role))
   }
 
+  // Each admin surface gets its own sidebar entry so the section grows
+  // gracefully as we add more tools (billing, audit logs, etc.). The umbrella
+  // "Admin" link is gone — /admin IS the users page, so it's labeled that way.
+  // `end` on the Users NavLink prevents it from staying highlighted while the
+  // user is on a /admin/<sub> route.
+  const adminLinks: NavItem[] = [
+    { to: '/admin', label: 'Users', icon: Users },
+    { to: '/admin/blog', label: 'Blog', icon: FileText },
+  ]
+
   return (
     <div className="mt-6 border-t border-surface-200 pt-4">
-      <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-500">
-        Admin tools
+      <div className="flex items-center gap-1.5 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-500">
+        <Shield size={12} /> Admin tools
       </div>
-      <NavLink
-        to="/admin"
-        onClick={onNavigate}
-        className={({ isActive }) =>
-          `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            isActive
-              ? 'bg-surface-900 text-white'
-              : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
-          }`
-        }
-      >
-        <Shield size={18} />
-        Admin
-      </NavLink>
+      {adminLinks.map((item) => {
+        const Icon = item.icon
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/admin'}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-surface-900 text-white'
+                  : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
+              }`
+            }
+          >
+            <Icon size={18} />
+            {item.label}
+          </NavLink>
+        )
+      })}
 
       <div className="mt-3 rounded-md border border-surface-200 bg-surface-50 p-3">
         <div className="flex items-center gap-1.5 text-xs font-medium text-surface-600">
