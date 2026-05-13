@@ -1,4 +1,3 @@
-import { Instagram, Facebook } from 'lucide-react'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
 import { usePageMeta } from '../../lib/usePageMeta'
@@ -11,9 +10,11 @@ import { usePageMeta } from '../../lib/usePageMeta'
  * permits at the time of delivery" — best-effort, not absolute.
  */
 
+type IconProps = { size?: number } & React.SVGProps<SVGSVGElement>
+
 type Platform = {
   name: string
-  icon: typeof Instagram
+  icon: (props: IconProps) => React.ReactElement
   handle: string | null // null = handle TBD
   href: string | null
   blurb: string
@@ -22,14 +23,14 @@ type Platform = {
 const PLATFORMS: Platform[] = [
   {
     name: 'Instagram',
-    icon: Instagram,
+    icon: InstagramIcon,
     handle: null,
     href: null,
     blurb: 'Mortgage math in 60-second cards. Drops weekly.',
   },
   {
     name: 'Facebook',
-    icon: Facebook,
+    icon: FacebookIcon,
     handle: null,
     href: null,
     blurb: 'Longer-form posts, neighborhood Q&A, and the occasional debate.',
@@ -141,21 +142,47 @@ function PlatformCard({ platform }: { platform: Platform }) {
   )
 }
 
-/** Inline TikTok icon — lucide-react doesn't ship one. */
-function TikTokIcon({ size = 24, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
+/**
+ * Inline brand icons — the version of lucide-react on this branch dropped
+ * brand icons (trademark concerns). Shapes match the standard outline forms.
+ */
+
+function commonSvgProps(size: number, props: React.SVGProps<SVGSVGElement>) {
+  return {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    ...props,
+  }
+}
+
+function InstagramIcon({ size = 24, ...props }: IconProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
+    <svg {...commonSvgProps(size, props)}>
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  )
+}
+
+function FacebookIcon({ size = 24, ...props }: IconProps) {
+  return (
+    <svg {...commonSvgProps(size, props)}>
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  )
+}
+
+function TikTokIcon({ size = 24, ...props }: IconProps) {
+  return (
+    <svg {...commonSvgProps(size, props)}>
       <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
     </svg>
   )
