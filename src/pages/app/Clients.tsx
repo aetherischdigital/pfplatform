@@ -1,4 +1,5 @@
-import { Users } from 'lucide-react'
+import { Users, Calculator } from 'lucide-react'
+import { ButtonLink } from '../../components/ui/Button'
 
 export default function Clients() {
   return (
@@ -17,12 +18,21 @@ export default function Clients() {
           <Users size={20} />
         </div>
         <h2 className="mt-4 font-display text-lg font-semibold text-surface-900">
-          Realtor surface lands in Phase 2
+          Client roster coming in a future release
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-surface-500">
           Invite clients with one link, view their plans with permission, and send branded
-          after-closing touchpoints — all coming with the next release.
+          after-closing touchpoints. While we build that out, your own homeowner-side tools
+          are fully open to you.
         </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <ButtonLink to="/app/dashboard" variant="primary" size="sm">
+            Your dashboard
+          </ButtonLink>
+          <ButtonLink to="/app/calculators" variant="secondary" size="sm">
+            <Calculator size={14} /> Calculators
+          </ButtonLink>
+        </div>
       </div>
     </div>
   )

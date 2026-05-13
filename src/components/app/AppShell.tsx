@@ -132,7 +132,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="flex items-center justify-between border-b border-surface-200 px-4 py-4">
-        <Wordmark size="md" />
+        <Wordmark size="md" compact />
         <ThemeToggle />
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -232,6 +232,9 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
         <div className="flex items-center gap-1.5 text-xs font-medium text-surface-600">
           <Eye size={12} /> View as
         </div>
+        <p className="mt-1 text-xs leading-snug text-surface-500">
+          Preview the app as another role. Your admin session stays active.
+        </p>
         <div className="mt-2 grid grid-cols-2 gap-1.5">
           <button
             type="button"

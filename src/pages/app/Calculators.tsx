@@ -7,6 +7,7 @@ import {
   Split,
   TrendingUp,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import PayoffCalculator, {
   type PayoffCalculatorDefaults,
 } from '../../components/calculators/PayoffCalculator'
@@ -25,10 +26,69 @@ import RefinanceCompareCalculator, {
 import { fetchPfs, type Pfs } from '../../lib/pfs'
 import { markCalculatorVisited } from '../../lib/onboarding'
 
+type TabId = 'payoff' | 'amortization' | 'equity' | 'scenarios' | 'refinance'
+
+type Tab = {
+  id: TabId
+  label: string
+  icon: LucideIcon
+  title: string
+  blurb: string
+}
+
+const TABS: Tab[] = [
+  {
+    id: 'payoff',
+    label: 'Payoff',
+    icon: CalculatorIcon,
+    title: 'Mortgage payoff',
+    blurb: 'How much faster does your loan disappear if you send extra each month?',
+  },
+  {
+    id: 'amortization',
+    label: 'Amortization',
+    icon: ListOrdered,
+    title: 'Amortization schedule',
+    blurb:
+      'Where does every dollar of every payment go? Here’s the receipt, month by month.',
+  },
+  {
+    id: 'equity',
+    label: 'Equity',
+    icon: TrendingUp,
+    title: 'Equity projection',
+    blurb:
+      'Two things build equity: your home value rising, and your balance falling. Watch them work together.',
+  },
+  {
+    id: 'scenarios',
+    label: 'Scenarios',
+    icon: Split,
+    title: 'Payoff scenarios',
+    blurb: 'Four ways to retire your loan early. Which one fits your situation?',
+  },
+  {
+    id: 'refinance',
+    label: 'Refinance',
+    icon: RefreshCw,
+    title: 'Refinance compare',
+    blurb:
+      'A lower payment isn’t free. What does it cost — and when does it pay for itself?',
+  },
+]
+
+function tabFromHash(hash: string): TabId {
+  const id = hash.replace(/^#/, '') as TabId
+  return TABS.some((t) => t.id === id) ? id : 'payoff'
+}
+
 export default function Calculators() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    typeof window === 'undefined' ? 'payoff' : tabFromHash(window.location.hash),
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -49,10 +109,27 @@ export default function Calculators() {
     }
   }, [])
 
-  const defaults = pfsToCalculatorDefaults(pfs)
+  // Reflect tab choice in the URL hash so deep-links + back/forward work.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onHashChange = () => setActiveTab(tabFromHash(window.location.hash))
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  const selectTab = (id: TabId) => {
+    setActiveTab(id)
+    if (typeof window !== 'undefined') {
+      // Use replaceState so tab clicks don't pollute history; back button still
+      // takes you back to wherever you came from.
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }
+
+  const active = TABS.find((t) => t.id === activeTab) ?? TABS[0]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
           Calculators
@@ -71,107 +148,59 @@ export default function Calculators() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <CalculatorIcon size={18} />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold text-surface-900">
-              Mortgage payoff
-            </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              How much faster does your loan disappear if you send extra each month?
-            </p>
-          </div>
+      <div
+        role="tablist"
+        aria-label="Calculators"
+        className="sticky top-0 z-20 -mx-6 overflow-x-auto border-b border-surface-200 bg-surface-50/95 px-6 backdrop-blur"
+      >
+        <div className="flex min-w-max gap-1">
+          {TABS.map((t) => {
+            const Icon = t.icon
+            const isActive = t.id === activeTab
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                type="button"
+                onClick={() => selectTab(t.id)}
+                className={`flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 ${
+                  isActive
+                    ? 'border-accent-500 text-surface-900'
+                    : 'border-transparent text-surface-500 hover:text-surface-900'
+                }`}
+              >
+                <Icon size={14} />
+                {t.label}
+              </button>
+            )
+          })}
         </div>
-
-        {loading ? <PayoffCalculatorSkeleton /> : <PayoffCalculator defaults={defaults} />}
-      </section>
+      </div>
 
       <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
         <div className="mb-6 flex items-start gap-3">
           <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <ListOrdered size={18} />
+            <active.icon size={18} />
           </div>
           <div>
             <h2 className="font-display text-lg font-semibold text-surface-900">
-              Amortization schedule
+              {active.title}
             </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              Where does every dollar of every payment go? Here&rsquo;s the receipt, month by month.
-            </p>
+            <p className="mt-0.5 text-sm text-surface-500">{active.blurb}</p>
           </div>
         </div>
 
         {loading ? (
           <PayoffCalculatorSkeleton />
-        ) : (
+        ) : activeTab === 'payoff' ? (
+          <PayoffCalculator defaults={pfsToCalculatorDefaults(pfs)} />
+        ) : activeTab === 'amortization' ? (
           <AmortizationCalculator defaults={pfsToAmortizationDefaults(pfs)} />
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <TrendingUp size={18} />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold text-surface-900">
-              Equity projection
-            </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              Two things build equity: your home value rising, and your balance falling. Watch them work together.
-            </p>
-          </div>
-        </div>
-
-        {loading ? (
-          <PayoffCalculatorSkeleton />
-        ) : (
+        ) : activeTab === 'equity' ? (
           <EquityProjectionCalculator defaults={pfsToEquityDefaults(pfs)} />
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <Split size={18} />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold text-surface-900">
-              Payoff scenarios
-            </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              Four ways to retire your loan early. Which one fits your situation?
-            </p>
-          </div>
-        </div>
-
-        {loading ? (
-          <PayoffCalculatorSkeleton />
-        ) : (
+        ) : activeTab === 'scenarios' ? (
           <MultiScenarioPayoffCalculator defaults={pfsToMultiScenarioDefaults(pfs)} />
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <RefreshCw size={18} />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold text-surface-900">
-              Refinance compare
-            </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              A lower payment isn&rsquo;t free. What does it cost &mdash; and when does it pay for itself?
-            </p>
-          </div>
-        </div>
-
-        {loading ? (
-          <PayoffCalculatorSkeleton />
         ) : (
           <RefinanceCompareCalculator defaults={pfsToRefinanceDefaults(pfs)} />
         )}

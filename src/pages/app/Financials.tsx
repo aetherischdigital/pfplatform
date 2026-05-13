@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Pencil, Trash2, AlertTriangle, Home, Star } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Home,
+  Star,
+  Briefcase,
+  ShieldAlert,
+} from 'lucide-react'
 import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
@@ -16,15 +25,30 @@ import {
   type Pfs,
   type PfsRecordKind,
 } from '../../lib/pfs'
+import {
+  deleteBusinessVenture,
+  fetchBusinessVentures,
+  type BusinessVenture,
+} from '../../lib/businessVentures'
+import {
+  deleteContingentLiability,
+  fetchContingentLiabilities,
+  CONTINGENT_TYPE_LABELS,
+  type ContingentLiability,
+} from '../../lib/contingentLiabilities'
 import { formatUSD } from '../../lib/mortgage'
 import { Button } from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import PfsRecordModal, { type ExistingRecord } from '../../components/pfs/PfsRecordModal'
 import MortgageModal from '../../components/pfs/MortgageModal'
+import BusinessVentureModal from '../../components/pfs/BusinessVentureModal'
+import ContingentLiabilityModal from '../../components/pfs/ContingentLiabilityModal'
 
 type PendingDelete =
   | { kind: 'record'; id: string; label: string }
   | { kind: 'mortgage'; id: string; propertyLabel: string }
+  | { kind: 'business_venture'; id: string; label: string }
+  | { kind: 'contingent_liability'; id: string; label: string }
 
 export default function Financials() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -50,10 +74,18 @@ export default function Financials() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  const [businessVentures, setBusinessVentures] = useState<BusinessVenture[]>([])
+  const [bvModal, setBvModal] = useState<{ existing: BusinessVenture | null } | null>(null)
+
+  const [contingents, setContingents] = useState<ContingentLiability[]>([])
+  const [clModal, setClModal] = useState<{ existing: ContingentLiability | null } | null>(null)
+
   const load = useCallback(() => {
-    return fetchPfs()
-      .then((data) => {
-        setPfs(data)
+    return Promise.all([fetchPfs(), fetchBusinessVentures(), fetchContingentLiabilities()])
+      .then(([pfsData, bv, cl]) => {
+        setPfs(pfsData)
+        setBusinessVentures(bv)
+        setContingents(cl)
         setError(null)
       })
       .catch((err: unknown) => {
@@ -66,9 +98,12 @@ export default function Financials() {
 
   useEffect(() => {
     let cancelled = false
-    fetchPfs()
-      .then((data) => {
-        if (!cancelled) setPfs(data)
+    Promise.all([fetchPfs(), fetchBusinessVentures(), fetchContingentLiabilities()])
+      .then(([pfsData, bv, cl]) => {
+        if (cancelled) return
+        setPfs(pfsData)
+        setBusinessVentures(bv)
+        setContingents(cl)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -109,10 +144,19 @@ export default function Financials() {
     setDeleting(true)
     setError(null)
     try {
-      if (pendingDelete.kind === 'record') {
-        await deletePfsRecord(pendingDelete.id)
-      } else {
-        await deleteMortgage(pendingDelete.id)
+      switch (pendingDelete.kind) {
+        case 'record':
+          await deletePfsRecord(pendingDelete.id)
+          break
+        case 'mortgage':
+          await deleteMortgage(pendingDelete.id)
+          break
+        case 'business_venture':
+          await deleteBusinessVenture(pendingDelete.id)
+          break
+        case 'contingent_liability':
+          await deleteContingentLiability(pendingDelete.id)
+          break
       }
       await load()
       setPendingDelete(null)
@@ -148,10 +192,15 @@ export default function Financials() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Headline label="Net worth" value={formatUSD(t.netWorth)} accent />
+        <Headline label="Net worth" value={formatUSD(t.netWorth)} accent={t.netWorth !== 0} />
         <Headline label="Total assets" value={formatUSD(t.totalAssets)} />
-        <Headline label="Total liabilities" value={`−${formatUSD(t.totalLiabilities)}`} />
+        <Headline
+          label="Total liabilities"
+          value={t.totalLiabilities > 0 ? `−${formatUSD(t.totalLiabilities)}` : formatUSD(0)}
+        />
       </div>
+
+      <GroupHeader title="Balance sheet" />
 
       <Section
         title="Assets"
@@ -205,7 +254,7 @@ export default function Financials() {
         subtitle={
           pfs.mortgages.length === 0
             ? 'Used by payoff projections and equity math.'
-            : `${pfs.mortgages.length} ${pfs.mortgages.length === 1 ? 'property' : 'properties'} • primary drives the dashboard.`
+            : `${pfs.mortgages.length} ${pfs.mortgages.length === 1 ? 'property' : 'properties'}. Your primary mortgage feeds the dashboard's payoff and equity charts.`
         }
         rightAction={
           <Button
@@ -218,7 +267,7 @@ export default function Financials() {
         }
       >
         {pfs.mortgages.length === 0 ? (
-          <div className="px-6 py-8 text-center text-sm text-surface-500">
+          <div className="px-6 py-5 text-center text-sm text-surface-500">
             No properties on file. Add one to enable payoff projections.
           </div>
         ) : (
@@ -235,6 +284,8 @@ export default function Financials() {
           </ul>
         )}
       </Section>
+
+      <GroupHeader title="Cash flow" />
 
       <Section
         title="Income"
@@ -284,6 +335,78 @@ export default function Financials() {
         )}
       </Section>
 
+      <GroupHeader title="Other holdings & obligations" />
+
+      <Section
+        title="Business ventures"
+        subtitle={
+          businessVentures.length === 0
+            ? 'Businesses you hold a principal or partner interest in.'
+            : `${businessVentures.length} ${businessVentures.length === 1 ? 'venture' : 'ventures'} on file.`
+        }
+        rightAction={
+          <Button variant="secondary" size="sm" onClick={() => setBvModal({ existing: null })}>
+            <Plus size={14} /> Add
+          </Button>
+        }
+      >
+        {businessVentures.length === 0 ? (
+          <div className="px-6 py-5 text-center text-sm text-surface-500">
+            None on file. Skip if you don&rsquo;t hold any business interests.
+          </div>
+        ) : (
+          <ul className="divide-y divide-surface-200">
+            {businessVentures.map((bv) => (
+              <BusinessVentureRow
+                key={bv.id}
+                venture={bv}
+                onEdit={() => setBvModal({ existing: bv })}
+                onDelete={() =>
+                  setPendingDelete({ kind: 'business_venture', id: bv.id, label: bv.name })
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section
+        title="Contingent liabilities"
+        subtitle={
+          contingents.length === 0
+            ? 'Debts not yet on your balance sheet — guarantor obligations, leases, lawsuits, contested tax liens.'
+            : `${contingents.length} potential ${contingents.length === 1 ? 'obligation' : 'obligations'} tracked.`
+        }
+        rightAction={
+          <Button variant="secondary" size="sm" onClick={() => setClModal({ existing: null })}>
+            <Plus size={14} /> Add
+          </Button>
+        }
+      >
+        {contingents.length === 0 ? (
+          <div className="px-6 py-5 text-center text-sm text-surface-500">
+            None tracked. Add if you&rsquo;ve guaranteed someone else&rsquo;s debt or have other off-balance obligations.
+          </div>
+        ) : (
+          <ul className="divide-y divide-surface-200">
+            {contingents.map((c) => (
+              <ContingentRow
+                key={c.id}
+                contingent={c}
+                onEdit={() => setClModal({ existing: c })}
+                onDelete={() =>
+                  setPendingDelete({
+                    kind: 'contingent_liability',
+                    id: c.id,
+                    label: CONTINGENT_TYPE_LABELS[c.type],
+                  })
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </Section>
+
       {recordModal && (
         <PfsRecordModal
           open
@@ -291,6 +414,24 @@ export default function Financials() {
           onSaved={load}
           kind={recordModal.kind}
           existing={recordModal.existing}
+        />
+      )}
+
+      {bvModal && (
+        <BusinessVentureModal
+          open
+          onClose={() => setBvModal(null)}
+          onSaved={load}
+          existing={bvModal.existing}
+        />
+      )}
+
+      {clModal && (
+        <ContingentLiabilityModal
+          open
+          onClose={() => setClModal(null)}
+          onSaved={load}
+          existing={clModal.existing}
         />
       )}
 
@@ -321,6 +462,14 @@ export default function Financials() {
         onCancel={() => (deleting ? null : setPendingDelete(null))}
       />
     </div>
+  )
+}
+
+function GroupHeader({ title }: { title: string }) {
+  return (
+    <h2 className="-mb-3 pt-2 font-mono text-xs font-semibold uppercase tracking-wider text-surface-500">
+      {title}
+    </h2>
   )
 }
 
@@ -382,7 +531,7 @@ function Section({
           <h2 className="font-display text-lg font-semibold text-surface-900">{title}</h2>
           {total != null && totalSign ? (
             <div className="mt-0.5 font-mono text-sm text-surface-500">
-              {totalSign}
+              {total > 0 ? totalSign : ''}
               {formatUSD(total)}
               {totalSuffix}
             </div>
@@ -437,7 +586,7 @@ function PropertyRow({
             <button
               type="button"
               onClick={onSetPrimary}
-              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               aria-label={`Make ${m.propertyLabel} primary`}
               title="Make primary"
             >
@@ -447,7 +596,7 @@ function PropertyRow({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
             aria-label={`Edit ${m.propertyLabel}`}
           >
             <Pencil size={14} />
@@ -455,7 +604,7 @@ function PropertyRow({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-md p-2 text-surface-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
             aria-label={`Delete ${m.propertyLabel}`}
           >
             <Trash2 size={14} />
@@ -474,14 +623,14 @@ function PropertyRow({
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-surface-100 pt-3 text-xs text-surface-600 sm:grid-cols-4">
           {m.propertyTaxAnnual != null && (
             <PropertyDetail
-              label="Property tax / yr"
+              label="Tax / yr"
               value={formatUSD(m.propertyTaxAnnual)}
               muted
             />
           )}
           {m.homeownersInsuranceAnnual != null && (
             <PropertyDetail
-              label="Insurance / yr"
+              label="Ins / yr"
               value={formatUSD(m.homeownersInsuranceAnnual)}
               muted
             />
@@ -491,14 +640,14 @@ function PropertyRow({
           )}
           {m.originalCost != null && (
             <PropertyDetail
-              label="Original cost"
+              label="Orig. cost"
               value={formatUSD(m.originalCost)}
               muted
             />
           )}
           {piti?.hasPiti && (
             <PropertyDetail
-              label="True PITI / mo"
+              label="PITI / mo"
               value={formatUSD(piti.total)}
               muted
               highlight
@@ -506,6 +655,117 @@ function PropertyRow({
           )}
         </dl>
       )}
+    </li>
+  )
+}
+
+function BusinessVentureRow({
+  venture: bv,
+  onEdit,
+  onDelete,
+}: {
+  venture: BusinessVenture
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <li className="px-6 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Briefcase size={14} className="text-surface-400" />
+            <span className="font-medium text-surface-900">{bv.name}</span>
+            {bv.pctOwnership != null && (
+              <span className="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-700">
+                {bv.pctOwnership}% ownership
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-xs text-surface-500">
+            {[bv.positionTitle, bv.lineOfBusiness, bv.yearsInBusiness ? `${bv.yearsInBusiness} yr` : null]
+              .filter(Boolean)
+              .join(' • ') || 'No additional details'}
+          </div>
+          {bv.address && <div className="mt-0.5 text-xs text-surface-500">{bv.address}</div>}
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-3">
+          {bv.businessAssets != null && (
+            <div className="text-right">
+              <div className="text-xs text-surface-500">Total assets</div>
+              <div className="font-mono text-sm font-medium text-surface-900">
+                {formatUSD(bv.businessAssets)}
+              </div>
+            </div>
+          )}
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              aria-label={`Edit ${bv.name}`}
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              aria-label={`Delete ${bv.name}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function ContingentRow({
+  contingent: c,
+  onEdit,
+  onDelete,
+}: {
+  contingent: ContingentLiability
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <li className="px-6 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <ShieldAlert size={14} className="text-warning-700" />
+            <span className="font-medium text-surface-900">
+              {CONTINGENT_TYPE_LABELS[c.type]}
+            </span>
+            {c.estimatedAmount != null && (
+              <span className="rounded-full bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700">
+                ~{formatUSD(c.estimatedAmount)}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-surface-700">{c.description}</p>
+        </div>
+        <div className="flex flex-shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            aria-label="Edit contingent liability"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            aria-label="Delete contingent liability"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
     </li>
   )
 }
@@ -556,7 +816,7 @@ function ItemList({ rows }: { rows: Row[] }) {
             <button
               type="button"
               onClick={r.onEdit}
-              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               aria-label={`Edit ${r.label}`}
             >
               <Pencil size={14} />
@@ -564,7 +824,7 @@ function ItemList({ rows }: { rows: Row[] }) {
             <button
               type="button"
               onClick={r.onDelete}
-              className="rounded-md p-2 text-surface-400 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               aria-label={`Delete ${r.label}`}
             >
               <Trash2 size={14} />
@@ -578,12 +838,12 @@ function ItemList({ rows }: { rows: Row[] }) {
 
 function EmptyRow({ kind }: { kind: PfsRecordKind }) {
   const labels: Record<PfsRecordKind, string> = {
-    asset: 'No assets yet. Add a home, retirement account, or cash.',
-    liability: 'No liabilities yet. Add your mortgage, loans, or credit cards.',
+    asset: 'No assets yet. Add retirement, cash, or investments. Real estate lives in Properties below.',
+    liability: 'No liabilities yet. Add loans or credit cards. Mortgages live in Properties below.',
     income: 'No income sources yet.',
     expense: 'No expenses yet.',
   }
-  return <div className="px-6 py-8 text-center text-sm text-surface-500">{labels[kind]}</div>
+  return <div className="px-6 py-5 text-center text-sm text-surface-500">{labels[kind]}</div>
 }
 
 function SkeletonState() {

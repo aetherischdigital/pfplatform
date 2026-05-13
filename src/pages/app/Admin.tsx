@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Search, Shield, UserX, UserCheck } from 'lucide-react'
+import { AlertTriangle, Search, Shield, UserX, UserCheck, Eye } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { listUsers, setUserActive, updateUserRole, type AdminUser } from '../../lib/admin'
 import type { UserRole } from '../../lib/profile'
 import { Button } from '../../components/ui/Button'
+import AdminUserSummaryModal from '../../components/admin/AdminUserSummaryModal'
 
 type Filter = 'all' | UserRole
 
@@ -15,6 +16,7 @@ export default function Admin() {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<Filter>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     return listUsers()
@@ -128,14 +130,11 @@ export default function Admin() {
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <CountCard label="Total users" value={counts.total} />
         <CountCard label="Homeowners" value={counts.homeowner} />
         <CountCard label="Realtors" value={counts.realtor} />
         <CountCard label="Admins" value={counts.admin} accent />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
         <CountCard label="Waiting on Plus" value={counts.plus} />
         <CountCard label="Waiting on Pro" value={counts.pro} />
       </div>
@@ -228,25 +227,34 @@ export default function Admin() {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                    <div className="flex items-center justify-between gap-3 text-xs text-surface-500">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-surface-500">
                       <span>Joined {formatDate(u.createdAt)}</span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={busyId === u.id || isSelf}
-                        onClick={() => handleActiveToggle(u)}
-                        title={isSelf ? 'Cannot change own status' : undefined}
-                      >
-                        {u.isActive ? (
-                          <>
-                            <UserX size={14} /> Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck size={14} /> Activate
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setViewingId(u.id)}
+                        >
+                          <Eye size={14} /> View
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={busyId === u.id || isSelf}
+                          onClick={() => handleActiveToggle(u)}
+                          title={isSelf ? 'Cannot change own status' : undefined}
+                        >
+                          {u.isActive ? (
+                            <>
+                              <UserX size={14} /> Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck size={14} /> Activate
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </li>
                 )
@@ -307,23 +315,32 @@ export default function Admin() {
                         </td>
                         <td className="px-4 py-3 text-surface-600">{formatDate(u.createdAt)}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled={busyId === u.id || isSelf}
-                            onClick={() => handleActiveToggle(u)}
-                            title={isSelf ? 'Cannot change own status' : undefined}
-                          >
-                            {u.isActive ? (
-                              <>
-                                <UserX size={14} /> Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck size={14} /> Activate
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setViewingId(u.id)}
+                            >
+                              <Eye size={14} /> View
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={busyId === u.id || isSelf}
+                              onClick={() => handleActiveToggle(u)}
+                              title={isSelf ? 'Cannot change own status' : undefined}
+                            >
+                              {u.isActive ? (
+                                <>
+                                  <UserX size={14} /> Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck size={14} /> Activate
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -334,6 +351,8 @@ export default function Admin() {
           </>
         )}
       </section>
+
+      <AdminUserSummaryModal userId={viewingId} onClose={() => setViewingId(null)} />
     </div>
   )
 }

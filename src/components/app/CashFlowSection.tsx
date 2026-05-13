@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import {
   INCOME_CATEGORY_LABELS,
   EXPENSE_CATEGORY_LABELS,
@@ -100,12 +101,12 @@ export default function CashFlowSection({ income, expenses }: Props) {
       {empty ? (
         <div className="mt-6 rounded-lg border border-dashed border-surface-200 bg-surface-50 px-4 py-5 text-center text-sm text-surface-500">
           Add income and expenses on{' '}
-          <a
-            href="/app/financials"
+          <Link
+            to="/app/financials"
             className="font-medium text-accent-600 underline-offset-2 hover:underline"
           >
             Financials
-          </a>{' '}
+          </Link>{' '}
           to see your monthly flow.
         </div>
       ) : (

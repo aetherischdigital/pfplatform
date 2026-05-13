@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Cake,
   Users,
+  Heart,
+  Briefcase,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
@@ -22,6 +24,7 @@ import {
   updateOwnDependents,
   updateOwnDisplayName,
   updateOwnPassword,
+  updateOwnSpouse,
   updateOwnWaitlistInterest,
   type Profile,
   type WaitlistInterest,
@@ -73,6 +76,15 @@ export default function Account() {
   const [personalFieldErrors, setPersonalFieldErrors] = useState<{
     birthdate?: string
     dependents?: string
+  }>({})
+
+  const [editingSpouse, setEditingSpouse] = useState(false)
+  const [spouseNameDraft, setSpouseNameDraft] = useState('')
+  const [spouseBirthdateDraft, setSpouseBirthdateDraft] = useState('')
+  const [spouseOccupationDraft, setSpouseOccupationDraft] = useState('')
+  const [savingSpouse, setSavingSpouse] = useState(false)
+  const [spouseFieldErrors, setSpouseFieldErrors] = useState<{
+    spouseBirthdate?: string
   }>({})
 
   useEffect(() => {
@@ -247,6 +259,54 @@ export default function Account() {
     }
   }
 
+  const startEditingSpouse = () => {
+    setSpouseNameDraft(profile?.spouseName ?? '')
+    setSpouseBirthdateDraft(profile?.spouseBirthdate ?? '')
+    setSpouseOccupationDraft(profile?.spouseOccupation ?? '')
+    setSpouseFieldErrors({})
+    setEditingSpouse(true)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const cancelEditingSpouse = () => {
+    setEditingSpouse(false)
+    setSpouseNameDraft('')
+    setSpouseBirthdateDraft('')
+    setSpouseOccupationDraft('')
+    setSpouseFieldErrors({})
+  }
+
+  const saveSpouse = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    const trimmedBirth = spouseBirthdateDraft.trim()
+    const nextBirth = trimmedBirth === '' ? null : trimmedBirth
+    if (nextBirth !== null && !/^\d{4}-\d{2}-\d{2}$/.test(nextBirth)) {
+      setSpouseFieldErrors({ spouseBirthdate: 'Use YYYY-MM-DD.' })
+      return
+    }
+    setSpouseFieldErrors({})
+    setSavingSpouse(true)
+    try {
+      const trimmedName = spouseNameDraft.trim()
+      const trimmedOcc = spouseOccupationDraft.trim()
+      await updateOwnSpouse({
+        spouseName: trimmedName === '' ? null : trimmedName,
+        spouseBirthdate: nextBirth,
+        spouseOccupation: trimmedOcc === '' ? null : trimmedOcc,
+      })
+      const fresh = await fetchOwnProfile()
+      setProfile(fresh)
+      setEditingSpouse(false)
+      setSuccessMessage('Spouse details saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save spouse details.')
+    } finally {
+      setSavingSpouse(false)
+    }
+  }
+
   const savePassword = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -393,6 +453,7 @@ export default function Account() {
                   ? `Pending change to ${pendingNewEmail} — confirm via the link we sent.`
                   : undefined
               }
+              subTone="warning"
               action={
                 !loading && (
                   <button
@@ -482,12 +543,18 @@ export default function Account() {
                 icon={Cake}
                 label="Birthdate"
                 value={loading ? '…' : formatBirthdate(profile?.birthdate)}
+                sub={
+                  !loading && profile?.birthdate
+                    ? yearsToRetirementText(profile.birthdate)
+                    : undefined
+                }
                 action={
                   !loading && (
                     <button
                       type="button"
                       onClick={startEditingPersonal}
                       className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit birthdate and dependents"
                     >
                       <Pencil size={12} /> Edit
                     </button>
@@ -503,6 +570,18 @@ export default function Account() {
                     : profile?.dependents != null
                       ? String(profile.dependents)
                       : '—'
+                }
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingPersonal}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit birthdate and dependents"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
                 }
               />
             </>
@@ -585,11 +664,171 @@ export default function Account() {
 
       <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
         <header className="border-b border-surface-200 px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-surface-900">Session</h2>
+        </header>
+        <div className="flex flex-col items-stretch gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 truncate text-sm text-surface-600">
+            Signed in as{' '}
+            <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={handleSignOut}
+            className="flex-shrink-0"
+          >
+            <LogOut size={14} />
+            Sign out
+          </Button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
+        <header className="border-b border-surface-200 px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-surface-900">
+            Spouse / co-applicant
+          </h2>
+          <p className="mt-1 text-xs text-surface-500">
+            Optional. Useful joint-planning context — names, ages, occupation.
+          </p>
+        </header>
+        <div className="p-6">
+          {editingSpouse ? (
+            <form onSubmit={saveSpouse} className="space-y-4">
+              <label className="block">
+                <span className="text-xs uppercase tracking-wider text-surface-500">Name</span>
+                <input
+                  type="text"
+                  autoFocus
+                  maxLength={120}
+                  value={spouseNameDraft}
+                  onChange={(e) => setSpouseNameDraft(e.target.value)}
+                  placeholder="Spouse's name"
+                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Birthdate
+                  </span>
+                  <input
+                    type="date"
+                    aria-invalid={spouseFieldErrors.spouseBirthdate ? true : undefined}
+                    value={spouseBirthdateDraft}
+                    onChange={(e) => setSpouseBirthdateDraft(e.target.value)}
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none focus:bg-white ${
+                      spouseFieldErrors.spouseBirthdate
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {spouseFieldErrors.spouseBirthdate && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {spouseFieldErrors.spouseBirthdate}
+                    </p>
+                  )}
+                </label>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Occupation
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={120}
+                    value={spouseOccupationDraft}
+                    onChange={(e) => setSpouseOccupationDraft(e.target.value)}
+                    placeholder="e.g. Teacher"
+                    className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelEditingSpouse}
+                  disabled={savingSpouse}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingSpouse}>
+                  {savingSpouse ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <Field
+                icon={Heart}
+                label="Name"
+                value={loading ? '…' : profile?.spouseName || '—'}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Cake}
+                label="Birthdate"
+                value={loading ? '…' : formatBirthdate(profile?.spouseBirthdate)}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Briefcase}
+                label="Occupation"
+                value={loading ? '…' : profile?.spouseOccupation || '—'}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
+        <header className="border-b border-surface-200 px-6 py-4">
           <h2 className="font-display text-lg font-semibold text-surface-900">Subscription</h2>
         </header>
         <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-surface-600">
-            <div className="font-medium text-surface-900">Free plan</div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-surface-900">Free plan</span>
+              <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
+                Current
+              </span>
+            </div>
             <div className="mt-0.5 text-surface-500">
               Plus and Pro tiers land in the next release.
             </div>
@@ -627,27 +866,6 @@ export default function Account() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
-        <header className="border-b border-surface-200 px-6 py-4">
-          <h2 className="font-display text-lg font-semibold text-surface-900">Session</h2>
-        </header>
-        <div className="flex flex-col items-stretch gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 truncate text-sm text-surface-600">
-            Signed in as{' '}
-            <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={handleSignOut}
-            className="flex-shrink-0"
-          >
-            <LogOut size={14} />
-            Sign out
-          </Button>
-        </div>
-      </section>
     </div>
   )
 }
@@ -698,6 +916,27 @@ function WaitlistInterestRow({
   )
 }
 
+/**
+ * "X years until typical retirement age (65)" string, or null if the user
+ * is past 65 or the birthdate is unparseable. Lightweight derived stat —
+ * the only consumer of `profile.birthdate` so far.
+ */
+function yearsToRetirementText(iso: string): string | undefined {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return undefined
+  const today = new Date()
+  const dob = new Date(y, m - 1, d)
+  let age = today.getFullYear() - dob.getFullYear()
+  const beforeBirthday =
+    today.getMonth() < dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+  if (beforeBirthday) age -= 1
+  const yearsToRetirement = 65 - age
+  if (yearsToRetirement <= 0) return 'Past typical retirement age.'
+  if (yearsToRetirement === 1) return '1 year until typical retirement age (65).'
+  return `${yearsToRetirement} years until typical retirement age (65).`
+}
+
 function formatBirthdate(iso: string | null | undefined): string {
   if (!iso) return '—'
   // ISO date is YYYY-MM-DD; render as "Mon D, YYYY" without TZ drift.
@@ -715,12 +954,14 @@ function Field({
   label,
   value,
   sub,
+  subTone = 'neutral',
   action,
 }: {
   icon: LucideIcon
   label: string
   value: string
   sub?: string
+  subTone?: 'neutral' | 'warning'
   action?: React.ReactNode
 }) {
   return (
@@ -729,7 +970,13 @@ function Field({
       <div className="min-w-0 flex-1">
         <div className="text-xs uppercase tracking-wider text-surface-500">{label}</div>
         <div className="truncate text-sm font-medium text-surface-900">{value}</div>
-        {sub && <div className="mt-0.5 text-xs text-warning-700">{sub}</div>}
+        {sub && (
+          <div
+            className={`mt-0.5 text-xs ${subTone === 'warning' ? 'text-warning-700' : 'text-surface-500'}`}
+          >
+            {sub}
+          </div>
+        )}
       </div>
       {action}
     </div>

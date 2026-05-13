@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, ArrowDownRight, AlertTriangle, Home } from 'lucide-react'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  Home,
+  TrendingUp,
+  Coins,
+  LineChart,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   fetchPfs,
@@ -22,6 +31,7 @@ import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import OnboardingCard from '../../components/app/OnboardingCard'
 import CashFlowSection from '../../components/app/CashFlowSection'
+import NetWorthHistory from '../../components/app/NetWorthHistory'
 
 export default function Dashboard() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -70,6 +80,28 @@ export default function Dashboard() {
           </p>
         </div>
         <OnboardingCard hasAnyPfs={false} hasMortgage={false} />
+        <div>
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-surface-500">
+            Coming next
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <PreviewCard
+              icon={TrendingUp}
+              title="Equity over time"
+              body="Watch your home value rise and your balance fall — together."
+            />
+            <PreviewCard
+              icon={Coins}
+              title="Cash flow"
+              body="Where the money comes in. Where it goes. What's left over."
+            />
+            <PreviewCard
+              icon={LineChart}
+              title="Net-worth trajectory"
+              body="Save a monthly snapshot, see your trendline take shape."
+            />
+          </div>
+        </div>
       </div>
     )
   }
@@ -115,6 +147,10 @@ export default function Dashboard() {
       )}
 
       <CashFlowSection income={pfs.income} expenses={pfs.expenses} />
+
+      {(t.totalAssets > 0 || t.totalLiabilities > 0) && (
+        <NetWorthHistory totalAssets={t.totalAssets} totalLiabilities={t.totalLiabilities} />
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
@@ -234,7 +270,7 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
           value={formatUSD(Math.max(0, scenario.interestSaved))}
         />
       </dl>
-      {piti?.hasPiti && (
+      {piti?.hasPiti ? (
         <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
           <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
             True monthly housing cost
@@ -254,6 +290,19 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
               <PitiRow label="HOA" value={formatUSD(m.hoaMonthly)} />
             )}
           </dl>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-lg border border-dashed border-surface-200 bg-surface-50 p-4">
+          <div className="text-xs text-surface-500">
+            Want true monthly housing cost?{' '}
+            <Link
+              to="/app/financials"
+              className="font-medium text-accent-600 underline-offset-2 hover:underline"
+            >
+              Edit your property on Financials
+            </Link>{' '}
+            and add property tax, insurance, and HOA.
+          </div>
         </div>
       )}
       <div className="mt-auto pt-5">
@@ -387,7 +436,7 @@ function SummaryCard({
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-lg font-semibold text-surface-900">{title}</h2>
         <div className="font-mono text-xl font-semibold text-surface-900">
-          {totalSign}
+          {total > 0 ? totalSign : ''}
           {formatUSD(total)}
         </div>
       </div>
@@ -408,6 +457,26 @@ function SummaryCard({
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+function PreviewCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-surface-200 bg-white/50 p-5">
+      <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface-100 text-surface-500">
+        <Icon size={16} />
+      </div>
+      <h3 className="mt-3 font-display text-base font-semibold text-surface-900">{title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-surface-500">{body}</p>
     </div>
   )
 }
