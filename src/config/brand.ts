@@ -20,4 +20,12 @@ export const BRAND = {
   /** One-line description — used in meta description, og:description */
   tagline: 'Personal finance built around homeownership.',
   legalName: 'Personal Financial Platform',
+  /**
+   * Google Search Console verification token. Paste the value from
+   * the GSC "HTML tag" verification flow (just the `content=` value,
+   * not the whole <meta> tag). When non-empty, vite.config.ts injects
+   * <meta name="google-site-verification" content="..."> into <head>.
+   * Empty string = no tag emitted (default until verification kicks off).
+   */
+  gscVerificationToken: '',
 } as const

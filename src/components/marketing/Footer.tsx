@@ -17,6 +17,7 @@ const sections = [
     title: 'Resources',
     links: [
       { to: '/blog', label: 'Blog' },
+      { to: '/social', label: 'Social' },
       { to: '/about', label: 'About' },
     ],
   },

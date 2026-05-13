@@ -62,6 +62,13 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     priority: 0.7,
   },
   {
+    path: '/social',
+    title: 'Social',
+    description: 'Where to find us on Instagram, Facebook, and TikTok.',
+    changefreq: 'monthly',
+    priority: 0.4,
+  },
+  {
     path: '/about',
     title: 'About',
     description: 'Brand story, mission, and values.',

@@ -7,6 +7,7 @@ import AppShell from './components/app/AppShell'
 import AppShellPlaceholder from './components/app/AppShellPlaceholder'
 import AuthModal, { AuthModalRedirect } from './components/AuthModal'
 import RequireAuth from './components/RequireAuth'
+import RequireAdmin from './components/RequireAdmin'
 
 import Landing from './pages/marketing/Landing'
 import HowItWorks from './pages/marketing/HowItWorks'
@@ -15,6 +16,7 @@ import Pricing from './pages/marketing/Pricing'
 import About from './pages/marketing/About'
 import Blog from './pages/marketing/Blog'
 import BlogPost from './pages/marketing/BlogPost'
+import Social from './pages/marketing/Social'
 import Privacy from './pages/marketing/Privacy'
 import Terms from './pages/marketing/Terms'
 import Disclosures from './pages/marketing/Disclosures'
@@ -23,6 +25,8 @@ import Dashboard from './pages/app/Dashboard'
 import Financials from './pages/app/Financials'
 import Account from './pages/app/Account'
 import Admin from './pages/app/Admin'
+import AdminBlog from './pages/app/AdminBlog'
+import AdminBlogEdit from './pages/app/AdminBlogEdit'
 
 import NotFound from './pages/NotFound'
 
@@ -42,6 +46,7 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/social" element={<Social />} />
           <Route path="/about" element={<About />} />
           {/* Legal placeholders — skeleton only, awaiting counsel-provided content.
               noindex'd in usePageMeta and excluded from PUBLIC_ROUTES until live. */}
@@ -65,9 +70,14 @@ export default function App() {
             <Route path="/app/account" element={<Account />} />
           </Route>
 
-          {/* Admin — any-user gate for now; role gate added with the profiles table */}
-          <Route element={<AppShellPlaceholder />}>
-            <Route path="/admin" element={<Admin />} />
+          {/* Admin — gated on profiles.role === 'admin' via RequireAdmin */}
+          <Route element={<RequireAdmin />}>
+            <Route element={<AppShellPlaceholder />}>
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/blog" element={<AdminBlog />} />
+              <Route path="/admin/blog/new" element={<AdminBlogEdit isNew />} />
+              <Route path="/admin/blog/:id/edit" element={<AdminBlogEdit />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
