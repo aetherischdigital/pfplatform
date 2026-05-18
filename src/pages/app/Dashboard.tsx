@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -26,6 +26,7 @@ import {
   formatUSD,
   formatYearsMonths,
   payoffDate,
+  simulate,
 } from '../../lib/mortgage'
 import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
@@ -168,14 +169,26 @@ export default function Dashboard() {
         <SummaryCard
           title="Liabilities"
           total={t.totalLiabilities}
-          rows={pfs.liabilities.map((l) => ({
-            id: l.id,
-            label: l.label,
-            sub: l.rate
-              ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
-              : LIABILITY_CATEGORY_LABELS[l.category],
-            value: formatUSD(l.balance),
-          }))}
+          rows={[
+            ...(pfs.mortgage
+              ? [
+                  {
+                    id: pfs.mortgage.id,
+                    label: pfs.mortgage.propertyLabel,
+                    sub: `Mortgage • ${pfs.mortgage.ratePct}%`,
+                    value: formatUSD(pfs.mortgage.balance),
+                  },
+                ]
+              : []),
+            ...pfs.liabilities.map((l) => ({
+              id: l.id,
+              label: l.label,
+              sub: l.rate
+                ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
+                : LIABILITY_CATEGORY_LABELS[l.category],
+              value: formatUSD(l.balance),
+            })),
+          ]}
           totalSign="−"
           emptyHint="No liabilities yet."
         />
@@ -201,16 +214,29 @@ export default function Dashboard() {
 // ---------------------------------------------------------------------------
 
 function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
-  const points = projectEquity({
-    startingHomeValue: m.startingHomeValue,
-    startingBalance: m.balance,
-    annualAppreciationPct: 3,
-    annualRatePct: m.ratePct,
-    monthlyPayment: m.monthlyPayment,
-    extraPrincipal: m.extraPrincipal,
-    months: m.termMonthsRemaining,
-  })
-  const peakEquity = points[points.length - 1]?.equity ?? 0
+  const { points, headlineEquity, headlineLabel } = useMemo(() => {
+    const months = m.termMonthsRemaining
+    const pts = projectEquity({
+      startingHomeValue: m.startingHomeValue,
+      startingBalance: m.balance,
+      annualAppreciationPct: 3,
+      annualRatePct: m.ratePct,
+      monthlyPayment: m.monthlyPayment,
+      extraPrincipal: m.extraPrincipal,
+      months,
+    })
+    // Headline = equity at actual payoff if the loan clears within the term;
+    // otherwise equity at the end of the projected term. Avoids labelling an
+    // end-of-term figure "At payoff" when the payment under-amortizes.
+    const sim = simulate(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
+    const paysOffWithinTerm = Number.isFinite(sim.months) && sim.months <= months
+    const headlineMonth = paysOffWithinTerm ? sim.months : months
+    return {
+      points: pts,
+      headlineEquity: pts[Math.min(headlineMonth, pts.length - 1)]?.equity ?? 0,
+      headlineLabel: paysOffWithinTerm ? 'At payoff' : `In ${formatYearsMonths(months)}`,
+    }
+  }, [m])
 
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
@@ -222,9 +248,9 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-surface-500">At payoff</div>
+          <div className="text-xs uppercase tracking-wider text-surface-500">{headlineLabel}</div>
           <div className="font-display text-xl font-semibold text-accent-600">
-            {formatUSD(peakEquity)}
+            {formatUSD(headlineEquity)}
           </div>
         </div>
       </div>
@@ -250,7 +276,10 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
 }
 
 function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
-  const scenario = compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
+  const scenario = useMemo(
+    () => compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal),
+    [m],
+  )
   const piti = totalMonthlyHousingOutflow(m)
 
   return (
@@ -324,7 +353,12 @@ function PitiRow({ label, value }: { label: string; value: string }) {
 }
 
 function PayoffStat({ pfs }: { pfs: Pfs }) {
-  if (!pfs.mortgage) {
+  const m = pfs.mortgage
+  const scenario = useMemo(
+    () => (m ? compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal) : null),
+    [m],
+  )
+  if (!m || !scenario) {
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
         <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
@@ -336,8 +370,6 @@ function PayoffStat({ pfs }: { pfs: Pfs }) {
       </div>
     )
   }
-  const m = pfs.mortgage
-  const scenario = compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
   return (
     <Stat
       label="Projected payoff"

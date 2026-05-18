@@ -3,6 +3,8 @@ import Modal from '../ui/Modal'
 import { formFieldClass as modalFieldClass } from '../ui/formStyles'
 import { Button } from '../ui/Button'
 import { upsertMortgage, type Mortgage, type MortgageInput } from '../../lib/pfs'
+import { formatUSD } from '../../lib/mortgage'
+import { parseMoney } from '../../lib/money'
 
 type Props = {
   open: boolean
@@ -78,71 +80,116 @@ export default function MortgageModal({
   }>({})
   const [saving, setSaving] = useState(false)
 
-  const validate = (input: MortgageInput): typeof fieldErrors => {
-    const errs: typeof fieldErrors = {}
-    if (!Number.isFinite(input.startingHomeValue))
-      errs.startingHomeValue = 'Enter a number.'
-    if (!Number.isFinite(input.balance)) errs.balance = 'Enter a number.'
-    if (!Number.isFinite(input.monthlyPayment))
-      errs.monthlyPayment = 'Enter a number.'
-    if (!Number.isFinite(input.extraPrincipal))
-      errs.extraPrincipal = 'Enter a number.'
-    if (!Number.isFinite(input.ratePct)) {
-      errs.ratePct = 'Enter a number.'
-    } else if (input.ratePct < 0 || input.ratePct > 100) {
-      errs.ratePct = 'Must be between 0 and 100.'
-    }
-    if (!Number.isInteger(input.termMonthsRemaining)) {
-      errs.termMonthsRemaining = 'Enter a whole number.'
-    } else if (input.termMonthsRemaining <= 0 || input.termMonthsRemaining > 600) {
-      errs.termMonthsRemaining = 'Must be between 1 and 600.'
-    }
-    if (input.propertyTaxAnnual !== null && (!Number.isFinite(input.propertyTaxAnnual) || input.propertyTaxAnnual < 0)) {
-      errs.propertyTaxAnnual = 'Enter a positive number or leave blank.'
-    }
-    if (input.homeownersInsuranceAnnual !== null && (!Number.isFinite(input.homeownersInsuranceAnnual) || input.homeownersInsuranceAnnual < 0)) {
-      errs.homeownersInsuranceAnnual = 'Enter a positive number or leave blank.'
-    }
-    if (input.hoaMonthly !== null && (!Number.isFinite(input.hoaMonthly) || input.hoaMonthly < 0)) {
-      errs.hoaMonthly = 'Enter a positive number or leave blank.'
-    }
-    return errs
+  // Money fields are parsed leniently ($, commas ok); a blank field is `null`
+  // (not 0) so an empty input is a validation error rather than a silent $0.
+  // The optional PITI extras stay null when blank — null means "not entered",
+  // never a fabricated $0.
+  type Parsed = {
+    startingHomeValue: number | null
+    balance: number | null
+    monthlyPayment: number | null
+    extraPrincipal: number
+    ratePct: number | null
+    termMonthsRemaining: number | null
+    propertyTaxAnnual: number | null
+    homeownersInsuranceAnnual: number | null
+    hoaMonthly: number | null
   }
 
-  // Treat empty strings as "not entered" → null. Anything else is parsed and
-  // validated. Lets users leave property tax / insurance / HOA blank without
-  // the math fabricating zeros.
-  const parseOptional = (s: string): number | null => {
-    if (s.trim() === '') return null
-    return Number(s)
+  const validate = (p: Parsed): typeof fieldErrors => {
+    const errs: typeof fieldErrors = {}
+    if (p.startingHomeValue === null || p.startingHomeValue <= 0)
+      errs.startingHomeValue = 'Enter an amount greater than $0.'
+    if (p.balance === null || p.balance <= 0)
+      errs.balance = 'Enter an amount greater than $0.'
+    if (p.monthlyPayment === null || p.monthlyPayment <= 0)
+      errs.monthlyPayment = 'Enter an amount greater than $0.'
+    if (!Number.isFinite(p.extraPrincipal) || p.extraPrincipal < 0)
+      errs.extraPrincipal = 'Enter $0 or more.'
+    if (p.ratePct === null || !Number.isFinite(p.ratePct)) {
+      errs.ratePct = 'Enter a number.'
+    } else if (p.ratePct < 0 || p.ratePct > 100) {
+      errs.ratePct = 'Must be between 0 and 100.'
+    }
+    if (p.termMonthsRemaining === null || !Number.isInteger(p.termMonthsRemaining)) {
+      errs.termMonthsRemaining = 'Enter a whole number.'
+    } else if (p.termMonthsRemaining <= 0 || p.termMonthsRemaining > 600) {
+      errs.termMonthsRemaining = 'Must be between 1 and 600.'
+    }
+    // Optional PITI extras: blank (null) is fine; a negative number is not.
+    if (p.propertyTaxAnnual !== null && p.propertyTaxAnnual < 0)
+      errs.propertyTaxAnnual = 'Enter a positive number or leave blank.'
+    if (p.homeownersInsuranceAnnual !== null && p.homeownersInsuranceAnnual < 0)
+      errs.homeownersInsuranceAnnual = 'Enter a positive number or leave blank.'
+    if (p.hoaMonthly !== null && p.hoaMonthly < 0)
+      errs.hoaMonthly = 'Enter a positive number or leave blank.'
+    // A payment that doesn't cover the first month's interest never amortizes —
+    // the dashboard would otherwise render a blank "—" payoff with no clue why.
+    if (
+      !errs.balance &&
+      !errs.ratePct &&
+      !errs.monthlyPayment &&
+      !errs.extraPrincipal &&
+      p.balance !== null &&
+      p.ratePct !== null &&
+      p.monthlyPayment !== null
+    ) {
+      const firstMonthInterest = (p.balance * p.ratePct) / 100 / 12
+      if (p.monthlyPayment + p.extraPrincipal <= firstMonthInterest) {
+        errs.monthlyPayment = `Payment must exceed the first month's interest (≈ ${formatUSD(firstMonthInterest)}).`
+      }
+    }
+    return errs
   }
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    const input: MortgageInput = {
-      propertyLabel,
-      startingHomeValue: Number(startingHomeValue),
-      balance: Number(balance),
-      ratePct: Number(ratePct),
-      termMonthsRemaining: Number(termMonthsRemaining),
-      monthlyPayment: Number(monthlyPayment),
-      extraPrincipal: Number(extraPrincipal || '0'),
-      propertyTaxAnnual: parseOptional(propertyTaxAnnual),
-      homeownersInsuranceAnnual: parseOptional(homeownersInsuranceAnnual),
-      hoaMonthly: parseOptional(hoaMonthly),
-      dateAcquired: dateAcquired.trim() === '' ? null : dateAcquired,
-      originalCost: parseOptional(originalCost),
-      pctOwnership: Math.max(0.01, Math.min(100, Number(pctOwnership) || 100)),
-      isPrimary,
+    const parsed: Parsed = {
+      startingHomeValue: parseMoney(startingHomeValue),
+      balance: parseMoney(balance),
+      monthlyPayment: parseMoney(monthlyPayment),
+      extraPrincipal: parseMoney(extraPrincipal) ?? 0,
+      ratePct: ratePct.trim() === '' ? null : Number(ratePct),
+      termMonthsRemaining:
+        termMonthsRemaining.trim() === '' ? null : Number(termMonthsRemaining),
+      // Optional PITI extras — parseMoney returns null for blank/invalid, which
+      // the DB stores as "not entered" rather than a fabricated $0.
+      propertyTaxAnnual: parseMoney(propertyTaxAnnual),
+      homeownersInsuranceAnnual: parseMoney(homeownersInsuranceAnnual),
+      hoaMonthly: parseMoney(hoaMonthly),
     }
 
-    const errs = validate(input)
+    const errs = validate(parsed)
     setFieldErrors(errs)
-    if (Object.keys(errs).length > 0) {
+    if (
+      Object.keys(errs).length > 0 ||
+      parsed.startingHomeValue === null ||
+      parsed.balance === null ||
+      parsed.monthlyPayment === null ||
+      parsed.ratePct === null ||
+      parsed.termMonthsRemaining === null
+    ) {
       setError('Some fields need attention.')
       return
+    }
+
+    const input: MortgageInput = {
+      propertyLabel,
+      startingHomeValue: parsed.startingHomeValue,
+      balance: parsed.balance,
+      ratePct: parsed.ratePct,
+      termMonthsRemaining: parsed.termMonthsRemaining,
+      monthlyPayment: parsed.monthlyPayment,
+      extraPrincipal: parsed.extraPrincipal,
+      propertyTaxAnnual: parsed.propertyTaxAnnual,
+      homeownersInsuranceAnnual: parsed.homeownersInsuranceAnnual,
+      hoaMonthly: parsed.hoaMonthly,
+      dateAcquired: dateAcquired.trim() === '' ? null : dateAcquired,
+      originalCost: parseMoney(originalCost),
+      pctOwnership: Math.max(0.01, Math.min(100, Number(pctOwnership) || 100)),
+      isPrimary,
     }
 
     setSaving(true)
@@ -430,12 +477,11 @@ function CurrencyInput({
         $
       </span>
       <input
-        type="number"
+        type="text"
         required={required}
         aria-invalid={invalid || undefined}
         inputMode="decimal"
-        step="0.01"
-        min="0"
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0.00"

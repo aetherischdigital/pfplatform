@@ -20,10 +20,22 @@ function readStoredViewAs(userId: string | null): UserRole | null {
   }
 }
 
+type ProfileResult = {
+  /** The auth user id this result belongs to — lets us tell stale from fresh. */
+  userId: string | null
+  profile: Profile | null
+  /** True when the fetch threw (network / RLS) rather than returning a row. */
+  error: boolean
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileResult, setProfileResult] = useState<ProfileResult>({
+    userId: null,
+    profile: null,
+    error: false,
+  })
   const [viewAsRole, setViewAsRoleState] = useState<UserRole | null>(null)
 
   useEffect(() => {
@@ -45,26 +57,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Load (or clear) profile whenever the auth user changes. All setState
-  // happens inside async continuations to satisfy React 19's
+  // Load the profile whenever the auth user changes. The result carries the
+  // userId it belongs to plus an explicit error flag, so consumers can tell
+  // "still loading" apart from "loaded but the fetch failed" — a transient
+  // failure must never be mistaken for "no profile" or "not an admin". All
+  // setState runs inside async continuations to satisfy React 19's
   // react-hooks/set-state-in-effect rule.
   const userId = session?.user.id ?? null
   useEffect(() => {
     let cancelled = false
-    const work: Promise<Profile | null> = userId
-      ? fetchOwnProfile().catch(() => null)
-      : Promise.resolve(null)
-    work.then((p) => {
-      if (!cancelled) setProfile(p)
+    const work: Promise<{ profile: Profile | null; error: boolean }> = userId
+      ? fetchOwnProfile()
+          .then((p) => ({ profile: p, error: false }))
+          .catch(() => ({ profile: null, error: true }))
+      : Promise.resolve({ profile: null, error: false })
+    work.then((r) => {
+      if (cancelled) return
+      setProfileResult({ userId, profile: r.profile, error: r.error })
+      // Backstop: if an active session's account has been deactivated, sign
+      // the user out. The sign-in path surfaces a user-facing message; this
+      // just stops a lingering session from continuing to use the app.
+      if (r.profile && !r.profile.isActive) {
+        void supabase.auth.signOut()
+      }
     })
     return () => {
       cancelled = true
     }
   }, [userId])
 
-  // Derived: profile is "loading" whenever the cached profile doesn't match
-  // the current authenticated user yet.
-  const profileLoading = !!userId && profile?.id !== userId
+  // Derived profile state — a result is only trusted once it's for the current
+  // user. `profileError` is a settled failure; `profileLoading` is in-flight.
+  const profileSettled = profileResult.userId === userId
+  const profile = profileSettled ? profileResult.profile : null
+  const profileError = profileSettled && profileResult.error
+  const profileLoading = !!userId && !profileSettled
 
   // Hydrate viewAs from localStorage when an admin's profile loads.
   // Cleared when userId changes (sign-out / different account). setState
@@ -128,7 +155,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async ({ email, password }: SignInArgs) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+    if (error) return { error: error.message }
+    // Block deactivated accounts: an admin can flip is_active off, and such a
+    // user must not be able to use the app even though Supabase Auth still
+    // accepts the credentials.
+    const profile = await fetchOwnProfile().catch(() => null)
+    if (profile && !profile.isActive) {
+      await supabase.auth.signOut()
+      return {
+        error:
+          'This account has been deactivated. Contact support if you believe this is a mistake.',
+      }
+    }
+    return { error: null }
   }, [])
 
   const signOut = useCallback(async () => {
@@ -139,9 +178,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    const p = await fetchOwnProfile().catch(() => null)
-    setProfile(p)
-  }, [])
+    const r = await fetchOwnProfile()
+      .then((p) => ({ profile: p, error: false }))
+      .catch(() => ({ profile: null, error: true }))
+    setProfileResult({ userId, profile: r.profile, error: r.error })
+    if (r.profile && !r.profile.isActive) {
+      void supabase.auth.signOut()
+    }
+  }, [userId])
 
   const requestPasswordReset = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -169,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         profileLoading,
+        profileError,
         viewAsRole,
         effectiveRole,
         setViewAs,

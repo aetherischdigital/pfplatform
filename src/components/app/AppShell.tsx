@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -16,6 +16,7 @@ import type { LucideIcon } from 'lucide-react'
 import Wordmark from '../Wordmark'
 import ThemeToggle from '../ThemeToggle'
 import { useAuth } from '../../lib/useAuth'
+import { useModalDismiss } from '../../lib/useModalDismiss'
 import { homePathFor, type UserRole } from '../../lib/profile'
 
 type NavItem = { to: string; label: string; icon: LucideIcon }
@@ -36,6 +37,13 @@ function navItemsFor(role: UserRole | null): NavItem[] {
 export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeDrawer = useCallback(() => setMobileOpen(false), [])
+
+  // Escape-to-close + Tab focus-trap + scroll-lock for the mobile drawer, so it
+  // behaves like every other modal surface in the app rather than leaking focus
+  // to the page behind the scrim.
+  useModalDismiss(mobileOpen, closeDrawer, drawerRef)
 
   // Auto-close the mobile drawer when the viewport crosses Tailwind's md
   // breakpoint (768px). Otherwise rotating an iPhone to landscape leaves the
@@ -89,6 +97,7 @@ export default function AppShell() {
             aria-hidden={!mobileOpen}
           >
             <aside
+              ref={drawerRef}
               className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-card-lg animate-slide-in-left"
               onClick={(e) => e.stopPropagation()}
             >

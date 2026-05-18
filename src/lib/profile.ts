@@ -10,6 +10,9 @@ export type Profile = {
   displayName: string | null
   email: string | null
   waitlistInterest: WaitlistInterest
+  /** Soft activation flag. An admin can deactivate an account; a deactivated
+   *  user is blocked from signing in and signed out of any live session. */
+  isActive: boolean
   // Phase 2 §3.4 additions — both optional, support null until user fills them in.
   birthdate: string | null
   dependents: number | null
@@ -26,6 +29,7 @@ type Row = {
   display_name: string | null
   email: string | null
   waitlist_interest: WaitlistInterest
+  is_active: boolean
   birthdate: string | null
   dependents: number | null
   spouse_name: string | null
@@ -40,7 +44,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, role, display_name, email, waitlist_interest, birthdate, dependents, spouse_name, spouse_birthdate, spouse_occupation',
+      'id, role, display_name, email, waitlist_interest, is_active, birthdate, dependents, spouse_name, spouse_birthdate, spouse_occupation',
     )
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
@@ -54,6 +58,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
     displayName: data.display_name,
     email: data.email,
     waitlistInterest: data.waitlist_interest ?? 'none',
+    isActive: data.is_active ?? true,
     birthdate: data.birthdate,
     dependents: data.dependents,
     spouseName: data.spouse_name,

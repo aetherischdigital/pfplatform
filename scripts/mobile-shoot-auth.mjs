@@ -14,7 +14,11 @@ if (!baseUrl || !outDir) {
 }
 await mkdir(outDir, { recursive: true })
 
-const PASSWORD = 'PfpDemo2026!'
+const PASSWORD = process.env.PFP_TEST_PASSWORD
+if (!PASSWORD) {
+  console.error('Set PFP_TEST_PASSWORD (the shared test-account password) before running.')
+  process.exit(1)
+}
 
 // admin@ is the only seeded test account. To shoot other roles, either
 // (a) re-seed the test/realtor accounts or (b) use the View-As feature

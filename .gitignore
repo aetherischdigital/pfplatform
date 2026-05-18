@@ -27,7 +27,7 @@ lerna-debug.log*
 .eslintcache
 *.tsbuildinfo
 
-# Local QA artifacts (screenshot output, scratch)
+# Local scratch — screenshots, audit artifacts
 tmp/
 
 # Editor / OS

@@ -226,7 +226,7 @@ export default function Financials() {
 
       <Section
         title="Liabilities"
-        total={t.totalLiabilities}
+        total={t.ledgerLiabilities}
         totalSign="−"
         onAdd={() => setRecordModal({ kind: 'liability' })}
       >

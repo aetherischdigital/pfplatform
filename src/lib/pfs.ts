@@ -423,6 +423,9 @@ export async function deleteMortgage(id: string): Promise<void> {
 
 export type Totals = {
   totalAssets: number
+  /** pfs_records liabilities only — excludes the mortgage. */
+  ledgerLiabilities: number
+  /** ledgerLiabilities + the mortgage balance — the true PFS liability total. */
   totalLiabilities: number
   netWorth: number
   homeEquity: number
@@ -433,17 +436,32 @@ export type Totals = {
 
 export function totals(pfs: Pfs): Totals {
   const totalAssets = pfs.assets.reduce((s, a) => s + a.value, 0)
-  const totalLiabilities = pfs.liabilities.reduce((s, l) => s + l.balance, 0)
   const monthlyIncome = pfs.income.reduce((s, i) => s + i.monthly, 0)
   const monthlyExpenses = pfs.expenses.reduce((s, e) => s + e.monthly, 0)
-  const home = pfs.assets.find((a) => a.category === 'real_estate')?.value ?? 0
-  const mortgageBalance =
-    pfs.mortgage?.balance ?? pfs.liabilities.find((l) => l.category === 'mortgage')?.balance ?? 0
+
+  // The mortgage is represented exactly once, by the dedicated `mortgages`
+  // table — the liability form deliberately omits the "mortgage" category so
+  // the loan is never also entered as a pfs_records row. Summing the ledger
+  // liabilities and adding the mortgage balance therefore counts the debt once,
+  // and the SAME `mortgageBalance` feeds both net worth and home equity, so the
+  // two figures can never contradict each other on the dashboard.
+  const ledgerLiabilities = pfs.liabilities.reduce((s, l) => s + l.balance, 0)
+  const mortgageBalance = pfs.mortgage?.balance ?? 0
+  const totalLiabilities = ledgerLiabilities + mortgageBalance
+
+  // Current home value: the real-estate asset the user entered, falling back to
+  // the mortgage's starting home value when no real-estate asset exists yet.
+  const homeValue =
+    pfs.assets.find((a) => a.category === 'real_estate')?.value ??
+    pfs.mortgage?.startingHomeValue ??
+    0
+
   return {
     totalAssets,
+    ledgerLiabilities,
     totalLiabilities,
     netWorth: totalAssets - totalLiabilities,
-    homeEquity: home - mortgageBalance,
+    homeEquity: homeValue - mortgageBalance,
     monthlyIncome,
     monthlyExpenses,
     monthlyCashFlow: monthlyIncome - monthlyExpenses,

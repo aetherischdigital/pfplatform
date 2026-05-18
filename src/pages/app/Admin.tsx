@@ -5,8 +5,56 @@ import { listUsers, setUserActive, updateUserRole, type AdminUser } from '../../
 import type { UserRole } from '../../lib/profile'
 import { Button } from '../../components/ui/Button'
 import AdminUserSummaryModal from '../../components/admin/AdminUserSummaryModal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 type Filter = 'all' | UserRole
+
+type PendingAction =
+  | { type: 'role'; user: AdminUser; newRole: UserRole }
+  | { type: 'active'; user: AdminUser }
+
+const ROLE_LABEL: Record<UserRole, string> = {
+  homeowner: 'Homeowner',
+  realtor: 'Realtor',
+  admin: 'Admin',
+}
+
+/** Title / message / button copy for the confirm dialog, derived from the
+ *  pending action. Returns blanks when nothing is pending. */
+function pendingDialogCopy(pending: PendingAction | null): {
+  title: string
+  message: string
+  confirmLabel: string
+  variant: 'danger' | 'default'
+} {
+  if (!pending) {
+    return { title: '', message: '', confirmLabel: 'Confirm', variant: 'default' }
+  }
+  const name = pending.user.displayName || pending.user.email || 'this user'
+  if (pending.type === 'role') {
+    const involvesAdmin = pending.newRole === 'admin' || pending.user.role === 'admin'
+    return {
+      title: 'Change this user’s role?',
+      message: `Change ${name} from ${ROLE_LABEL[pending.user.role]} to ${ROLE_LABEL[pending.newRole]}? Their access updates on their next page load.`,
+      confirmLabel: 'Change role',
+      variant: involvesAdmin ? 'danger' : 'default',
+    }
+  }
+  if (pending.user.isActive) {
+    return {
+      title: 'Deactivate this account?',
+      message: `${name} will be signed out and blocked from signing back in until an admin reactivates the account.`,
+      confirmLabel: 'Deactivate',
+      variant: 'danger',
+    }
+  }
+  return {
+    title: 'Reactivate this account?',
+    message: `${name} will be able to sign in again.`,
+    confirmLabel: 'Reactivate',
+    variant: 'default',
+  }
+}
 
 export default function Admin() {
   const { user: authUser } = useAuth()
@@ -17,6 +65,7 @@ export default function Admin() {
   const [roleFilter, setRoleFilter] = useState<Filter>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
+  const [pending, setPending] = useState<PendingAction | null>(null)
 
   const load = useCallback(() => {
     return listUsers()
@@ -33,23 +82,8 @@ export default function Admin() {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    listUsers()
-      .then((data) => {
-        if (!cancelled) setUsers(data)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load users.')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    void load()
+  }, [load])
 
   const counts = useMemo(() => {
     const c = {
@@ -81,40 +115,49 @@ export default function Admin() {
     })
   }, [users, query, roleFilter])
 
-  const handleRoleChange = async (target: AdminUser, newRole: UserRole) => {
+  const requestRoleChange = (target: AdminUser, newRole: UserRole) => {
     if (newRole === target.role) return
     if (target.id === authUser?.id && newRole !== 'admin') {
       setError('You cannot demote your own account.')
       return
     }
-    setBusyId(target.id)
+    setError(null)
+    setPending({ type: 'role', user: target, newRole })
+  }
+
+  const requestActiveToggle = (target: AdminUser) => {
+    if (target.id === authUser?.id && target.isActive) {
+      setError('You cannot deactivate your own account.')
+      return
+    }
+    setError(null)
+    setPending({ type: 'active', user: target })
+  }
+
+  // Role changes and (de)activation apply only after the user confirms in the
+  // dialog — both are account-level actions and a stray click should not
+  // silently promote someone to admin or lock an account out.
+  const confirmPending = async () => {
+    if (!pending) return
+    setBusyId(pending.user.id)
     setError(null)
     try {
-      await updateUserRole(target.id, newRole)
+      if (pending.type === 'role') {
+        await updateUserRole(pending.user.id, pending.newRole)
+      } else {
+        await setUserActive(pending.user.id, !pending.user.isActive)
+      }
       await load()
+      setPending(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Role change failed.')
+      setError(err instanceof Error ? err.message : 'Update failed.')
+      setPending(null)
     } finally {
       setBusyId(null)
     }
   }
 
-  const handleActiveToggle = async (target: AdminUser) => {
-    if (target.id === authUser?.id && target.isActive) {
-      setError('You cannot deactivate your own account.')
-      return
-    }
-    setBusyId(target.id)
-    setError(null)
-    try {
-      await setUserActive(target.id, !target.isActive)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed.')
-    } finally {
-      setBusyId(null)
-    }
-  }
+  const dialogCopy = pendingDialogCopy(pending)
 
   return (
     <div className="space-y-8">
@@ -213,13 +256,17 @@ export default function Admin() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <label className="text-xs font-medium uppercase tracking-wider text-surface-500">
+                      <label
+                        htmlFor={`role-${u.id}`}
+                        className="text-xs font-medium uppercase tracking-wider text-surface-500"
+                      >
                         Role
                       </label>
                       <select
+                        id={`role-${u.id}`}
                         value={u.role}
                         disabled={busyId === u.id || isSelf}
-                        onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
+                        onChange={(e) => requestRoleChange(u, e.target.value as UserRole)}
                         className="flex-1 rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="homeowner">Homeowner</option>
@@ -241,7 +288,7 @@ export default function Admin() {
                           variant="secondary"
                           size="sm"
                           disabled={busyId === u.id || isSelf}
-                          onClick={() => handleActiveToggle(u)}
+                          onClick={() => requestActiveToggle(u)}
                           title={isSelf ? 'Cannot change own status' : undefined}
                         >
                           {u.isActive ? (
@@ -293,8 +340,9 @@ export default function Admin() {
                         <td className="px-4 py-3">
                           <select
                             value={u.role}
+                            aria-label={`Role for ${u.email ?? u.displayName ?? 'user'}`}
                             disabled={busyId === u.id || isSelf}
-                            onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
+                            onChange={(e) => requestRoleChange(u, e.target.value as UserRole)}
                             className="rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <option value="homeowner">Homeowner</option>
@@ -327,7 +375,7 @@ export default function Admin() {
                               variant="secondary"
                               size="sm"
                               disabled={busyId === u.id || isSelf}
-                              onClick={() => handleActiveToggle(u)}
+                              onClick={() => requestActiveToggle(u)}
                               title={isSelf ? 'Cannot change own status' : undefined}
                             >
                               {u.isActive ? (
@@ -353,6 +401,19 @@ export default function Admin() {
       </section>
 
       <AdminUserSummaryModal userId={viewingId} onClose={() => setViewingId(null)} />
+
+      <ConfirmDialog
+        open={pending !== null}
+        title={dialogCopy.title}
+        message={dialogCopy.message}
+        confirmLabel={dialogCopy.confirmLabel}
+        variant={dialogCopy.variant}
+        busy={busyId !== null}
+        onConfirm={confirmPending}
+        onCancel={() => {
+          if (busyId === null) setPending(null)
+        }}
+      />
     </div>
   )
 }

@@ -16,6 +16,8 @@ export type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   profileLoading: boolean
+  /** True when the profile fetch settled with an error (network / RLS). */
+  profileError: boolean
   /** Admin-only: the role they're previewing. null = no view-as active. */
   viewAsRole: UserRole | null
   /** profile.role with view-as applied (admins only). */
