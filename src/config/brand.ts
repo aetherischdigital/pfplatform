@@ -21,5 +21,5 @@ export const BRAND = {
   tagline: 'Personal finance built around homeownership.',
   legalName: 'Personal Financial Platform',
   /** Public support inbox — shown in footer, Account, and the ErrorBoundary fallback. */
-  supportEmail: 'hello@pfplatform.app',
+  supportEmail: 'info@pfplatform.app',
 } as const
