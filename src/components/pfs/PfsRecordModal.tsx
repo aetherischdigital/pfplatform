@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import Modal from '../ui/Modal'
 import { formFieldClass as modalFieldClass } from '../ui/formStyles'
 import { Button } from '../ui/Button'
+import { parseMoney } from '../../lib/money'
 import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
@@ -59,16 +60,17 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
     setError(null)
     setFieldErrors({})
 
-    const amountNum = Number(amount)
+    const amountNum = parseMoney(amount)
     const errs: { amount?: string; rate?: string } = {}
-    if (!Number.isFinite(amountNum) || amountNum < 0) {
-      errs.amount = 'Enter a positive number.'
+    if (amountNum === null || amountNum <= 0) {
+      errs.amount = 'Enter an amount greater than $0.'
     }
     const rateNum = rate.trim() === '' ? undefined : Number(rate)
-    if (rate.trim() !== '' && (!Number.isFinite(rateNum) || (rateNum ?? -1) < 0)) {
+    if (rate.trim() !== '' && (rateNum === undefined || !Number.isFinite(rateNum) || rateNum < 0)) {
       errs.rate = 'Rate must be a positive number (e.g. 6.5 for 6.5%).'
     }
-    if (Object.keys(errs).length > 0) {
+    // The `amountNum === null` guard also narrows it to a number below.
+    if (Object.keys(errs).length > 0 || amountNum === null) {
       setFieldErrors(errs)
       return
     }
@@ -146,12 +148,11 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
               $
             </span>
             <input
-              type="number"
+              type="text"
               required
               aria-invalid={fieldErrors.amount ? true : undefined}
               inputMode="decimal"
-              step="0.01"
-              min="0"
+              autoComplete="off"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
@@ -233,7 +234,7 @@ function defaultCategory(kind: PfsRecordKind): string {
     case 'asset':
       return 'real_estate'
     case 'liability':
-      return 'mortgage'
+      return 'credit_card'
     case 'expense':
       return 'housing'
     case 'income':
@@ -285,7 +286,12 @@ function categoryOptionsFor(
     return Object.entries(ASSET_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
   }
   if (kind === 'liability') {
-    return Object.entries(LIABILITY_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+    // The mortgage is entered via the dedicated Mortgage form, never as a
+    // ledger liability — that keeps the loan counted exactly once across net
+    // worth and home equity.
+    return Object.entries(LIABILITY_CATEGORY_LABELS)
+      .filter(([value]) => value !== 'mortgage')
+      .map(([value, label]) => ({ value, label }))
   }
   if (kind === 'expense') {
     return Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))

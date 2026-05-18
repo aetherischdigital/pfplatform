@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
 import Container from '../components/ui/Container'
 import { Button } from '../components/ui/Button'
-import { supabase } from '../lib/supabase'
+import { ENTERED_VIA_RECOVERY_LINK, supabase } from '../lib/supabase'
 import { homePathFor, updateOwnPassword, type UserRole } from '../lib/profile'
 
-type Phase = 'verifying' | 'ready' | 'no-session' | 'success'
+type Phase = 'verifying' | 'ready' | 'no-session' | 'signed-in' | 'success'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -19,16 +19,22 @@ export default function ResetPassword() {
 
   useEffect(() => {
     let cancelled = false
-    const check = async () => {
-      // Supabase auto-parses the recovery hash and emits PASSWORD_RECOVERY +
-      // a session. Give it a tick to settle, then check.
-      const { data } = await supabase.auth.getSession()
-      if (cancelled) return
-      setPhase(data.session ? 'ready' : 'no-session')
-    }
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setPhase('ready')
     })
+    const check = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (cancelled) return
+      if (ENTERED_VIA_RECOVERY_LINK) {
+        // Genuine recovery entry — the emailed link created (or failed to
+        // create) a session. PASSWORD_RECOVERY may have set 'ready' already.
+        setPhase((p) => (p === 'ready' ? p : data.session ? 'ready' : 'no-session'))
+      } else {
+        // No recovery payload in the URL: a signed-in visitor wandered onto
+        // this page, or an anonymous one followed a dead / bookmarked link.
+        setPhase(data.session ? 'signed-in' : 'no-session')
+      }
+    }
     void check()
     return () => {
       cancelled = true
@@ -56,9 +62,11 @@ export default function ResetPassword() {
   }
 
   const goHome = async () => {
+    const { data: auth } = await supabase.auth.getUser()
     const { data } = await supabase
       .from('profiles')
       .select('role')
+      .eq('id', auth.user?.id ?? '')
       .maybeSingle<{ role: UserRole }>()
     navigate(homePathFor(data?.role), { replace: true })
   }
@@ -90,6 +98,30 @@ export default function ResetPassword() {
               className="mt-5 w-full"
             >
               Back to home
+            </Button>
+          </div>
+        )}
+
+        {phase === 'signed-in' && (
+          <div className="text-center">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
+              <Lock size={20} />
+            </div>
+            <h1 className="mt-4 font-display text-xl font-semibold text-surface-900">
+              You&rsquo;re already signed in
+            </h1>
+            <p className="mt-2 text-sm text-surface-500">
+              This page is only for resetting a password from an emailed reset link. To
+              change your password, head to your account settings.
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => navigate('/app/account', { replace: true })}
+              className="mt-5 w-full"
+            >
+              Go to account settings
             </Button>
           </div>
         )}

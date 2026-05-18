@@ -63,10 +63,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             {BRAND.name} hit an unexpected error. Reloading the page usually fixes it. If it
             keeps happening, drop us a line at{' '}
             <a
-              href="mailto:hello@pfplatform.app"
+              href={`mailto:${BRAND.supportEmail}`}
               className="text-accent-600 underline underline-offset-2 hover:text-accent-500"
             >
-              hello@pfplatform.app
+              {BRAND.supportEmail}
             </a>
             .
           </p>

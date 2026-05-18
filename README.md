@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# Personal Financial Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Subscription-based personal-finance web app built around homeownership — a
+homeowner dashboard, a Personal Financial Statement (PFS) data model, mortgage
+payoff calculators, a realtor client roster, and an admin console, all served
+from a single domain.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19 + TypeScript**, bundled with **Vite**
+- **Tailwind CSS v4** — CSS `@theme` tokens in `src/styles/theme.css`
+- **React Router 7**
+- **Supabase** — Postgres, Auth, and row-level security
+- **Cloudflare Pages** — hosting + CDN, auto-deploy from `main`
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 22+
+- A Supabase project (URL + anon key)
 
-## Expanding the ESLint configuration
+## Local setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+cp .env.example .env.local   # then fill in the Supabase values
+npm run dev                  # http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`.env.local` is gitignored — never commit real keys. `.env.example` is the
+committed template and holds placeholders only.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Type-check (`tsc -b`) and produce a production build in `dist/` |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Serve the production build locally |
+
+## Project structure
+
 ```
+src/
+  components/   Reusable UI + feature components
+  config/       Brand + site constants (single source of truth)
+  lib/          Data access, auth, and pure helpers (Supabase, mortgage math)
+  pages/        Route components — marketing/, app/ (authenticated), admin
+  styles/       Tailwind theme tokens
+supabase/
+  migrations/   SQL migrations (apply with `npx supabase db push`)
+public/         Static assets copied verbatim into the build
+```
+
+## Database
+
+Schema changes live as timestamped SQL files in `supabase/migrations/` and are
+applied to the linked Supabase project with `npx supabase db push`. Row-level
+security is enabled on every table that holds user data.
+
+## Deployment
+
+`main` auto-deploys to Cloudflare Pages; every pull request gets its own
+preview URL. `public/_redirects` routes all paths to `index.html` so the
+client-side router handles deep links and refreshes.

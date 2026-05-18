@@ -164,7 +164,7 @@ export default function Financials() {
 
       <Section
         title="Liabilities"
-        total={t.totalLiabilities}
+        total={t.ledgerLiabilities}
         totalSign="−"
         onAdd={() => setRecordModal({ kind: 'liability' })}
       >
@@ -442,7 +442,7 @@ function ItemList({ rows }: { rows: Row[] }) {
 function EmptyRow({ kind }: { kind: PfsRecordKind }) {
   const labels: Record<PfsRecordKind, string> = {
     asset: 'No assets yet. Add a home, retirement account, or cash.',
-    liability: 'No liabilities yet. Add your mortgage, loans, or credit cards.',
+    liability: 'No liabilities yet. Add auto loans, student loans, or credit cards. Your mortgage lives in its own section below.',
     income: 'No income sources yet.',
     expense: 'No expenses yet.',
   }

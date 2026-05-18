@@ -522,6 +522,6 @@ export function AuthModalRedirect({ view }: { view: AuthView }) {
     }
     openModal(view)
     navigate('/', { replace: true })
-  }, [view, openModal, navigate, user, profile])
+  }, [view, openModal, navigate, user, profile?.role])
   return null
 }

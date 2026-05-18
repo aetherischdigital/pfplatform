@@ -14,7 +14,11 @@ if (!baseUrl || !outDir) {
 }
 await mkdir(outDir, { recursive: true })
 
-const PASSWORD = 'PfpDemo2026!'
+const PASSWORD = process.env.PFP_TEST_PASSWORD
+if (!PASSWORD) {
+  console.error('Set PFP_TEST_PASSWORD (the shared test-account password) before running.')
+  process.exit(1)
+}
 
 const captures = [
   // [email, [routeName, urlPath]...]

@@ -27,6 +27,9 @@ lerna-debug.log*
 .eslintcache
 *.tsbuildinfo
 
+# Local scratch — screenshots, audit artifacts
+tmp/
+
 # Editor / OS
 .DS_Store
 .idea

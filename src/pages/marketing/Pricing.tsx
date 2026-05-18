@@ -178,8 +178,8 @@ export default function Pricing() {
           <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
             Compare every plan.
           </h2>
-          <div className="mt-10 overflow-hidden rounded-2xl border border-surface-200 bg-white">
-            <table className="w-full">
+          <div className="mt-10 overflow-x-auto rounded-2xl border border-surface-200 bg-white">
+            <table className="w-full min-w-[34rem]">
               <thead className="bg-surface-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">
