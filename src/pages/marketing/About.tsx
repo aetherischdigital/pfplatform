@@ -1,6 +1,7 @@
 import { ArrowRight, Compass, Eye, ShieldCheck } from 'lucide-react'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
+import Term from '../../components/ui/Term'
 import { BRAND } from '../../config/brand'
 
 const values = [
@@ -42,13 +43,23 @@ export default function About() {
       <section className="bg-white">
         <Container size="md" className="py-20">
           <figure className="mb-12 overflow-hidden rounded-2xl">
-            <img
-              src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1600&q=80"
-              alt="A sunlit desk with a notebook and morning coffee — the kind of place a homeowner keeps their books."
-              className="aspect-[16/9] w-full object-cover"
-              loading="lazy"
-            />
-            <figcaption className="mt-3 text-center text-xs italic text-surface-400">
+            <picture>
+              <source
+                type="image/webp"
+                srcSet="/img/about-desk-900.webp 900w, /img/about-desk-1600.webp 1600w"
+                sizes="(min-width: 768px) 768px, 100vw"
+              />
+              <img
+                src="/img/about-desk-1600.jpg"
+                srcSet="/img/about-desk-900.jpg 900w, /img/about-desk-1600.jpg 1600w"
+                sizes="(min-width: 768px) 768px, 100vw"
+                alt="A sunlit desk with a notebook and morning coffee — the kind of place a homeowner keeps their books."
+                className="aspect-[16/9] w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+            <figcaption className="mt-3 text-center text-xs italic text-surface-500">
               The platform is the math. You are the ledger-keeper.
             </figcaption>
           </figure>
@@ -59,10 +70,11 @@ export default function About() {
             <p>
               Here's something most homeowners are never told. Your mortgage isn't really about
               years or months — it's a fixed schedule of numbered payments, each broken down to
-              the penny the day you sign the Note. The lender knows it. The borrower almost never
-              does. So when a payment gets misapplied, an escrow analysis comes out wrong, or a
-              servicer transfer loses a payment in the seam, the math drifts — and nobody catches
-              it, because nobody's keeping their own books.
+              the penny the day you sign the <Term term="note">Note</Term>. The lender knows it.
+              The borrower almost never does. So when a payment gets misapplied, an{' '}
+              <Term term="escrow">escrow</Term> analysis comes out wrong, or a servicer transfer
+              loses a payment in the seam, the math drifts — and nobody catches it, because
+              nobody's keeping their own books.
             </p>
             <p>
               {BRAND.name} exists to flip that. We start with the Personal Financial Statement — the
@@ -93,7 +105,7 @@ export default function About() {
               return (
                 <div
                   key={v.title}
-                  className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card"
+                  className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-900 text-accent-400">
                     <Icon size={18} />

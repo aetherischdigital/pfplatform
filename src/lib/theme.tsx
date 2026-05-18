@@ -1,25 +1,7 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
-
-export type ThemePreference = 'light' | 'dark' | 'system'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { ThemeContext, type ThemePreference } from './useTheme'
 
 const STORAGE_KEY = 'theme'
-
-type ThemeContextValue = {
-  /** What the user has chosen — system means "follow OS" */
-  preference: ThemePreference
-  setPreference: (p: ThemePreference) => void
-  /** Cycles system → light → dark → system */
-  cycle: () => void
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function readStoredPreference(): ThemePreference {
   if (typeof window === 'undefined') return 'system'
@@ -64,10 +46,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext)
-  if (!ctx) throw new Error('useTheme must be used inside <ThemeProvider>')
-  return ctx
 }

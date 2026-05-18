@@ -1,202 +1,166 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ArrowDownRight, AlertTriangle, Home } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
-  MOCK_PROFILE,
-  MOCK_ASSETS,
-  MOCK_LIABILITIES,
-  MOCK_MORTGAGE,
+  fetchPfs,
   totals,
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
-} from '../../lib/mockData'
+  type Pfs,
+} from '../../lib/pfs'
+import { fetchOwnProfile, displayLabel, type Profile } from '../../lib/profile'
 import { projectEquity } from '../../lib/equity'
 import {
   compareScenarios,
   formatUSD,
   formatYearsMonths,
   payoffDate,
+  simulate,
 } from '../../lib/mortgage'
 import EquityProjectionChart from '../../components/EquityProjectionChart'
-import { ButtonLink } from '../../components/ui/Button'
+import { Button, ButtonLink } from '../../components/ui/Button'
+import OnboardingCard from '../../components/app/OnboardingCard'
 
 export default function Dashboard() {
-  const t = totals()
+  const [pfs, setPfs] = useState<Pfs | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const points = projectEquity({
-    startingHomeValue: MOCK_MORTGAGE.startingHomeValue,
-    startingBalance: MOCK_MORTGAGE.balance,
-    annualAppreciationPct: 3,
-    annualRatePct: MOCK_MORTGAGE.ratePct,
-    monthlyPayment: MOCK_MORTGAGE.monthlyPayment,
-    extraPrincipal: MOCK_MORTGAGE.extraPrincipal,
-    months: MOCK_MORTGAGE.termMonthsRemaining,
-  })
-  const peakEquity = points[points.length - 1].equity
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([fetchPfs(), fetchOwnProfile()])
+      .then(([pfsData, profileData]) => {
+        if (cancelled) return
+        setPfs(pfsData)
+        setProfile(profileData)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const scenario = compareScenarios(
-    MOCK_MORTGAGE.balance,
-    MOCK_MORTGAGE.ratePct,
-    MOCK_MORTGAGE.monthlyPayment,
-    MOCK_MORTGAGE.extraPrincipal,
-  )
+  if (loading) return <SkeletonState />
+  if (error || !pfs) return <ErrorState message={error ?? 'No data.'} />
+
+  const t = totals(pfs)
+  const hasAnyData = pfs.assets.length > 0 || pfs.liabilities.length > 0 || pfs.income.length > 0 || pfs.expenses.length > 0
 
   const greeting = greetingForNow()
+  const name = displayLabel(profile)
+
+  if (!hasAnyData) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
+            {greeting}, {name}.
+          </h1>
+          <p className="mt-1 text-sm text-surface-500">
+            Let&rsquo;s build your ledger. Once you add a few PFS entries, this dashboard fills in.
+          </p>
+        </div>
+        <OnboardingCard hasAnyPfs={false} hasMortgage={false} />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
-            {greeting}, {firstName(MOCK_PROFILE.name)}.
+            {greeting}, {name}.
           </h1>
           <p className="mt-1 text-sm text-surface-500">
-            Here's where you stand today and where you're heading.
+            Here&rsquo;s where you stand today and where you&rsquo;re heading.
           </p>
         </div>
-        <span className="self-start rounded-full bg-accent-100 px-3 py-1 text-xs font-medium text-accent-600">
-          Demo data — not yet wired to a real backend
-        </span>
       </div>
 
-      {/* Stats row */}
+      <OnboardingCard hasAnyPfs={hasAnyData} hasMortgage={!!pfs.mortgage} />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="Net worth"
-          value={formatUSD(t.netWorth)}
-          delta="+$48k YoY"
-        />
-        <Stat
-          label="Home equity"
-          value={formatUSD(t.homeEquity)}
-          delta="+$12k YoY"
-          accent
-        />
+        <Stat label="Net worth" value={formatUSD(t.netWorth)} />
+        <Stat label="Home equity" value={formatUSD(t.homeEquity)} accent />
         <Stat
           label="Monthly cash flow"
-          value={`+${formatUSD(t.monthlyCashFlow)}`}
+          value={`${t.monthlyCashFlow >= 0 ? '+' : '−'}${formatUSD(Math.abs(t.monthlyCashFlow))}`}
           delta={`${formatUSD(t.monthlyIncome)} in / ${formatUSD(t.monthlyExpenses)} out`}
+          trend={t.monthlyCashFlow >= 0 ? 'positive' : 'negative'}
         />
-        <Stat
-          label="Projected payoff"
-          value={payoffDate(scenario.scenario.months)}
-          delta={`${formatYearsMonths(Math.max(0, scenario.monthsSaved))} sooner`}
-        />
+        <PayoffStat pfs={pfs} />
       </div>
 
-      {/* Chart + scenario */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        <div className="lg:col-span-7">
-          <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <h2 className="font-display text-lg font-semibold text-surface-900">
-                  Equity over time
-                </h2>
-                <p className="mt-1 text-sm text-surface-500">
-                  Projected with 3% annual home appreciation and your current plan.
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-xs uppercase tracking-wider text-surface-400">At payoff</div>
-                <div className="font-display text-xl font-semibold text-accent-600">
-                  {formatUSD(peakEquity)}
-                </div>
-              </div>
-            </div>
-            <div className="mt-5 h-56">
-              <EquityProjectionChart points={points} className="h-full w-full" />
-            </div>
-            <div className="mt-4 flex items-center gap-5 text-xs text-surface-500">
-              <span className="flex items-center gap-1.5">
-                <span className="block h-2.5 w-2.5 rounded-sm bg-accent-500/30" />
-                Equity (gold area)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="block h-2.5 w-2.5 rounded-sm bg-surface-200" />
-                Mortgage balance
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="block h-0.5 w-5 bg-surface-500" />
-                Home value
-              </span>
-            </div>
+      {pfs.mortgage ? (
+        <div className="grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <EquitySection mortgage={pfs.mortgage} />
+          </div>
+          <div className="lg:col-span-5">
+            <PayoffPlanSection mortgage={pfs.mortgage} />
           </div>
         </div>
+      ) : (
+        <NoMortgagePrompt />
+      )}
 
-        <div className="lg:col-span-5">
-          <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
-            <h2 className="font-display text-lg font-semibold text-surface-900">
-              Payoff plan
-            </h2>
-            <p className="mt-1 text-sm text-surface-500">
-              Paying ${MOCK_MORTGAGE.extraPrincipal} extra each month vs. baseline.
-            </p>
-            <dl className="mt-5 space-y-3">
-              <Row
-                label="Baseline payoff"
-                value={payoffDate(scenario.baseline.months)}
-                muted
-              />
-              <Row
-                label="Your payoff"
-                value={payoffDate(scenario.scenario.months)}
-                accent
-              />
-              <Row
-                label="Time saved"
-                value={formatYearsMonths(Math.max(0, scenario.monthsSaved))}
-              />
-              <Row
-                label="Interest saved"
-                value={formatUSD(Math.max(0, scenario.interestSaved))}
-              />
-            </dl>
-            <div className="mt-auto pt-5">
-              <ButtonLink to="/calculator" variant="secondary" size="sm" className="w-full">
-                Try other scenarios <ArrowRight size={14} />
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PFS summary */}
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
           title="Assets"
           total={t.totalAssets}
-          rows={MOCK_ASSETS.map((a) => ({
+          rows={pfs.assets.map((a) => ({
             id: a.id,
             label: a.label,
             sub: ASSET_CATEGORY_LABELS[a.category],
             value: formatUSD(a.value),
           }))}
           totalSign="+"
+          emptyHint="No assets yet."
         />
         <SummaryCard
           title="Liabilities"
           total={t.totalLiabilities}
-          rows={MOCK_LIABILITIES.map((l) => ({
-            id: l.id,
-            label: l.label,
-            sub: l.rate
-              ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
-              : LIABILITY_CATEGORY_LABELS[l.category],
-            value: formatUSD(l.balance),
-          }))}
+          rows={[
+            ...(pfs.mortgage
+              ? [
+                  {
+                    id: pfs.mortgage.id,
+                    label: pfs.mortgage.propertyLabel,
+                    sub: `Mortgage • ${pfs.mortgage.ratePct}%`,
+                    value: formatUSD(pfs.mortgage.balance),
+                  },
+                ]
+              : []),
+            ...pfs.liabilities.map((l) => ({
+              id: l.id,
+              label: l.label,
+              sub: l.rate
+                ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
+                : LIABILITY_CATEGORY_LABELS[l.category],
+              value: formatUSD(l.balance),
+            })),
+          ]}
           totalSign="−"
+          emptyHint="No liabilities yet."
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-accent-200 bg-accent-100 p-4">
-        <div className="flex items-center gap-2.5 text-sm text-surface-700">
-          <Sparkles size={14} className="flex-shrink-0 text-accent-600" />
-          <strong className="font-semibold text-surface-900">Demo data</strong>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-surface-50 p-4">
+        <div className="text-sm text-surface-700">
+          Want to edit your line items? Open the full Personal Financial Statement.
         </div>
         <Link
           to="/app/financials"
-          className="text-sm font-medium text-surface-900 hover:underline"
+          className="rounded text-sm font-medium text-surface-900 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
         >
           View full PFS →
         </Link>
@@ -205,20 +169,158 @@ export default function Dashboard() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Section components
+// ---------------------------------------------------------------------------
+
+function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
+  const { points, headlineEquity, headlineLabel } = useMemo(() => {
+    const months = m.termMonthsRemaining
+    const pts = projectEquity({
+      startingHomeValue: m.startingHomeValue,
+      startingBalance: m.balance,
+      annualAppreciationPct: 3,
+      annualRatePct: m.ratePct,
+      monthlyPayment: m.monthlyPayment,
+      extraPrincipal: m.extraPrincipal,
+      months,
+    })
+    // Headline = equity at actual payoff if the loan clears within the term;
+    // otherwise equity at the end of the projected term. Avoids labelling an
+    // end-of-term figure "At payoff" when the payment under-amortizes.
+    const sim = simulate(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal)
+    const paysOffWithinTerm = Number.isFinite(sim.months) && sim.months <= months
+    const headlineMonth = paysOffWithinTerm ? sim.months : months
+    return {
+      points: pts,
+      headlineEquity: pts[Math.min(headlineMonth, pts.length - 1)]?.equity ?? 0,
+      headlineLabel: paysOffWithinTerm ? 'At payoff' : `In ${formatYearsMonths(months)}`,
+    }
+  }, [m])
+
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-surface-900">Equity over time</h2>
+          <p className="mt-1 text-sm text-surface-500">
+            Projected with 3% annual home appreciation and your current plan.
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-xs uppercase tracking-wider text-surface-500">{headlineLabel}</div>
+          <div className="font-display text-xl font-semibold text-accent-600">
+            {formatUSD(headlineEquity)}
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 h-56">
+        <EquityProjectionChart points={points} className="h-full w-full" />
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-surface-500">
+        <span className="flex items-center gap-1.5">
+          <span className="block h-2.5 w-2.5 rounded-sm bg-accent-500/30" />
+          Equity
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="block h-2.5 w-2.5 rounded-sm bg-surface-200" />
+          Mortgage balance
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="block h-0.5 w-5 bg-surface-500" />
+          Home value
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']> }) {
+  const scenario = useMemo(
+    () => compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal),
+    [m],
+  )
+
+  return (
+    <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
+      <h2 className="font-display text-lg font-semibold text-surface-900">Payoff plan</h2>
+      <p className="mt-1 text-sm text-surface-500">
+        {m.extraPrincipal > 0
+          ? `Paying ${formatUSD(m.extraPrincipal)} extra each month vs. baseline.`
+          : 'Add extra principal to accelerate your payoff.'}
+      </p>
+      <dl className="mt-5 space-y-3">
+        <Row label="Baseline payoff" value={payoffDate(scenario.baseline.months)} muted />
+        <Row label="Your payoff" value={payoffDate(scenario.scenario.months)} accent />
+        <Row label="Time saved" value={formatYearsMonths(Math.max(0, scenario.monthsSaved))} />
+        <Row
+          label="Interest saved"
+          value={formatUSD(Math.max(0, scenario.interestSaved))}
+        />
+      </dl>
+      <div className="mt-auto pt-5">
+        <ButtonLink to="/app/calculators" variant="secondary" size="sm" className="w-full">
+          Try other scenarios <ArrowRight size={14} />
+        </ButtonLink>
+      </div>
+    </div>
+  )
+}
+
+function PayoffStat({ pfs }: { pfs: Pfs }) {
+  const m = pfs.mortgage
+  const scenario = useMemo(
+    () => (m ? compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal) : null),
+    [m],
+  )
+  if (!m || !scenario) {
+    return (
+      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
+        <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
+          Projected payoff
+        </div>
+        <div className="mt-2 font-display text-base font-medium text-surface-500">
+          Add mortgage
+        </div>
+      </div>
+    )
+  }
+  return (
+    <Stat
+      label="Projected payoff"
+      value={payoffDate(scenario.scenario.months)}
+      delta={`${formatYearsMonths(Math.max(0, scenario.monthsSaved))} sooner`}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Shared bits
+// ---------------------------------------------------------------------------
+
 function Stat({
   label,
   value,
   delta,
   accent,
+  trend = 'positive',
 }: {
   label: string
   value: string
-  delta: string
+  delta?: string
   accent?: boolean
+  trend?: 'positive' | 'negative' | 'neutral'
 }) {
+  const TrendIcon = trend === 'negative' ? ArrowDownRight : ArrowUpRight
+  const trendColor =
+    trend === 'negative'
+      ? 'text-danger-600'
+      : trend === 'neutral'
+        ? 'text-surface-400'
+        : 'text-success-600'
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -226,10 +328,12 @@ function Stat({
       >
         {value}
       </div>
-      <div className="mt-1 flex items-center gap-1 text-xs text-surface-500">
-        <ArrowUpRight size={12} className="text-emerald-600" />
-        {delta}
-      </div>
+      {delta && (
+        <div className="mt-1 flex items-center gap-1 text-xs text-surface-500">
+          {trend !== 'neutral' && <TrendIcon size={12} className={trendColor} />}
+          {delta}
+        </div>
+      )}
     </div>
   )
 }
@@ -250,7 +354,7 @@ function Row({
       <dt className="text-sm text-surface-500">{label}</dt>
       <dd
         className={`font-mono text-sm font-medium ${
-          accent ? 'text-accent-600' : muted ? 'text-surface-400' : 'text-surface-900'
+          accent ? 'text-accent-600' : muted ? 'text-surface-500' : 'text-surface-900'
         }`}
       >
         {value}
@@ -259,18 +363,20 @@ function Row({
   )
 }
 
-type Row = { id: string; label: string; sub: string; value: string }
+type SummaryRow = { id: string; label: string; sub: string; value: string }
 
 function SummaryCard({
   title,
   total,
   rows,
   totalSign,
+  emptyHint,
 }: {
   title: string
   total: number
-  rows: Row[]
+  rows: SummaryRow[]
   totalSign: '+' | '−'
+  emptyHint: string
 }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
@@ -281,17 +387,98 @@ function SummaryCard({
           {formatUSD(total)}
         </div>
       </div>
-      <ul className="mt-4 divide-y divide-surface-200 border-t border-surface-200">
-        {rows.map((r) => (
-          <li key={r.id} className="flex items-center justify-between py-3">
-            <div>
-              <div className="text-sm font-medium text-surface-900">{r.label}</div>
-              <div className="text-xs text-surface-500">{r.sub}</div>
-            </div>
-            <span className="font-mono text-sm text-surface-900">{r.value}</span>
-          </li>
+      {rows.length === 0 ? (
+        <div className="mt-4 rounded-md border border-dashed border-surface-200 px-4 py-6 text-center text-sm text-surface-500">
+          {emptyHint}
+        </div>
+      ) : (
+        <ul className="mt-4 divide-y divide-surface-200 border-t border-surface-200">
+          {rows.map((r) => (
+            <li key={r.id} className="flex items-center justify-between py-3">
+              <div>
+                <div className="text-sm font-medium text-surface-900">{r.label}</div>
+                <div className="text-xs text-surface-500">{r.sub}</div>
+              </div>
+              <span className="font-mono text-sm text-surface-900">{r.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function EmptyStateCard({
+  icon: Icon,
+  title,
+  body,
+  ctaLabel,
+  ctaTo,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+  ctaLabel: string
+  ctaTo: string
+}) {
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-card sm:p-10">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
+        <Icon size={20} />
+      </div>
+      <h2 className="mt-4 font-display text-xl font-semibold text-surface-900">{title}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-surface-500">{body}</p>
+      <div className="mt-6">
+        <ButtonLink to={ctaTo} variant="primary" size="md">
+          {ctaLabel} <ArrowRight size={14} />
+        </ButtonLink>
+      </div>
+    </div>
+  )
+}
+
+function NoMortgagePrompt() {
+  return (
+    <EmptyStateCard
+      icon={Home}
+      title="Add your mortgage to unlock equity & payoff projections"
+      body="Enter your balance, rate, and monthly payment from your Note. The platform projects equity, compares payoff scenarios, and shows interest saved against the baseline."
+      ctaLabel="Add mortgage"
+      ctaTo="/app/financials?add=mortgage"
+    />
+  )
+}
+
+function SkeletonState() {
+  return (
+    <div className="space-y-8">
+      <div className="h-12 animate-pulse rounded-md bg-surface-100" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-2xl bg-surface-100" />
         ))}
-      </ul>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-12">
+        <div className="lg:col-span-7 h-72 animate-pulse rounded-2xl bg-surface-100" />
+        <div className="lg:col-span-5 h-72 animate-pulse rounded-2xl bg-surface-100" />
+      </div>
+    </div>
+  )
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-danger-200 bg-danger-50 p-8 text-center">
+      <AlertTriangle size={24} className="mx-auto text-danger-600" />
+      <p className="mt-3 text-sm text-danger-700">{message}</p>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => window.location.reload()}
+        className="mt-4"
+      >
+        Reload
+      </Button>
     </div>
   )
 }
@@ -301,8 +488,4 @@ function greetingForNow(): string {
   if (h < 12) return 'Good morning'
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
-}
-
-function firstName(full: string): string {
-  return full.split(' ')[0]
 }

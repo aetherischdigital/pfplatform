@@ -85,7 +85,7 @@ function FeaturedCard({ post }: { post: BlogPost }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group block overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-shadow hover:shadow-card-lg"
+      className="group block overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
     >
       <div className="grid gap-0 lg:grid-cols-2">
         <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full">
@@ -110,7 +110,7 @@ function FeaturedCard({ post }: { post: BlogPost }) {
             <p className="mt-4 text-base leading-relaxed text-surface-500">{post.excerpt}</p>
           </div>
           <div className="mt-8 flex items-center justify-between border-t border-surface-200 pt-5">
-            <span className="font-mono text-xs text-surface-400">
+            <span className="font-mono text-xs text-surface-500">
               {formatDate(post.publishedAt)} · {post.readingMinutes} min read
             </span>
             <span className="inline-flex items-center gap-1 text-sm font-medium text-surface-900 group-hover:text-accent-600">
@@ -127,7 +127,7 @@ function PostCard({ post }: { post: BlogPost }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-shadow hover:shadow-card-lg"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
     >
       <BlogCoverImage
         src={post.coverImage}
@@ -139,7 +139,7 @@ function PostCard({ post }: { post: BlogPost }) {
           <span className="text-xs font-medium uppercase tracking-wider text-accent-600">
             {post.tag}
           </span>
-          <span className="font-mono text-xs text-surface-400">
+          <span className="font-mono text-xs text-surface-500">
             {post.readingMinutes} min
           </span>
         </div>

@@ -78,6 +78,13 @@ export function simulate(
     history.push({ month, balance: Math.max(0, balance), cumulativeInterest })
   }
 
+  // If we exited via the 50-year cap with balance remaining, the loan would
+  // still be amortizing past our horizon. Don't pretend it paid off at month
+  // 600 — return Infinity so callers render "—" instead of a misleading date.
+  if (balance > 0.01) {
+    return { months: Infinity, totalInterest: Infinity, history }
+  }
+
   return { months: month, totalInterest: cumulativeInterest, history }
 }
 

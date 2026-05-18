@@ -1,98 +1,114 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Mail, Lock, User, CheckCircle2 } from 'lucide-react'
+import { Mail, Lock, User, CheckCircle2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useAuthModal, type AuthView } from '../lib/authModal'
-import { useAuth } from '../lib/auth'
+import { useAuthModal, type AuthView } from '../lib/useAuthModal'
+import { useAuth } from '../lib/useAuth'
+import { fetchOwnProfile, homePathFor, type WaitlistInterest } from '../lib/profile'
 import { BRAND } from '../config/brand'
+import Modal from './ui/Modal'
 import { Button } from './ui/Button'
+import { formFieldClass, formFieldWithIconClass } from './ui/formStyles'
 
 export default function AuthModal() {
   const { open, view, openModal, closeModal } = useAuthModal()
-  const cardRef = useRef<HTMLDivElement>(null)
-  const lastFocusedRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-
-    lastFocusedRef.current = document.activeElement as HTMLElement | null
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal()
-    }
-    document.addEventListener('keydown', onKey)
-
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    queueMicrotask(() => {
-      const firstInput = cardRef.current?.querySelector<HTMLElement>('input, button')
-      firstInput?.focus()
-    })
-
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-      lastFocusedRef.current?.focus()
-    }
-  }, [open, closeModal])
-
-  if (!open) return null
+  const showTabs = view !== 'forgot'
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-surface-900/60 px-4 py-10 backdrop-blur-sm sm:items-center"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) closeModal()
-      }}
-    >
-      <div
-        ref={cardRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-modal-title"
-        className="relative w-full max-w-md rounded-2xl border border-surface-200 bg-white p-7 shadow-card-lg sm:p-8"
-      >
-        <button
-          type="button"
-          onClick={closeModal}
-          className="absolute right-3 top-3 rounded-md p-2 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
-          aria-label="Close"
+    <Modal open={open} onClose={closeModal} titleId="auth-modal-title">
+      {showTabs && (
+        <div
+          role="tablist"
+          aria-label="Sign in or create an account"
+          className="flex gap-1 rounded-lg bg-surface-100 p-1"
         >
-          <X size={16} />
-        </button>
-
-        <div className="flex gap-1 rounded-lg bg-surface-100 p-1">
-          <TabButton active={view === 'login'} onClick={() => openModal('login')}>
+          <Tab
+            id="auth-tab-login"
+            panelId="auth-panel-login"
+            active={view === 'login'}
+            onSelect={() => openModal('login')}
+          >
             Sign in
-          </TabButton>
-          <TabButton active={view === 'signup'} onClick={() => openModal('signup')}>
+          </Tab>
+          <Tab
+            id="auth-tab-signup"
+            panelId="auth-panel-signup"
+            active={view === 'signup'}
+            onSelect={() => openModal('signup')}
+          >
             Create account
-          </TabButton>
+          </Tab>
         </div>
+      )}
 
-        <div className="mt-6">
-          {view === 'login' ? <LoginPanel /> : <SignupPanel />}
-        </div>
+      <div
+        className={showTabs ? 'mt-6' : ''}
+        role={showTabs ? 'tabpanel' : undefined}
+        id={view === 'login' ? 'auth-panel-login' : view === 'signup' ? 'auth-panel-signup' : undefined}
+        aria-labelledby={view === 'login' ? 'auth-tab-login' : view === 'signup' ? 'auth-tab-signup' : undefined}
+      >
+        {view === 'login' ? (
+          <LoginPanel />
+        ) : view === 'signup' ? (
+          <SignupPanel />
+        ) : (
+          <ForgotPanel />
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }
 
-function TabButton({
+/**
+ * Accessible tab. Renders a real <button role="tab"> with aria-selected,
+ * connects to its panel via aria-controls, and handles arrow-key navigation
+ * between siblings (Left/Right + Home/End). Inactive tabs are `tabIndex=-1`
+ * so Tab moves to the panel content, not the other tab — standard tablist
+ * pattern.
+ */
+function Tab({
+  id,
+  panelId,
   active,
-  onClick,
+  onSelect,
   children,
 }: {
+  id: string
+  panelId: string
   active: boolean
-  onClick: () => void
+  onSelect: () => void
   children: ReactNode
 }) {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') {
+      return
+    }
+    e.preventDefault()
+    const tablist = e.currentTarget.parentElement
+    if (!tablist) return
+    const tabs = Array.from(tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    const idx = tabs.indexOf(e.currentTarget)
+    if (idx < 0 || tabs.length === 0) return
+    let nextIdx = idx
+    if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length
+    else if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length
+    else if (e.key === 'Home') nextIdx = 0
+    else if (e.key === 'End') nextIdx = tabs.length - 1
+    tabs[nextIdx].focus()
+    tabs[nextIdx].click()
+  }
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+      role="tab"
+      id={id}
+      aria-selected={active}
+      aria-controls={panelId}
+      tabIndex={active ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={onKeyDown}
+      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
         active
           ? 'bg-white text-surface-900 shadow-card'
           : 'text-surface-500 hover:text-surface-900'
@@ -105,7 +121,7 @@ function TabButton({
 
 function LoginPanel() {
   const { signIn } = useAuth()
-  const { closeModal } = useAuthModal()
+  const { closeModal, openModal } = useAuthModal()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -118,13 +134,17 @@ function LoginPanel() {
     setError(null)
     setSubmitting(true)
     const { error } = await signIn({ email, password })
-    setSubmitting(false)
     if (error) {
+      setSubmitting(false)
       setError(error)
       return
     }
+    // Fetch profile inline so we can route by role on first login (the
+    // AuthProvider's profile state may not be hydrated yet).
+    const profile = await fetchOwnProfile().catch(() => null)
+    setSubmitting(false)
     closeModal()
-    navigate('/app/dashboard')
+    navigate(homePathFor(profile?.role))
   }
 
   return (
@@ -145,7 +165,7 @@ function LoginPanel() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className={fieldClass}
+            className={formFieldWithIconClass}
           />
         </Field>
         <Field label="Password" icon={Lock}>
@@ -155,9 +175,18 @@ function LoginPanel() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={fieldClass}
+            className={formFieldWithIconClass}
           />
         </Field>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => openModal('forgot')}
+            className="rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+          >
+            Forgot password?
+          </button>
+        </div>
         {error && <ErrorMessage>{error}</ErrorMessage>}
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
           {submitting ? 'Signing in…' : 'Sign in'}
@@ -167,23 +196,158 @@ function LoginPanel() {
   )
 }
 
+function ForgotPanel() {
+  const { requestPasswordReset } = useAuth()
+  const { openModal } = useAuthModal()
+
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    const { error } = await requestPasswordReset(email)
+    setSubmitting(false)
+    if (error) {
+      setError(error)
+      return
+    }
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="text-center">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent-100 text-accent-600">
+          <CheckCircle2 size={24} />
+        </div>
+        <h2 id="auth-modal-title" className="mt-4 font-display text-xl font-semibold text-surface-900">
+          Check your email
+        </h2>
+        <p className="mt-2 text-sm text-surface-500">
+          If an account exists for <strong className="text-surface-900">{email}</strong>, we sent a
+          reset link. Click it to set a new password.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          onClick={() => openModal('login')}
+          className="mt-5 w-full"
+        >
+          Back to sign in
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <h2 id="auth-modal-title" className="font-display text-xl font-semibold text-surface-900">
+        Reset your password
+      </h2>
+      <p className="mt-1 text-sm text-surface-500">
+        Enter the email tied to your account. We&rsquo;ll send a reset link.
+      </p>
+
+      <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+        <Field label="Email" icon={Mail}>
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className={formFieldWithIconClass}
+          />
+        </Field>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        <div className="flex flex-col gap-2">
+          <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
+            {submitting ? 'Sending…' : 'Send reset link'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => openModal('login')}
+            className="rounded text-center text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+          >
+            Back to sign in
+          </button>
+        </div>
+      </form>
+    </>
+  )
+}
+
 function SignupPanel() {
-  const { signUp } = useAuth()
+  const { signUp, resendSignupConfirmation } = useAuth()
   const { closeModal } = useAuthModal()
   const navigate = useNavigate()
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [waitlistInterest, setWaitlistInterest] = useState<WaitlistInterest>('none')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [resendError, setResendError] = useState<string | null>(null)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  // Decrement the cooldown timer once per second while > 0. The button stays
+  // disabled and the label shows the countdown until it hits zero.
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const t = setTimeout(() => setCooldownSeconds((s) => Math.max(0, s - 1)), 1000)
+    return () => clearTimeout(t)
+  }, [cooldownSeconds])
+
+  const onResend = async () => {
+    if (!confirmationEmail || cooldownSeconds > 0) return
+    setResendStatus('sending')
+    setResendError(null)
+    const { error } = await resendSignupConfirmation(confirmationEmail)
+    if (error) {
+      // Supabase rate-limit errors look like:
+      //   "For security purposes, you can only request this after 47 seconds."
+      // or contain "rate limit". Parse the seconds out and start a countdown
+      // so the user gets a useful "Resend again in 47s" hint instead of the
+      // raw error string.
+      const match = /(\d+)\s*seconds?/i.exec(error)
+      if (match) {
+        setCooldownSeconds(parseInt(match[1], 10))
+        setResendStatus('idle')
+        setResendError(null)
+        return
+      }
+      if (/rate limit/i.test(error)) {
+        setCooldownSeconds(30)
+        setResendStatus('idle')
+        setResendError(null)
+        return
+      }
+      setResendStatus('error')
+      setResendError(error)
+    } else {
+      setResendStatus('sent')
+    }
+  }
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
-    const { error, needsConfirmation } = await signUp({ email, password, fullName })
+    const { error, needsConfirmation } = await signUp({
+      email,
+      password,
+      fullName,
+      waitlistInterest,
+    })
     setSubmitting(false)
     if (error) {
       setError(error)
@@ -193,8 +357,9 @@ function SignupPanel() {
       setConfirmationEmail(email)
       return
     }
+    // New signups always start as homeowner (default role) — no need to fetch.
     closeModal()
-    navigate('/app/dashboard')
+    navigate(homePathFor('homeowner'))
   }
 
   if (confirmationEmail) {
@@ -210,15 +375,36 @@ function SignupPanel() {
           We sent a confirmation link to <strong className="text-surface-900">{confirmationEmail}</strong>.
           Click it to activate your account.
         </p>
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={closeModal}
-          className="mt-5 w-full"
-        >
-          Got it
-        </Button>
+        <div className="mt-5 flex flex-col gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={closeModal}
+            className="w-full"
+          >
+            Got it
+          </Button>
+          {resendStatus === 'sent' ? (
+            <p className="text-xs text-success-700">Sent. Check your inbox again.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={onResend}
+              disabled={resendStatus === 'sending' || cooldownSeconds > 0}
+              className="rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 disabled:opacity-50"
+            >
+              {resendStatus === 'sending'
+                ? 'Resending…'
+                : cooldownSeconds > 0
+                  ? `Resend again in ${cooldownSeconds}s`
+                  : "Didn't get it? Resend"}
+            </button>
+          )}
+          {resendError && (
+            <p className="text-xs text-danger-700">{resendError}</p>
+          )}
+        </div>
       </div>
     )
   }
@@ -241,7 +427,7 @@ function SignupPanel() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Your name"
-            className={fieldClass}
+            className={formFieldWithIconClass}
           />
         </Field>
         <Field label="Email" icon={Mail}>
@@ -252,7 +438,7 @@ function SignupPanel() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className={fieldClass}
+            className={formFieldWithIconClass}
           />
         </Field>
         <Field label="Password" icon={Lock}>
@@ -264,9 +450,26 @@ function SignupPanel() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
-            className={fieldClass}
+            className={formFieldWithIconClass}
           />
         </Field>
+        <label className="block">
+          <span className="text-sm font-medium text-surface-700">
+            Interested in a paid tier? <span className="font-normal text-surface-500">(optional)</span>
+          </span>
+          <select
+            value={waitlistInterest}
+            onChange={(e) => setWaitlistInterest(e.target.value as WaitlistInterest)}
+            className={`${formFieldClass} mt-1`}
+          >
+            <option value="none">Just the free plan for now</option>
+            <option value="plus">Plus — for homeowners with a living plan</option>
+            <option value="pro">Pro — for realtors managing clients</option>
+          </select>
+          <p className="mt-1 text-xs text-surface-500">
+            Pricing is TBD — we&rsquo;ll email you the moment your tier goes live.
+          </p>
+        </label>
         {error && <ErrorMessage>{error}</ErrorMessage>}
         <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full">
           {submitting ? 'Creating account…' : 'Create account'}
@@ -278,14 +481,11 @@ function SignupPanel() {
 
 function ErrorMessage({ children }: { children: ReactNode }) {
   return (
-    <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger-700">
       {children}
     </div>
   )
 }
-
-const fieldClass =
-  'w-full rounded-md border border-surface-200 bg-surface-50 py-2.5 pl-9 pr-3 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white'
 
 function Field({
   label,
@@ -312,10 +512,16 @@ function Field({
 
 export function AuthModalRedirect({ view }: { view: AuthView }) {
   const { openModal } = useAuthModal()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   useEffect(() => {
+    // Already signed in? Skip the auth modal entirely and go to their home.
+    if (user) {
+      navigate(homePathFor(profile?.role), { replace: true })
+      return
+    }
     openModal(view)
     navigate('/', { replace: true })
-  }, [view, openModal, navigate])
+  }, [view, openModal, navigate, user, profile?.role])
   return null
 }

@@ -43,7 +43,7 @@ export default function BlogPost() {
             url: BRAND.siteUrl,
             logo: {
               '@type': 'ImageObject',
-              url: `${BRAND.siteUrl}/favicon.svg`,
+              url: `${BRAND.siteUrl}/og-image.png`,
             },
           },
           mainEntityOfPage: {
@@ -68,7 +68,7 @@ export default function BlogPost() {
         <Container size="md" className="py-16">
           <Link
             to="/blog"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 hover:text-surface-900"
+            className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
           >
             <ArrowLeft size={14} />
             All posts
@@ -81,7 +81,7 @@ export default function BlogPost() {
               {post.title}
             </h1>
             <p className="mt-4 text-lg text-surface-500">{post.excerpt}</p>
-            <div className="mt-6 flex items-center gap-3 text-xs text-surface-400">
+            <div className="mt-6 flex items-center gap-3 text-xs text-surface-500">
               <span>{formatDate(post.publishedAt)}</span>
               <span aria-hidden>·</span>
               <span>{post.readingMinutes} min read</span>
@@ -133,12 +133,33 @@ export default function BlogPost() {
                   <strong className="font-semibold text-surface-900" {...props} />
                 ),
                 em: (props) => <em className="italic" {...props} />,
-                a: (props) => (
-                  <a
-                    className="text-accent-600 underline underline-offset-2 hover:text-accent-500"
-                    {...props}
-                  />
-                ),
+                a: ({ href, children, ...rest }) => {
+                  // Internal links (anything starting with / that isn't a
+                  // protocol-relative URL) route through React Router so the
+                  // navigation stays SPA. External links get target=_blank
+                  // + rel hardening.
+                  const isInternal = typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')
+                  const className =
+                    'rounded text-accent-600 underline underline-offset-2 transition-colors hover:text-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50'
+                  if (isInternal && href) {
+                    return (
+                      <Link to={href} className={className}>
+                        {children}
+                      </Link>
+                    )
+                  }
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={className}
+                      {...rest}
+                    >
+                      {children}
+                    </a>
+                  )
+                },
                 code: (props) => (
                   <code
                     className="rounded bg-surface-100 px-1.5 py-0.5 font-mono text-[0.9em] text-surface-900"
@@ -170,7 +191,7 @@ export default function BlogPost() {
               <Link
                 key={p.slug}
                 to={`/blog/${p.slug}`}
-                className="group flex items-center justify-between gap-4 rounded-xl border border-surface-200 bg-white p-5 transition-colors hover:border-surface-300"
+                className="group flex items-center justify-between gap-4 rounded-xl border border-surface-200 bg-white p-5 transition-[colors,transform] duration-200 hover:-translate-y-0.5 hover:border-surface-300 motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
               >
                 <div className="min-w-0">
                   <div className="text-xs font-medium uppercase tracking-wider text-accent-600">

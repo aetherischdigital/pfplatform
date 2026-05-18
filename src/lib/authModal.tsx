@@ -1,21 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-  type ReactNode,
-} from 'react'
-
-export type AuthView = 'login' | 'signup'
-
-type AuthModalContextValue = {
-  open: boolean
-  view: AuthView
-  openModal: (view?: AuthView) => void
-  closeModal: () => void
-}
-
-const AuthModalContext = createContext<AuthModalContextValue | null>(null)
+import { useCallback, useState, type ReactNode } from 'react'
+import { AuthModalContext, type AuthView } from './useAuthModal'
 
 export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -33,10 +17,4 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthModalContext.Provider>
   )
-}
-
-export function useAuthModal(): AuthModalContextValue {
-  const ctx = useContext(AuthModalContext)
-  if (!ctx) throw new Error('useAuthModal must be used inside <AuthModalProvider>')
-  return ctx
 }

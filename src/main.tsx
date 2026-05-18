@@ -17,3 +17,13 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+// Register the service worker only on production builds. Dev keeps SW off
+// so HMR/cache busting works normally.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Swallow — SW registration is best-effort and never blocks the app.
+    })
+  })
+}

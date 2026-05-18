@@ -40,14 +40,14 @@ function upsertLink(rel: string, href: string) {
 
 const JSON_LD_FLAG = 'data-pfp-jsonld'
 
-function upsertJsonLd(data: object | null) {
+function upsertJsonLdString(serialized: string) {
   const existing = document.head.querySelector(`script[${JSON_LD_FLAG}]`)
   if (existing) existing.remove()
-  if (data) {
+  if (serialized) {
     const tag = document.createElement('script')
     tag.setAttribute('type', 'application/ld+json')
     tag.setAttribute(JSON_LD_FLAG, '')
-    tag.textContent = JSON.stringify(data)
+    tag.textContent = serialized
     document.head.appendChild(tag)
   }
 }
@@ -60,43 +60,56 @@ function upsertJsonLd(data: object | null) {
  * index.html — proper SSR/SSG is a Phase 4 polish item.
  */
 export function usePageMeta(meta: PageMeta) {
+  // jsonLd is an object — comparing by reference would re-run on every render.
+  // Compare by serialized string instead, and feed that string into upsert.
   const jsonLdStr = meta.jsonLd ? JSON.stringify(meta.jsonLd) : ''
+  const {
+    title,
+    description,
+    image,
+    url,
+    type: typeProp,
+    publishedTime,
+    modifiedTime,
+    author,
+    noindex,
+  } = meta
   useEffect(() => {
-    const fullTitle = `${meta.title} — ${BRAND.name}`
-    const fullUrl = meta.url ? `${BRAND.siteUrl}${meta.url}` : BRAND.siteUrl
-    const image = meta.image ?? `${BRAND.siteUrl}/og-image.svg`
-    const type = meta.type ?? 'website'
+    const fullTitle = `${title} — ${BRAND.name}`
+    const fullUrl = url ? `${BRAND.siteUrl}${url}` : BRAND.siteUrl
+    const resolvedImage = image ?? `${BRAND.siteUrl}/og-image.png`
+    const type = typeProp ?? 'website'
 
     document.title = fullTitle
-    upsertMeta('description', meta.description)
+    upsertMeta('description', description)
     upsertMeta('og:title', fullTitle, 'property')
-    upsertMeta('og:description', meta.description, 'property')
+    upsertMeta('og:description', description, 'property')
     upsertMeta('og:url', fullUrl, 'property')
-    upsertMeta('og:image', image, 'property')
+    upsertMeta('og:image', resolvedImage, 'property')
     upsertMeta('og:type', type, 'property')
     upsertMeta('twitter:title', fullTitle)
-    upsertMeta('twitter:description', meta.description)
-    upsertMeta('twitter:image', image)
+    upsertMeta('twitter:description', description)
+    upsertMeta('twitter:image', resolvedImage)
     upsertLink('canonical', fullUrl)
-    upsertMeta('robots', meta.noindex ? 'noindex,nofollow' : 'index,follow')
+    upsertMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow')
 
     if (type === 'article') {
-      if (meta.publishedTime) upsertMeta('article:published_time', meta.publishedTime, 'property')
-      if (meta.modifiedTime) upsertMeta('article:modified_time', meta.modifiedTime, 'property')
-      if (meta.author) upsertMeta('article:author', meta.author, 'property')
+      if (publishedTime) upsertMeta('article:published_time', publishedTime, 'property')
+      if (modifiedTime) upsertMeta('article:modified_time', modifiedTime, 'property')
+      if (author) upsertMeta('article:author', author, 'property')
     }
 
-    upsertJsonLd(meta.jsonLd ?? null)
+    upsertJsonLdString(jsonLdStr)
   }, [
-    meta.title,
-    meta.description,
-    meta.image,
-    meta.url,
-    meta.type,
-    meta.publishedTime,
-    meta.modifiedTime,
-    meta.author,
-    meta.noindex,
+    title,
+    description,
+    image,
+    url,
+    typeProp,
+    publishedTime,
+    modifiedTime,
+    author,
+    noindex,
     jsonLdStr,
   ])
 }
