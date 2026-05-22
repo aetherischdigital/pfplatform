@@ -5,21 +5,26 @@ import {
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
   EXPENSE_CATEGORY_LABELS,
+  LIVING_EXPENSE_CATEGORY_LABELS,
   deleteMortgage,
   deletePfsRecord,
+  deleteLivingExpense,
   fetchPfs,
   totals,
   type Pfs,
   type PfsRecordKind,
+  type LivingExpense,
 } from '../../lib/pfs'
 import { formatUSD } from '../../lib/mortgage'
 import { Button } from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import PfsRecordModal, { type ExistingRecord } from '../../components/pfs/PfsRecordModal'
+import LivingExpenseModal from '../../components/pfs/LivingExpenseModal'
 import MortgageModal from '../../components/pfs/MortgageModal'
 
 type PendingDelete =
   | { kind: 'record'; id: string; label: string }
+  | { kind: 'living_expense'; id: string; label: string }
   | { kind: 'mortgage'; id: string; propertyLabel: string }
 
 export default function Financials() {
@@ -45,6 +50,8 @@ export default function Financials() {
   }, [searchParams, setSearchParams])
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [livingModal, setLivingModal] = useState<{ existing: LivingExpense | null } | null>(null)
 
   const load = useCallback(() => {
     return fetchPfs()
@@ -98,6 +105,8 @@ export default function Financials() {
     try {
       if (pendingDelete.kind === 'record') {
         await deletePfsRecord(pendingDelete.id)
+      } else if (pendingDelete.kind === 'living_expense') {
+        await deleteLivingExpense(pendingDelete.id)
       } else {
         await deleteMortgage(pendingDelete.id)
       }
@@ -163,7 +172,7 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Liabilities"
+        title="Liabilities (secured debt)"
         total={t.ledgerLiabilities}
         totalSign="−"
         onAdd={() => setRecordModal({ kind: 'liability' })}
@@ -175,9 +184,7 @@ export default function Financials() {
             rows={pfs.liabilities.map((l) => ({
               id: l.id,
               label: l.label,
-              sub: l.rate
-                ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}% APR`
-                : LIABILITY_CATEGORY_LABELS[l.category],
+              sub: debtSub(LIABILITY_CATEGORY_LABELS[l.category], l.rate, l.monthlyPayment),
               value: formatUSD(l.balance),
               onEdit: () =>
                 setRecordModal({ kind: 'liability', existing: { kind: 'liability', ...l } }),
@@ -256,10 +263,9 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Expenses"
-        total={t.monthlyExpenses}
+        title="Expenses (unsecured debt)"
+        total={t.unsecuredDebt}
         totalSign="−"
-        totalSuffix=" / mo"
         onAdd={() => setRecordModal({ kind: 'expense' })}
       >
         {pfs.expenses.length === 0 ? (
@@ -269,11 +275,38 @@ export default function Financials() {
             rows={pfs.expenses.map((e) => ({
               id: e.id,
               label: e.label,
-              sub: EXPENSE_CATEGORY_LABELS[e.category],
-              value: formatUSD(e.monthly),
+              sub: debtSub(EXPENSE_CATEGORY_LABELS[e.category], e.rate, e.monthlyPayment),
+              value: formatUSD(e.balance),
               onEdit: () =>
                 setRecordModal({ kind: 'expense', existing: { kind: 'expense', ...e } }),
               onDelete: () => onDeleteRecord(e.id, e.label),
+            }))}
+          />
+        )}
+      </Section>
+
+      <Section
+        title="Living expenses"
+        total={t.monthlyLivingExpenses}
+        totalSign="−"
+        totalSuffix=" / mo"
+        onAdd={() => setLivingModal({ existing: null })}
+      >
+        {pfs.livingExpenses.length === 0 ? (
+          <div className="px-6 py-5 text-center text-sm text-surface-500">
+            No living expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
+            These aren&rsquo;t part of your PFS — they power your discretionary-income view.
+          </div>
+        ) : (
+          <ItemList
+            rows={pfs.livingExpenses.map((e) => ({
+              id: e.id,
+              label: e.label,
+              sub: LIVING_EXPENSE_CATEGORY_LABELS[e.category],
+              value: `${formatUSD(e.monthlyAmount)} / mo`,
+              onEdit: () => setLivingModal({ existing: e }),
+              onDelete: () =>
+                setPendingDelete({ kind: 'living_expense', id: e.id, label: e.label }),
             }))}
           />
         )}
@@ -298,13 +331,22 @@ export default function Financials() {
         />
       )}
 
+      {livingModal && (
+        <LivingExpenseModal
+          open
+          onClose={() => setLivingModal(null)}
+          onSaved={load}
+          existing={livingModal.existing}
+        />
+      )}
+
       <ConfirmDialog
         open={pendingDelete !== null}
         title={pendingDelete?.kind === 'mortgage' ? 'Delete mortgage?' : 'Delete entry?'}
         message={
           pendingDelete?.kind === 'mortgage'
             ? `Delete the mortgage for "${pendingDelete.propertyLabel}"? Payoff projections and equity math will go with it.`
-            : pendingDelete?.kind === 'record'
+            : pendingDelete?.kind === 'record' || pendingDelete?.kind === 'living_expense'
               ? `Delete "${pendingDelete.label}"? This can't be undone.`
               : ''
         }
@@ -316,6 +358,20 @@ export default function Financials() {
       />
     </div>
   )
+}
+
+function debtSub(
+  category: string,
+  rate: number | undefined,
+  monthlyPayment: number | null,
+): string {
+  return [
+    category,
+    rate ? `${rate}% APR` : null,
+    monthlyPayment != null ? `${formatUSD(monthlyPayment)}/mo` : null,
+  ]
+    .filter(Boolean)
+    .join(' • ')
 }
 
 function Headline({

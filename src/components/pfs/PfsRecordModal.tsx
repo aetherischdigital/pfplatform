@@ -35,11 +35,15 @@ type Props = {
   existing?: ExistingRecord
 }
 
+/** Debts (secured liabilities + unsecured expenses) carry a balance plus an
+ *  optional rate and monthly payment. Income/assets are a single amount. */
+const isDebt = (kind: PfsRecordKind) => kind === 'liability' || kind === 'expense'
+
 const kindLabels: Record<PfsRecordKind, { title: string; amount: string }> = {
   asset: { title: 'asset', amount: 'Value' },
-  liability: { title: 'liability', amount: 'Balance' },
+  liability: { title: 'secured debt', amount: 'Balance' },
   income: { title: 'income source', amount: 'Monthly amount' },
-  expense: { title: 'expense', amount: 'Monthly amount' },
+  expense: { title: 'unsecured debt', amount: 'Balance' },
 }
 
 export default function PfsRecordModal({ open, onClose, onSaved, kind, existing }: Props) {
@@ -51,8 +55,9 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
   const [amount, setAmount] = useState(initial.amount)
   const [category, setCategory] = useState(initial.category)
   const [rate, setRate] = useState(initial.rate)
+  const [monthlyPayment, setMonthlyPayment] = useState(initial.monthlyPayment)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; rate?: string }>({})
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: string; rate?: string; monthlyPayment?: string }>({})
   const [saving, setSaving] = useState(false)
 
   const onSubmit = async (e: FormEvent) => {
@@ -61,7 +66,7 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
     setFieldErrors({})
 
     const amountNum = parseMoney(amount)
-    const errs: { amount?: string; rate?: string } = {}
+    const errs: { amount?: string; rate?: string; monthlyPayment?: string } = {}
     if (amountNum === null || amountNum <= 0) {
       errs.amount = 'Enter an amount greater than $0.'
     }
@@ -69,7 +74,10 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
     if (rate.trim() !== '' && (rateNum === undefined || !Number.isFinite(rateNum) || rateNum < 0)) {
       errs.rate = 'Rate must be a positive number (e.g. 6.5 for 6.5%).'
     }
-    // The `amountNum === null` guard also narrows it to a number below.
+    const paymentNum = monthlyPayment.trim() === '' ? null : parseMoney(monthlyPayment)
+    if (monthlyPayment.trim() !== '' && (paymentNum === null || paymentNum < 0)) {
+      errs.monthlyPayment = 'Enter a valid monthly payment, or leave it blank.'
+    }
     if (Object.keys(errs).length > 0 || amountNum === null) {
       setFieldErrors(errs)
       return
@@ -87,10 +95,18 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
                 category: category as LiabilityCategory,
                 amount: amountNum,
                 rate: rateNum,
+                monthlyPayment: paymentNum,
               }
             : kind === 'income'
               ? { kind, label, amount: amountNum }
-              : { kind, label, category: category as ExpenseCategory, amount: amountNum }
+              : {
+                  kind,
+                  label,
+                  category: category as ExpenseCategory,
+                  amount: amountNum,
+                  rate: rateNum,
+                  monthlyPayment: paymentNum,
+                }
 
       if (existing) await updatePfsRecord(existing.id, input)
       else await createPfsRecord(input)
@@ -142,7 +158,11 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
           </Field>
         )}
 
-        <Field label={labels.amount} error={fieldErrors.amount}>
+        <Field
+          label={labels.amount}
+          hint={isDebt(kind) ? 'The amount you currently owe. Counts toward net worth.' : undefined}
+          error={fieldErrors.amount}
+        >
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
               $
@@ -161,29 +181,53 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
           </div>
         </Field>
 
-        {kind === 'liability' && (
-          <Field
-            label="Interest rate (optional)"
-            hint="Annual rate (e.g. 6.5 for 6.5%). Used to show APR alongside the balance."
-            error={fieldErrors.rate}
-          >
-            <div className="relative">
-              <input
-                type="number"
-                aria-invalid={fieldErrors.rate ? true : undefined}
-                inputMode="decimal"
-                step="0.001"
-                min="0"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                placeholder="6.5"
-                className={`${modalFieldClass} pr-9 ${fieldErrors.rate ? 'border-danger-200 focus:border-danger-600' : ''}`}
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
-                %
-              </span>
-            </div>
-          </Field>
+        {isDebt(kind) && (
+          <>
+            <Field
+              label="Monthly payment (optional)"
+              hint="Your recurring payment. Used in the cash-flow / discretionary-income view."
+              error={fieldErrors.monthlyPayment}
+            >
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
+                  $
+                </span>
+                <input
+                  type="text"
+                  aria-invalid={fieldErrors.monthlyPayment ? true : undefined}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={monthlyPayment}
+                  onChange={(e) => setMonthlyPayment(e.target.value)}
+                  placeholder="0.00"
+                  className={`${modalFieldClass} pl-7 ${fieldErrors.monthlyPayment ? 'border-danger-200 focus:border-danger-600' : ''}`}
+                />
+              </div>
+            </Field>
+
+            <Field
+              label="Interest rate (optional)"
+              hint="Annual rate (e.g. 6.5 for 6.5%). Shown as APR alongside the balance."
+              error={fieldErrors.rate}
+            >
+              <div className="relative">
+                <input
+                  type="number"
+                  aria-invalid={fieldErrors.rate ? true : undefined}
+                  inputMode="decimal"
+                  step="0.001"
+                  min="0"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  placeholder="6.5"
+                  className={`${modalFieldClass} pr-9 ${fieldErrors.rate ? 'border-danger-200 focus:border-danger-600' : ''}`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
+                  %
+                </span>
+              </div>
+            </Field>
+          </>
         )}
 
         {error && (
@@ -234,9 +278,9 @@ function defaultCategory(kind: PfsRecordKind): string {
     case 'asset':
       return 'real_estate'
     case 'liability':
-      return 'credit_card'
+      return 'auto_loan'
     case 'expense':
-      return 'housing'
+      return 'credit_card'
     case 'income':
       return ''
   }
@@ -245,12 +289,12 @@ function defaultCategory(kind: PfsRecordKind): string {
 function initialFormState(
   kind: PfsRecordKind,
   existing: ExistingRecord | undefined,
-): { label: string; amount: string; category: string; rate: string } {
+): { label: string; amount: string; category: string; rate: string; monthlyPayment: string } {
   if (!existing) {
-    return { label: '', amount: '', category: defaultCategory(kind), rate: '' }
+    return { label: '', amount: '', category: defaultCategory(kind), rate: '', monthlyPayment: '' }
   }
   if (existing.kind === 'asset') {
-    return { label: existing.label, amount: String(existing.value), category: existing.category, rate: '' }
+    return { label: existing.label, amount: String(existing.value), category: existing.category, rate: '', monthlyPayment: '' }
   }
   if (existing.kind === 'liability') {
     return {
@@ -258,12 +302,19 @@ function initialFormState(
       amount: String(existing.balance),
       category: existing.category,
       rate: existing.rate != null ? String(existing.rate) : '',
+      monthlyPayment: existing.monthlyPayment != null ? String(existing.monthlyPayment) : '',
     }
   }
   if (existing.kind === 'income') {
-    return { label: existing.label, amount: String(existing.monthly), category: '', rate: '' }
+    return { label: existing.label, amount: String(existing.monthly), category: '', rate: '', monthlyPayment: '' }
   }
-  return { label: existing.label, amount: String(existing.monthly), category: existing.category, rate: '' }
+  return {
+    label: existing.label,
+    amount: String(existing.balance),
+    category: existing.category,
+    rate: existing.rate != null ? String(existing.rate) : '',
+    monthlyPayment: existing.monthlyPayment != null ? String(existing.monthlyPayment) : '',
+  }
 }
 
 function placeholderFor(kind: PfsRecordKind): string {
@@ -271,11 +322,11 @@ function placeholderFor(kind: PfsRecordKind): string {
     case 'asset':
       return 'Primary residence'
     case 'liability':
-      return 'Primary mortgage'
+      return 'Auto loan — Honda'
     case 'income':
       return 'Salary'
     case 'expense':
-      return 'Groceries'
+      return 'Visa card'
   }
 }
 
@@ -286,12 +337,7 @@ function categoryOptionsFor(
     return Object.entries(ASSET_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
   }
   if (kind === 'liability') {
-    // The mortgage is entered via the dedicated Mortgage form, never as a
-    // ledger liability — that keeps the loan counted exactly once across net
-    // worth and home equity.
-    return Object.entries(LIABILITY_CATEGORY_LABELS)
-      .filter(([value]) => value !== 'mortgage')
-      .map(([value, label]) => ({ value, label }))
+    return Object.entries(LIABILITY_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
   }
   if (kind === 'expense') {
     return Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))

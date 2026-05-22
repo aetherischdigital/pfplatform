@@ -7,6 +7,7 @@ import {
   totals,
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
+  EXPENSE_CATEGORY_LABELS,
   type Pfs,
 } from '../../lib/pfs'
 import { fetchOwnProfile, displayLabel, type Profile } from '../../lib/profile'
@@ -21,6 +22,7 @@ import {
 import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import OnboardingCard from '../../components/app/OnboardingCard'
+import CashFlowSection from '../../components/app/CashFlowSection'
 
 export default function Dashboard() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -113,6 +115,8 @@ export default function Dashboard() {
         <NoMortgagePrompt />
       )}
 
+      <CashFlowSection pfs={pfs} />
+
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
           title="Assets"
@@ -147,6 +151,14 @@ export default function Dashboard() {
                 ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
                 : LIABILITY_CATEGORY_LABELS[l.category],
               value: formatUSD(l.balance),
+            })),
+            ...pfs.expenses.map((e) => ({
+              id: e.id,
+              label: e.label,
+              sub: e.rate
+                ? `${EXPENSE_CATEGORY_LABELS[e.category]} • ${e.rate}%`
+                : EXPENSE_CATEGORY_LABELS[e.category],
+              value: formatUSD(e.balance),
             })),
           ]}
           totalSign="−"

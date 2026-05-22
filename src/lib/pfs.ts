@@ -2,6 +2,12 @@ import { supabase } from './supabase'
 
 // ---------------------------------------------------------------------------
 // Types — mirror the DB schema in 20260512000000_pfs_records.sql
+// + secured/unsecured recategorization (20260522010000_pfs_secured_unsecured.sql)
+//
+// Thomas's model: Liabilities = SECURED debt (backed by an asset); Expenses =
+// UNSECURED debt / obligations (no collateral). Both keep a balance so they
+// count against net worth. Household / living spend lives OUTSIDE the PFS in
+// the living_expenses table (feeds the cash-flow / discretionary tool).
 // ---------------------------------------------------------------------------
 
 export type AssetCategory =
@@ -12,14 +18,35 @@ export type AssetCategory =
   | 'vehicle'
   | 'other'
 
-export type LiabilityCategory =
-  | 'mortgage'
-  | 'auto_loan'
-  | 'student_loan'
+/** SECURED debt only — backed by an asset the lender can take. The mortgage
+ *  itself lives in the `mortgages` table, not here. */
+export type LiabilityCategory = 'auto_loan' | 'heloc' | 'other'
+
+/** UNSECURED debt / obligations — no collateral. Shown under "Expenses" per the
+ *  methodology, but they keep a balance so they still hit net worth. */
+export type ExpenseCategory =
   | 'credit_card'
+  | 'student_loan'
+  | 'alimony'
+  | 'child_support'
+  | 'medical_debt'
+  | 'personal_loan'
+  | 'tax_debt'
+  | 'notes_due_others'
   | 'other'
 
-export type ExpenseCategory = 'housing' | 'transportation' | 'food' | 'other'
+/** Household / living spend — NOT part of the PFS. Feeds the cash-flow tool. */
+export type LivingExpenseCategory =
+  | 'housing'
+  | 'utilities'
+  | 'transportation'
+  | 'food'
+  | 'insurance'
+  | 'phone'
+  | 'internet_cable'
+  | 'healthcare'
+  | 'subscriptions'
+  | 'other'
 
 export type PfsRecordKind = 'asset' | 'liability' | 'income' | 'expense'
 
@@ -36,6 +63,8 @@ export type Liability = {
   category: LiabilityCategory
   balance: number
   rate?: number
+  /** Recurring monthly payment, if known — feeds the cash-flow view. */
+  monthlyPayment: number | null
 }
 
 export type IncomeSource = {
@@ -44,11 +73,22 @@ export type IncomeSource = {
   monthly: number
 }
 
+/** An unsecured debt / obligation. Carries a balance (counts toward net worth)
+ *  plus an optional monthly payment (feeds the cash-flow view). */
 export type Expense = {
   id: string
   label: string
-  monthly: number
   category: ExpenseCategory
+  balance: number
+  rate?: number
+  monthlyPayment: number | null
+}
+
+export type LivingExpense = {
+  id: string
+  label: string
+  category: LivingExpenseCategory
+  monthlyAmount: number
 }
 
 export type Mortgage = {
@@ -67,6 +107,7 @@ export type Pfs = {
   liabilities: Liability[]
   income: IncomeSource[]
   expenses: Expense[]
+  livingExpenses: LivingExpense[]
   mortgage: Mortgage | null
 }
 
@@ -80,17 +121,33 @@ export const ASSET_CATEGORY_LABELS: Record<AssetCategory, string> = {
 }
 
 export const LIABILITY_CATEGORY_LABELS: Record<LiabilityCategory, string> = {
-  mortgage: 'Mortgage',
   auto_loan: 'Auto loan',
-  student_loan: 'Student loan',
-  credit_card: 'Credit card',
-  other: 'Other',
+  heloc: 'HELOC / second mortgage',
+  other: 'Other secured debt',
 }
 
 export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
-  housing: 'Housing',
+  credit_card: 'Credit card',
+  student_loan: 'Student loan',
+  alimony: 'Alimony',
+  child_support: 'Child support',
+  medical_debt: 'Medical debt',
+  personal_loan: 'Personal loan',
+  tax_debt: 'Tax debt',
+  notes_due_others: 'Notes due to others',
+  other: 'Other unsecured debt',
+}
+
+export const LIVING_EXPENSE_CATEGORY_LABELS: Record<LivingExpenseCategory, string> = {
+  housing: 'Housing (rent / non-mortgage)',
+  utilities: 'Utilities',
   transportation: 'Transportation',
-  food: 'Food',
+  food: 'Food & groceries',
+  insurance: 'Insurance',
+  phone: 'Phone',
+  internet_cable: 'Internet / cable',
+  healthcare: 'Healthcare',
+  subscriptions: 'Subscriptions',
   other: 'Other',
 }
 
@@ -105,6 +162,15 @@ type PfsRecordRow = {
   category: string | null
   amount: string | number
   rate: string | number | null
+  monthly_payment: string | number | null
+  created_at: string
+}
+
+type LivingExpenseRow = {
+  id: string
+  label: string
+  category: string
+  monthly_amount: string | number
   created_at: string
 }
 
@@ -121,16 +187,18 @@ type MortgageRow = {
 }
 
 const num = (v: string | number): number => (typeof v === 'string' ? Number(v) : v)
+const nullableNum = (v: string | number | null): number | null =>
+  v === null ? null : typeof v === 'string' ? Number(v) : v
 
 // ---------------------------------------------------------------------------
 // Fetch — one round-trip per table, parallel
 // ---------------------------------------------------------------------------
 
 export async function fetchPfs(): Promise<Pfs> {
-  const [records, mortgage] = await Promise.all([
+  const [records, mortgage, living] = await Promise.all([
     supabase
       .from('pfs_records')
-      .select('id,kind,label,category,amount,rate,created_at')
+      .select('id,kind,label,category,amount,rate,monthly_payment,created_at')
       .order('created_at', { ascending: true }),
     supabase
       .from('mortgages')
@@ -140,10 +208,15 @@ export async function fetchPfs(): Promise<Pfs> {
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('living_expenses')
+      .select('id,label,category,monthly_amount,created_at')
+      .order('created_at', { ascending: true }),
   ])
 
   if (records.error) throw records.error
   if (mortgage.error) throw mortgage.error
+  if (living.error) throw living.error
 
   const rows = (records.data ?? []) as PfsRecordRow[]
   const m = mortgage.data as MortgageRow | null
@@ -155,6 +228,8 @@ export async function fetchPfs(): Promise<Pfs> {
 
   for (const r of rows) {
     const amount = num(r.amount)
+    const rate = r.rate != null ? num(r.rate) : undefined
+    const monthlyPayment = nullableNum(r.monthly_payment)
     switch (r.kind) {
       case 'asset':
         assets.push({ id: r.id, label: r.label, category: r.category as AssetCategory, value: amount })
@@ -165,7 +240,8 @@ export async function fetchPfs(): Promise<Pfs> {
           label: r.label,
           category: r.category as LiabilityCategory,
           balance: amount,
-          rate: r.rate != null ? num(r.rate) : undefined,
+          rate,
+          monthlyPayment,
         })
         break
       case 'income':
@@ -176,17 +252,27 @@ export async function fetchPfs(): Promise<Pfs> {
           id: r.id,
           label: r.label,
           category: r.category as ExpenseCategory,
-          monthly: amount,
+          balance: amount,
+          rate,
+          monthlyPayment,
         })
         break
     }
   }
+
+  const livingExpenses: LivingExpense[] = ((living.data ?? []) as LivingExpenseRow[]).map((l) => ({
+    id: l.id,
+    label: l.label,
+    category: l.category as LivingExpenseCategory,
+    monthlyAmount: num(l.monthly_amount),
+  }))
 
   return {
     assets,
     liabilities,
     income,
     expenses,
+    livingExpenses,
     mortgage: m
       ? {
           id: m.id,
@@ -208,15 +294,37 @@ export async function fetchPfs(): Promise<Pfs> {
 
 export type PfsRecordInput =
   | { kind: 'asset'; label: string; category: AssetCategory; amount: number }
-  | { kind: 'liability'; label: string; category: LiabilityCategory; amount: number; rate?: number }
+  | {
+      kind: 'liability'
+      label: string
+      category: LiabilityCategory
+      amount: number
+      rate?: number
+      monthlyPayment?: number | null
+    }
   | { kind: 'income'; label: string; amount: number }
-  | { kind: 'expense'; label: string; category: ExpenseCategory; amount: number }
+  | {
+      kind: 'expense'
+      label: string
+      category: ExpenseCategory
+      amount: number
+      rate?: number
+      monthlyPayment?: number | null
+    }
 
 async function currentUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser()
   if (error) throw error
   if (!data.user) throw new Error('Not signed in')
   return data.user.id
+}
+
+/** Debts (liability + expense) carry rate + monthly_payment; asset/income don't. */
+function recordExtras(input: PfsRecordInput): { rate: number | null; monthly_payment: number | null } {
+  if (input.kind === 'liability' || input.kind === 'expense') {
+    return { rate: input.rate ?? null, monthly_payment: input.monthlyPayment ?? null }
+  }
+  return { rate: null, monthly_payment: null }
 }
 
 export async function createPfsRecord(input: PfsRecordInput): Promise<void> {
@@ -227,7 +335,7 @@ export async function createPfsRecord(input: PfsRecordInput): Promise<void> {
     label: input.label.trim(),
     category: input.kind === 'income' ? null : input.category,
     amount: input.amount,
-    rate: input.kind === 'liability' ? input.rate ?? null : null,
+    ...recordExtras(input),
   }
   const { error } = await supabase.from('pfs_records').insert(row)
   if (error) throw error
@@ -239,7 +347,7 @@ export async function updatePfsRecord(id: string, input: PfsRecordInput): Promis
     label: input.label.trim(),
     category: input.kind === 'income' ? null : input.category,
     amount: input.amount,
-    rate: input.kind === 'liability' ? input.rate ?? null : null,
+    ...recordExtras(input),
   }
   const { error } = await supabase.from('pfs_records').update(patch).eq('id', id)
   if (error) throw error
@@ -247,6 +355,44 @@ export async function updatePfsRecord(id: string, input: PfsRecordInput): Promis
 
 export async function deletePfsRecord(id: string): Promise<void> {
   const { error } = await supabase.from('pfs_records').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
+// Mutations — living_expenses
+// ---------------------------------------------------------------------------
+
+export type LivingExpenseInput = {
+  label: string
+  category: LivingExpenseCategory
+  monthlyAmount: number
+}
+
+export async function createLivingExpense(input: LivingExpenseInput): Promise<void> {
+  const user_id = await currentUserId()
+  const { error } = await supabase.from('living_expenses').insert({
+    user_id,
+    label: input.label.trim(),
+    category: input.category,
+    monthly_amount: input.monthlyAmount,
+  })
+  if (error) throw error
+}
+
+export async function updateLivingExpense(id: string, input: LivingExpenseInput): Promise<void> {
+  const { error } = await supabase
+    .from('living_expenses')
+    .update({
+      label: input.label.trim(),
+      category: input.category,
+      monthly_amount: input.monthlyAmount,
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteLivingExpense(id: string): Promise<void> {
+  const { error } = await supabase.from('living_expenses').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -298,46 +444,59 @@ export async function deleteMortgage(id: string): Promise<void> {
 
 export type Totals = {
   totalAssets: number
-  /** pfs_records liabilities only — excludes the mortgage. */
+  /** Secured pfs_records liabilities only — excludes the mortgage. */
   ledgerLiabilities: number
-  /** ledgerLiabilities + the mortgage balance — the true PFS liability total. */
+  /** Unsecured debt balances (the "expenses" section). */
+  unsecuredDebt: number
+  /** ledgerLiabilities + mortgage balance + unsecured debt — true PFS liability total. */
   totalLiabilities: number
   netWorth: number
   homeEquity: number
   monthlyIncome: number
+  /** Monthly debt payments: secured + unsecured + mortgage P&I. */
+  monthlyDebtPayments: number
+  /** Monthly household / living spend. */
+  monthlyLivingExpenses: number
+  /** Total monthly outflow = debt payments + living expenses. */
   monthlyExpenses: number
+  /** Income − total outflow. The "what's left" / discretionary number. */
   monthlyCashFlow: number
 }
 
 export function totals(pfs: Pfs): Totals {
   const totalAssets = pfs.assets.reduce((s, a) => s + a.value, 0)
   const monthlyIncome = pfs.income.reduce((s, i) => s + i.monthly, 0)
-  const monthlyExpenses = pfs.expenses.reduce((s, e) => s + e.monthly, 0)
 
-  // The mortgage is represented exactly once, by the dedicated `mortgages`
-  // table — the liability form deliberately omits the "mortgage" category so
-  // the loan is never also entered as a pfs_records row. Summing the ledger
-  // liabilities and adding the mortgage balance therefore counts the debt once,
-  // and the SAME `mortgageBalance` feeds both net worth and home equity, so the
-  // two figures can never contradict each other on the dashboard.
+  // Every debt counts toward net worth, just in different sections: secured ->
+  // Liabilities, the mortgage -> the mortgages table, unsecured -> Expenses.
+  // The SAME mortgageBalance feeds both net worth and home equity.
   const ledgerLiabilities = pfs.liabilities.reduce((s, l) => s + l.balance, 0)
+  const unsecuredDebt = pfs.expenses.reduce((s, e) => s + e.balance, 0)
   const mortgageBalance = pfs.mortgage?.balance ?? 0
-  const totalLiabilities = ledgerLiabilities + mortgageBalance
+  const totalLiabilities = ledgerLiabilities + mortgageBalance + unsecuredDebt
 
-  // Current home value: the real-estate asset the user entered, falling back to
-  // the mortgage's starting home value when no real-estate asset exists yet.
   const homeValue =
     pfs.assets.find((a) => a.category === 'real_estate')?.value ??
     pfs.mortgage?.startingHomeValue ??
     0
 
+  const securedPayments = pfs.liabilities.reduce((s, l) => s + (l.monthlyPayment ?? 0), 0)
+  const unsecuredPayments = pfs.expenses.reduce((s, e) => s + (e.monthlyPayment ?? 0), 0)
+  const mortgagePayment = pfs.mortgage?.monthlyPayment ?? 0
+  const monthlyDebtPayments = securedPayments + unsecuredPayments + mortgagePayment
+  const monthlyLivingExpenses = pfs.livingExpenses.reduce((s, e) => s + e.monthlyAmount, 0)
+  const monthlyExpenses = monthlyDebtPayments + monthlyLivingExpenses
+
   return {
     totalAssets,
     ledgerLiabilities,
+    unsecuredDebt,
     totalLiabilities,
     netWorth: totalAssets - totalLiabilities,
     homeEquity: homeValue - mortgageBalance,
     monthlyIncome,
+    monthlyDebtPayments,
+    monthlyLivingExpenses,
     monthlyExpenses,
     monthlyCashFlow: monthlyIncome - monthlyExpenses,
   }
