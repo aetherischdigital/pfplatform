@@ -173,68 +173,53 @@ export default function Financials() {
 
       <Section
         title="Liabilities (secured debt)"
-        total={t.ledgerLiabilities}
+        total={t.ledgerLiabilities + (pfs.mortgage?.balance ?? 0)}
         totalSign="−"
-        onAdd={() => setRecordModal({ kind: 'liability' })}
+        rightAction={
+          <div className="flex gap-2">
+            {!pfs.mortgage && (
+              <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
+                <Plus size={14} /> Mortgage
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setRecordModal({ kind: 'liability' })}
+            >
+              <Plus size={14} /> Add
+            </Button>
+          </div>
+        }
       >
-        {pfs.liabilities.length === 0 ? (
+        {!pfs.mortgage && pfs.liabilities.length === 0 ? (
           <EmptyRow kind="liability" />
         ) : (
           <ItemList
-            rows={pfs.liabilities.map((l) => ({
-              id: l.id,
-              label: l.label,
-              sub: debtSub(LIABILITY_CATEGORY_LABELS[l.category], l.rate, l.monthlyPayment),
-              value: formatUSD(l.balance),
-              onEdit: () =>
-                setRecordModal({ kind: 'liability', existing: { kind: 'liability', ...l } }),
-              onDelete: () => onDeleteRecord(l.id, l.label),
-            }))}
+            rows={[
+              ...(pfs.mortgage
+                ? [
+                    {
+                      id: pfs.mortgage.id,
+                      label: pfs.mortgage.propertyLabel,
+                      sub: `Mortgage • ${pfs.mortgage.ratePct}% • ${pfs.mortgage.termMonthsRemaining} mo left • ${formatUSD(pfs.mortgage.monthlyPayment)}/mo P&I`,
+                      value: formatUSD(pfs.mortgage.balance),
+                      onEdit: () => setMortgageModalOpen(true),
+                      onDelete: () => onDeleteMortgage(),
+                    },
+                  ]
+                : []),
+              ...pfs.liabilities.map((l) => ({
+                id: l.id,
+                label: l.label,
+                sub: debtSub(LIABILITY_CATEGORY_LABELS[l.category], l.rate, l.monthlyPayment),
+                value: formatUSD(l.balance),
+                onEdit: () =>
+                  setRecordModal({ kind: 'liability', existing: { kind: 'liability', ...l } }),
+                onDelete: () => onDeleteRecord(l.id, l.label),
+              })),
+            ]}
           />
-        )}
-      </Section>
-
-      <Section
-        title="Mortgage details"
-        subtitle={
-          pfs.mortgage
-            ? `${pfs.mortgage.propertyLabel} • ${pfs.mortgage.ratePct}% • ${pfs.mortgage.termMonthsRemaining} mo left`
-            : 'Used by payoff projections and equity math.'
-        }
-        rightAction={
-          pfs.mortgage ? (
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
-                <Pencil size={14} /> Edit
-              </Button>
-              <Button variant="secondary" size="sm" onClick={onDeleteMortgage}>
-                <Trash2 size={14} /> Delete
-              </Button>
-            </div>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
-              <Plus size={14} /> Add
-            </Button>
-          )
-        }
-      >
-        {pfs.mortgage ? (
-          <dl className="divide-y divide-surface-200">
-            <DetailRow label="Balance" value={formatUSD(pfs.mortgage.balance)} />
-            <DetailRow label="Monthly P&I" value={formatUSD(pfs.mortgage.monthlyPayment)} />
-            <DetailRow
-              label="Extra principal / mo"
-              value={formatUSD(pfs.mortgage.extraPrincipal)}
-            />
-            <DetailRow
-              label="Starting home value"
-              value={formatUSD(pfs.mortgage.startingHomeValue)}
-            />
-          </dl>
-        ) : (
-          <div className="px-6 py-8 text-center text-sm text-surface-500">
-            No mortgage on file. Add one to enable payoff projections.
-          </div>
         )}
       </Section>
 
@@ -452,15 +437,6 @@ function Section({
   )
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between px-6 py-3">
-      <dt className="text-sm text-surface-500">{label}</dt>
-      <dd className="font-mono text-sm font-medium text-surface-900">{value}</dd>
-    </div>
-  )
-}
-
 function ItemList({ rows }: { rows: Row[] }) {
   return (
     <ul className="divide-y divide-surface-200">
@@ -498,9 +474,9 @@ function ItemList({ rows }: { rows: Row[] }) {
 function EmptyRow({ kind }: { kind: PfsRecordKind }) {
   const labels: Record<PfsRecordKind, string> = {
     asset: 'No assets yet. Add a home, retirement account, or cash.',
-    liability: 'No liabilities yet. Add auto loans, student loans, or credit cards. Your mortgage lives in its own section below.',
+    liability: 'No secured debt yet. Add your mortgage, auto loans, or a HELOC.',
     income: 'No income sources yet.',
-    expense: 'No expenses yet.',
+    expense: 'No unsecured debt yet. Add credit cards, student loans, alimony, etc.',
   }
   return <div className="px-6 py-8 text-center text-sm text-surface-500">{labels[kind]}</div>
 }
