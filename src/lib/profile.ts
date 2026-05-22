@@ -1,12 +1,19 @@
 import { supabase } from './supabase'
 
-export type UserRole = 'homeowner' | 'realtor' | 'admin'
+export type UserRole = 'homeowner' | 'advisor' | 'admin'
+
+/** For advisor-role users: realtor vs loan officer. Drives the UI label, the
+ *  license field (real-estate license vs NMLS #), and feature gating. Null for
+ *  non-advisors. */
+export type ProfessionalType = 'realtor' | 'loan_officer'
 
 export type WaitlistInterest = 'none' | 'plus' | 'pro'
 
 export type Profile = {
   id: string
   role: UserRole
+  /** Only meaningful for advisor-role users; null otherwise. */
+  professionalType: ProfessionalType | null
   displayName: string | null
   email: string | null
   waitlistInterest: WaitlistInterest
@@ -18,6 +25,7 @@ export type Profile = {
 type Row = {
   id: string
   role: UserRole
+  professional_type: ProfessionalType | null
   display_name: string | null
   email: string | null
   waitlist_interest: WaitlistInterest
@@ -30,7 +38,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, display_name, email, waitlist_interest, is_active')
+    .select('id, role, professional_type, display_name, email, waitlist_interest, is_active')
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
 
@@ -40,6 +48,7 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
   return {
     id: data.id,
     role: data.role,
+    professionalType: data.professional_type,
     displayName: data.display_name,
     email: data.email,
     waitlistInterest: data.waitlist_interest ?? 'none',
@@ -56,7 +65,7 @@ export function displayLabel(p: Profile | null): string {
 
 export function homePathFor(role: UserRole | null | undefined): string {
   switch (role) {
-    case 'realtor':
+    case 'advisor':
       return '/app/clients'
     case 'admin':
     case 'homeowner':
