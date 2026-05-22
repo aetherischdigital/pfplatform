@@ -15,7 +15,7 @@ type PendingAction =
 
 const ROLE_LABEL: Record<UserRole, string> = {
   homeowner: 'Homeowner',
-  realtor: 'Realtor',
+  advisor: 'Advisor',
   admin: 'Admin',
 }
 
@@ -89,7 +89,7 @@ export default function Admin() {
     const c = {
       total: users.length,
       homeowner: 0,
-      realtor: 0,
+      advisor: 0,
       admin: 0,
       inactive: 0,
       plus: 0,
@@ -176,7 +176,7 @@ export default function Admin() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <CountCard label="Total users" value={counts.total} />
         <CountCard label="Homeowners" value={counts.homeowner} />
-        <CountCard label="Realtors" value={counts.realtor} />
+        <CountCard label="Advisors" value={counts.advisor} />
         <CountCard label="Admins" value={counts.admin} accent />
         <CountCard label="Waiting on Plus" value={counts.plus} />
         <CountCard label="Waiting on Pro" value={counts.pro} />
@@ -211,7 +211,7 @@ export default function Admin() {
           >
             <option value="all">All roles</option>
             <option value="homeowner">Homeowners</option>
-            <option value="realtor">Realtors</option>
+            <option value="advisor">Advisors</option>
             <option value="admin">Admins</option>
           </select>
         </header>
@@ -270,7 +270,7 @@ export default function Admin() {
                         className="flex-1 rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="homeowner">Homeowner</option>
-                        <option value="realtor">Realtor</option>
+                        <option value="advisor">Advisor</option>
                         <option value="admin">Admin</option>
                       </select>
                     </div>
@@ -346,7 +346,7 @@ export default function Admin() {
                             className="rounded-md border border-surface-200 bg-white px-2 py-1 text-sm text-surface-900 outline-none focus:border-surface-400 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <option value="homeowner">Homeowner</option>
-                            <option value="realtor">Realtor</option>
+                            <option value="advisor">Advisor</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>

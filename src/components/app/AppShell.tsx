@@ -27,7 +27,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
     { to: '/app/financials', label: 'Financials', icon: FileText },
     { to: '/app/calculators', label: 'Calculators', icon: Calculator },
   ]
-  if (role === 'realtor') {
+  if (role === 'advisor') {
     items.push({ to: '/app/clients', label: 'Clients', icon: Users })
   }
   items.push({ to: '/app/account', label: 'Account', icon: User })
@@ -271,10 +271,10 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
           </button>
           <button
             type="button"
-            onClick={() => enterViewAs('realtor')}
+            onClick={() => enterViewAs('advisor')}
             className="rounded-md border border-surface-200 bg-white px-2 py-1.5 text-xs font-medium text-surface-700 transition-colors hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
           >
-            Realtor
+            Advisor
           </button>
         </div>
       </div>

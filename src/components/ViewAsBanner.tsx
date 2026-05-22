@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
 import { homePathFor } from '../lib/profile'
 
-const ROLE_LABEL: Record<'homeowner' | 'realtor' | 'admin', string> = {
+const ROLE_LABEL: Record<'homeowner' | 'advisor' | 'admin', string> = {
   homeowner: 'homeowner',
-  realtor: 'realtor',
+  advisor: 'advisor',
   admin: 'admin',
 }
 

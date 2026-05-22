@@ -5,7 +5,7 @@ import { fetchOwnProfile, type Profile, type UserRole } from './profile'
 import { AuthContext, type SignInArgs, type SignUpArgs } from './useAuth'
 
 const VIEW_AS_STORAGE_KEY = 'pfp:view-as'
-const VALID_ROLES: UserRole[] = ['homeowner', 'realtor', 'admin']
+const VALID_ROLES: UserRole[] = ['homeowner', 'advisor', 'admin']
 
 function readStoredViewAs(userId: string | null): UserRole | null {
   if (!userId || typeof window === 'undefined') return null
