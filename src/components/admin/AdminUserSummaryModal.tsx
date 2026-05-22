@@ -109,10 +109,14 @@ function SummaryBody({ summary }: { summary: AdminUserSummary }) {
     summary.mortgages.reduce((s, m) => s + m.startingHomeValue, 0)
   const totalLiabilities =
     summary.liabilities.reduce((s, l) => s + l.balance, 0) +
+    summary.expenses.reduce((s, e) => s + e.balance, 0) +
     summary.mortgages.reduce((s, m) => s + m.balance, 0)
   const netWorth = totalAssets - totalLiabilities
   const monthlyIncome = summary.income.reduce((s, i) => s + i.monthly, 0)
-  const monthlyExpenses = summary.expenses.reduce((s, e) => s + e.monthly, 0)
+  const monthlyExpenses =
+    summary.liabilities.reduce((s, l) => s + (l.monthlyPayment ?? 0), 0) +
+    summary.expenses.reduce((s, e) => s + (e.monthlyPayment ?? 0), 0) +
+    summary.mortgages.reduce((s, m) => s + m.monthlyPayment, 0)
   const monthlyNet = monthlyIncome - monthlyExpenses
 
   return (
@@ -278,13 +282,16 @@ function SummaryBody({ summary }: { summary: AdminUserSummary }) {
       />
 
       <RecordSection
-        title={`Expenses (${summary.expenses.length})`}
-        empty="No expenses recorded."
+        title={`Unsecured debt (${summary.expenses.length})`}
+        empty="No unsecured debt recorded."
         rows={summary.expenses.map((e) => ({
           id: e.id,
           label: e.label,
-          sub: EXPENSE_CATEGORY_LABELS[e.category],
-          value: `${formatUSD(e.monthly)}/mo`,
+          sub:
+            e.monthlyPayment != null
+              ? `${EXPENSE_CATEGORY_LABELS[e.category]} • ${formatUSD(e.monthlyPayment)}/mo`
+              : EXPENSE_CATEGORY_LABELS[e.category],
+          value: formatUSD(e.balance),
         }))}
       />
 

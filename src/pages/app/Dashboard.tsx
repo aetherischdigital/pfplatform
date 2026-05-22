@@ -17,6 +17,7 @@ import {
   totals,
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
+  EXPENSE_CATEGORY_LABELS,
   type Pfs,
 } from '../../lib/pfs'
 import { fetchOwnProfile, displayLabel, type Profile } from '../../lib/profile'
@@ -64,7 +65,12 @@ export default function Dashboard() {
   if (error || !pfs) return <ErrorState message={error ?? 'No data.'} />
 
   const t = totals(pfs)
-  const hasAnyData = pfs.assets.length > 0 || pfs.liabilities.length > 0 || pfs.income.length > 0 || pfs.expenses.length > 0
+  const hasAnyData =
+    pfs.assets.length > 0 ||
+    pfs.liabilities.length > 0 ||
+    pfs.income.length > 0 ||
+    pfs.expenses.length > 0 ||
+    pfs.livingExpenses.length > 0
 
   const greeting = greetingForNow()
   const name = displayLabel(profile)
@@ -147,7 +153,7 @@ export default function Dashboard() {
         <NoMortgagePrompt />
       )}
 
-      <CashFlowSection income={pfs.income} expenses={pfs.expenses} />
+      <CashFlowSection pfs={pfs} />
 
       {(t.totalAssets > 0 || t.totalLiabilities > 0) && (
         <NetWorthHistory totalAssets={t.totalAssets} totalLiabilities={t.totalLiabilities} />
@@ -187,6 +193,14 @@ export default function Dashboard() {
                 ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
                 : LIABILITY_CATEGORY_LABELS[l.category],
               value: formatUSD(l.balance),
+            })),
+            ...pfs.expenses.map((e) => ({
+              id: e.id,
+              label: e.label,
+              sub: e.rate
+                ? `${EXPENSE_CATEGORY_LABELS[e.category]} • ${e.rate}%`
+                : EXPENSE_CATEGORY_LABELS[e.category],
+              value: formatUSD(e.balance),
             })),
           ]}
           totalSign="−"

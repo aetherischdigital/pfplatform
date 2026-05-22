@@ -132,6 +132,7 @@ type RawSummary = {
     category: string | null
     amount: string | number
     rate: string | number | null
+    monthly_payment?: string | number | null
   }>
   business_ventures: Array<{
     id: string
@@ -203,6 +204,7 @@ export async function fetchUserSummary(userId: string): Promise<AdminUserSummary
         category: (r.category ?? 'other') as LiabilityCategory,
         balance: amount,
         rate,
+        monthlyPayment: nN(r.monthly_payment ?? null),
       })
     } else if (r.kind === 'income') {
       income.push({
@@ -216,7 +218,9 @@ export async function fetchUserSummary(userId: string): Promise<AdminUserSummary
         id: r.id,
         label: r.label,
         category: (r.category ?? 'other') as ExpenseCategory,
-        monthly: amount,
+        balance: amount,
+        rate,
+        monthlyPayment: nN(r.monthly_payment ?? null),
       })
     }
   }
