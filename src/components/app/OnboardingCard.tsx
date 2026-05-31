@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ListPlus, Home, Calculator as CalcIcon, X } from 'lucide-react'
+import { Check, ListPlus, Home, Wallet, Calculator as CalcIcon, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   ONBOARDING_DISMISSED_KEY as DISMISSED_KEY,
@@ -10,6 +10,9 @@ import {
 type OnboardingState = {
   hasAnyPfs: boolean
   hasMortgage: boolean
+  /** True when the user has BOTH an income source AND a living expense — the
+   *  cash flow waterfall needs both to tell a coherent story. */
+  hasCashFlowInputs: boolean
 }
 
 type Step = {
@@ -30,6 +33,7 @@ type Step = {
 export default function OnboardingCard({
   hasAnyPfs,
   hasMortgage,
+  hasCashFlowInputs,
 }: OnboardingState) {
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -66,6 +70,14 @@ export default function OnboardingCard({
       ctaLabel: 'Add mortgage',
       ctaTo: '/app/financials?add=mortgage',
       done: hasMortgage,
+    },
+    {
+      icon: Wallet,
+      title: 'Add income & household expenses',
+      body: "Your paycheck plus rent, groceries, utilities — what powers your cash flow waterfall.",
+      ctaLabel: 'Open the PFS',
+      ctaTo: '/app/financials',
+      done: hasCashFlowInputs,
     },
     {
       icon: CalcIcon,
@@ -139,10 +151,10 @@ export default function OnboardingCard({
           Getting started — {doneCount} of {steps.length} done
         </p>
         <h2 className="font-display text-xl font-semibold tracking-tight text-surface-900">
-          Set up your ledger in three steps.
+          Set up your ledger in four steps.
         </h2>
       </div>
-      <ol className="mt-6 grid gap-4 sm:grid-cols-3">
+      <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((s, i) => {
           const Icon = s.icon
           return (

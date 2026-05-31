@@ -190,7 +190,7 @@ export default function Financials() {
           Personal Financial Statement
         </h1>
         <p className="mt-1 text-sm text-surface-500">
-          The living document — assets, liabilities, income, and expenses.
+          The living document — your assets, debts, and income.
         </p>
       </header>
 
@@ -238,9 +238,24 @@ export default function Financials() {
         title="Liabilities (secured debt)"
         total={t.ledgerLiabilities}
         totalSign="−"
-        onAdd={() => setRecordModal({ kind: 'liability' })}
+        rightAction={
+          <div className="flex gap-2">
+            {!pfs.mortgage && (
+              <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
+                <Plus size={14} /> Mortgage
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setRecordModal({ kind: 'liability' })}
+            >
+              <Plus size={14} /> Add
+            </Button>
+          </div>
+        }
       >
-        {pfs.liabilities.length === 0 ? (
+        {!pfs.mortgage && pfs.liabilities.length === 0 ? (
           <EmptyRow kind="liability" />
         ) : (
           <ItemList
@@ -343,7 +358,7 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Living expenses"
+        title="Household expenses"
         total={t.monthlyLivingExpenses}
         totalSign="−"
         totalSuffix=" / mo"
@@ -351,8 +366,8 @@ export default function Financials() {
       >
         {pfs.livingExpenses.length === 0 ? (
           <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No living expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
-            These aren&rsquo;t part of your PFS — they power your discretionary-income view.
+            No household expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
+            These feed your cash flow waterfall on the dashboard.
           </div>
         ) : (
           <ItemList
@@ -485,6 +500,15 @@ export default function Financials() {
           onSaved={load}
           existing={mortgageModal.existing}
           defaultIsPrimary={pfs.mortgages.length === 0}
+        />
+      )}
+
+      {livingModal && (
+        <LivingExpenseModal
+          open
+          onClose={() => setLivingModal(null)}
+          onSaved={load}
+          existing={livingModal.existing}
         />
       )}
 

@@ -55,7 +55,7 @@ export default function LivingExpenseModal({ open, onClose, onSaved, existing }:
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={`${isEdit ? 'Edit' : 'Add'} living expense`}>
+    <Modal open={open} onClose={onClose} title={`${isEdit ? 'Edit' : 'Add'} household expense`}>
       <form className="space-y-4" onSubmit={onSubmit}>
         <label className="block">
           <span className="text-sm font-medium text-surface-700">Label</span>

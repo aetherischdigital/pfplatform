@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronDown, ArrowRight } from 'lucide-react'
 import {
-  INCOME_CATEGORY_LABELS,
   LIVING_EXPENSE_CATEGORY_LABELS,
+  expenseMonthlyOutflow,
+  liabilityMonthlyOutflow,
   totals,
-  type IncomeCategory,
   type Pfs,
 } from '../../lib/pfs'
 import { formatUSD } from '../../lib/mortgage'
@@ -12,101 +14,100 @@ type Props = {
   pfs: Pfs
 }
 
-// Income tones (cool sage variants — money flowing in).
-const INCOME_COLORS: Record<IncomeCategory, string> = {
-  salary: 'var(--color-surface-700)',
-  dividends: 'var(--color-surface-600)',
-  rental: 'var(--color-surface-500)',
-  self_employment: 'var(--color-surface-400)',
-  pension: 'var(--color-success-600)',
-  social_security: 'var(--color-success-700)',
-  other: 'var(--color-surface-300)',
-}
-
-// Outflow palette (warmer walnut variants — money flowing out), cycled across
-// the dynamic set of outflow buckets.
-const OUTFLOW_PALETTE = [
-  'var(--color-accent-600)',
-  'var(--color-accent-500)',
-  'var(--color-warning-600)',
-  'var(--color-accent-400)',
-  'var(--color-danger-600)',
-  'var(--color-warning-700)',
-  'var(--color-accent-300)',
-  'var(--color-danger-700)',
-  'var(--color-accent-200)',
-  'var(--color-surface-400)',
-]
-
-type Bucket = { key: string; label: string; amount: number; color: string }
+// Thomas's waterfall:
+//   + Income
+//   − Fixed expenses (mortgage P&I + secured + unsecured debt payments)
+//   = Discretionary income      ← surplus before lifestyle choices
+//   − Living expenses           ← the coachable lever
+//   = Left over                 ← what's free to aim at principal
 
 export default function CashFlowSection({ pfs }: Props) {
   const t = totals(pfs)
+  const [fixedOpen, setFixedOpen] = useState(false)
+  const [livingOpen, setLivingOpen] = useState(false)
 
-  // Income buckets by category.
-  const incomeSums = new Map<IncomeCategory, number>()
-  for (const i of pfs.income) {
-    incomeSums.set(i.category, (incomeSums.get(i.category) ?? 0) + i.monthly)
-  }
-  const incomeBuckets: Bucket[] = Array.from(incomeSums.entries())
-    .map(([cat, amount]) => ({ key: cat, label: INCOME_CATEGORY_LABELS[cat], amount, color: INCOME_COLORS[cat] }))
-    .sort((a, b) => b.amount - a.amount)
+  const empty =
+    pfs.income.length === 0 &&
+    t.monthlyDebtPayments === 0 &&
+    pfs.livingExpenses.length === 0
 
-  // Outflow buckets: debt payments (mortgage P&I, secured, unsecured) + living
-  // spend by category.
-  const rawOut: { key: string; label: string; amount: number }[] = []
+  // Fixed expenses — every individual debt, grouped by Secured / Unsecured.
+  // Three row states:
+  //   - normal amount (user-entered monthlyPayment)
+  //   - estimated amount (credit-card interest-only floor from balance × APR)
+  //   - needs-entry (no resolvable outflow — listed so the gap is visible)
+  const securedItems: BreakdownRow[] = []
   if (pfs.mortgage && pfs.mortgage.monthlyPayment > 0) {
-    rawOut.push({ key: 'mortgage', label: 'Mortgage (P&I)', amount: pfs.mortgage.monthlyPayment })
+    securedItems.push({
+      key: 'mortgage',
+      label: `Mortgage (P&I) · ${pfs.mortgage.propertyLabel}`,
+      amount: pfs.mortgage.monthlyPayment,
+    })
   }
-  const securedPay = pfs.liabilities.reduce((s, l) => s + (l.monthlyPayment ?? 0), 0)
-  if (securedPay > 0) rawOut.push({ key: 'secured', label: 'Secured debt', amount: securedPay })
-  const unsecuredPay = pfs.expenses.reduce((s, e) => s + (e.monthlyPayment ?? 0), 0)
-  if (unsecuredPay > 0) rawOut.push({ key: 'unsecured', label: 'Unsecured debt', amount: unsecuredPay })
+  for (const l of pfs.liabilities) {
+    const outflow = liabilityMonthlyOutflow(l)
+    if (outflow) {
+      securedItems.push({ key: l.id, label: l.label, amount: outflow.amount })
+    } else {
+      securedItems.push({ key: l.id, label: l.label, amount: 0, needsEntry: true })
+    }
+  }
+  // Resolvable rows ranked by amount, needs-entry rows trailing
+  securedItems.sort(byAmountResolvableFirst)
+
+  const unsecuredItems: BreakdownRow[] = []
+  let hasEstimatedRow = false
+  for (const e of pfs.expenses) {
+    const outflow = expenseMonthlyOutflow(e)
+    if (outflow) {
+      if (outflow.estimated) hasEstimatedRow = true
+      unsecuredItems.push({
+        key: e.id,
+        label: e.label,
+        amount: outflow.amount,
+        estimated: outflow.estimated,
+      })
+    } else {
+      unsecuredItems.push({ key: e.id, label: e.label, amount: 0, needsEntry: true })
+    }
+  }
+  unsecuredItems.sort(byAmountResolvableFirst)
+
+  const fixedGroups: BreakdownGroup[] = []
+  if (securedItems.length > 0) fixedGroups.push({ label: 'Secured', rows: securedItems })
+  if (unsecuredItems.length > 0) fixedGroups.push({ label: 'Unsecured', rows: unsecuredItems })
+
   const livingSums = new Map<string, number>()
   for (const e of pfs.livingExpenses) {
     livingSums.set(e.category, (livingSums.get(e.category) ?? 0) + e.monthlyAmount)
   }
-  for (const [cat, amount] of livingSums.entries()) {
-    rawOut.push({ key: `living_${cat}`, label: LIVING_EXPENSE_CATEGORY_LABELS[cat as keyof typeof LIVING_EXPENSE_CATEGORY_LABELS], amount })
-  }
-  const outflowBuckets: Bucket[] = rawOut
+  const livingItems: BreakdownRow[] = [...livingSums.entries()]
+    .map(([cat, amount]) => ({
+      key: cat,
+      label: LIVING_EXPENSE_CATEGORY_LABELS[cat as keyof typeof LIVING_EXPENSE_CATEGORY_LABELS],
+      amount,
+    }))
     .sort((a, b) => b.amount - a.amount)
-    .map((b, i) => ({ ...b, color: OUTFLOW_PALETTE[i % OUTFLOW_PALETTE.length] }))
+  const livingGroups: BreakdownGroup[] =
+    livingItems.length > 0 ? [{ rows: livingItems }] : []
 
-  const totalIncome = t.monthlyIncome
-  const totalOutflow = t.monthlyExpenses
-  const discretionary = t.monthlyCashFlow
-  const scaleMax = Math.max(totalIncome, totalOutflow, 1)
-
-  const empty = pfs.income.length === 0 && outflowBuckets.length === 0
+  // Widths anchor on income; if expenses exceed income, we cap at 100% and
+  // the deficit shows as a danger callout instead of an oversized bar.
+  const incomeBasis = Math.max(t.monthlyIncome, 1)
+  const pctOfIncome = (n: number) => Math.min(100, (Math.max(n, 0) / incomeBasis) * 100)
 
   return (
     <section className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <h2 className="font-display text-lg font-semibold text-surface-900">Cash flow</h2>
-          <p className="mt-1 text-sm text-surface-500">
-            What comes in, what goes out, and what&rsquo;s left to attack debt.
-          </p>
-        </div>
-        {!empty && (
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-surface-500">Discretionary / mo</div>
-            <div
-              className={`font-display text-2xl font-semibold ${
-                discretionary >= 0 ? 'text-success-700' : 'text-danger-700'
-              }`}
-            >
-              {discretionary >= 0 ? '+' : '−'}
-              {formatUSD(Math.abs(discretionary))}
-            </div>
-          </div>
-        )}
+      <header>
+        <h2 className="font-display text-lg font-semibold text-surface-900">Cash flow</h2>
+        <p className="mt-1 text-sm text-surface-500">
+          Where your money goes each month — and what&rsquo;s left to direct at debt.
+        </p>
       </header>
 
       {empty ? (
         <div className="mt-6 rounded-lg border border-dashed border-surface-200 bg-surface-50 px-4 py-5 text-center text-sm text-surface-500">
-          Add income, debts, and living expenses on{' '}
+          Add income, debts, and household expenses on{' '}
           <Link
             to="/app/financials"
             className="font-medium text-accent-600 underline-offset-2 hover:underline"
@@ -116,135 +117,312 @@ export default function CashFlowSection({ pfs }: Props) {
           to see your monthly flow.
         </div>
       ) : (
-        <div className="mt-6 grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="space-y-7">
-            <FlowBar heading="In" total={totalIncome} scaleMax={scaleMax} buckets={incomeBuckets} />
-            <FlowBar heading="Out" total={totalOutflow} scaleMax={scaleMax} buckets={outflowBuckets} />
-          </div>
-          <DiscretionaryDonut
-            outflow={outflowBuckets}
-            discretionary={discretionary}
-            income={totalIncome}
+        <div className="mt-7 space-y-4">
+          <WaterfallRow
+            kind="income"
+            label="Income"
+            amount={t.monthlyIncome}
+            widthPct={pctOfIncome(t.monthlyIncome)}
           />
+
+          <SubtractRow
+            label="Fixed expenses (debt)"
+            amount={t.monthlyDebtPayments}
+            tagline="mortgage P&I · secured · unsecured"
+            open={fixedOpen}
+            onToggle={() => setFixedOpen((v) => !v)}
+            groups={fixedGroups}
+            emptyHint="No debt payments yet."
+            footnote={fixedFootnote(hasEstimatedRow, fixedGroups)}
+          />
+
+          <WaterfallRow
+            kind="discretionary"
+            label="Discretionary income"
+            amount={t.monthlyDiscretionary}
+            widthPct={pctOfIncome(t.monthlyDiscretionary)}
+            sublabel="surplus before lifestyle"
+          />
+
+          <SubtractRow
+            label="Household expenses"
+            amount={t.monthlyLivingExpenses}
+            tagline="where you can find more money"
+            taglineAccent
+            open={livingOpen}
+            onToggle={() => setLivingOpen((v) => !v)}
+            groups={livingGroups}
+            emptyHint="No household expenses yet."
+          />
+
+          <WaterfallRow
+            kind="leftover"
+            label="Left over"
+            amount={t.monthlyLeftover}
+            widthPct={pctOfIncome(t.monthlyLeftover)}
+            sublabel={
+              t.monthlyLeftover > 0
+                ? 'your Hidden Money — aim at principal'
+                : t.monthlyLeftover === 0
+                  ? 'nothing left to direct at principal'
+                  : 'spending exceeds income'
+            }
+            negative={t.monthlyLeftover < 0}
+          />
+
+          {t.monthlyLeftover > 0 && (
+            <div className="flex justify-end pt-1">
+              <Link
+                to="/app/calculators"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-600 hover:text-accent-700"
+              >
+                Run a prepayment scenario <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </section>
   )
 }
 
-/** Donut of where each income dollar goes: outflow buckets + the leftover
- *  (discretionary) slice. */
-function DiscretionaryDonut({
-  outflow,
-  discretionary,
-  income,
-}: {
-  outflow: Bucket[]
-  discretionary: number
-  income: number
-}) {
-  const slices: Bucket[] = [...outflow]
-  if (discretionary > 0) {
-    slices.push({ key: 'discretionary', label: 'Discretionary', amount: discretionary, color: 'var(--color-success-600)' })
-  }
-  const total = slices.reduce((s, b) => s + b.amount, 0)
-  if (total <= 0) return null
+// ---------------------------------------------------------------------------
+// Waterfall row — the bars (income / discretionary / leftover)
+// ---------------------------------------------------------------------------
 
-  const R = 52
-  const C = 2 * Math.PI * R
-  let offset = 0
-  const segments = slices.map((b) => {
-    const frac = b.amount / total
-    const seg = { ...b, dash: frac * C, gap: C - frac * C, off: offset }
-    offset -= frac * C
-    return seg
-  })
+type WaterfallKind = 'income' | 'discretionary' | 'leftover'
+
+function WaterfallRow({
+  kind,
+  label,
+  amount,
+  widthPct,
+  sublabel,
+  negative,
+}: {
+  kind: WaterfallKind
+  label: string
+  amount: number
+  widthPct: number
+  sublabel?: string
+  negative?: boolean
+}) {
+  const palette = negative
+    ? {
+        bar: 'bg-danger-500',
+        label: 'text-danger-700',
+        amount: 'text-danger-700',
+      }
+    : kind === 'income'
+      ? {
+          bar: 'bg-surface-700',
+          label: 'text-surface-500',
+          amount: 'text-surface-900',
+        }
+      : kind === 'discretionary'
+        ? {
+            bar: 'bg-accent-500',
+            label: 'text-accent-700',
+            amount: 'text-accent-700',
+          }
+        : {
+            bar: 'bg-success-600',
+            label: 'text-success-700',
+            amount: 'text-success-700',
+          }
+
+  const isSubtotal = kind !== 'income'
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <svg viewBox="0 0 140 140" className="h-36 w-36 -rotate-90" role="img" aria-label="Monthly outflow breakdown">
-        {segments.map((s) => (
-          <circle
-            key={s.key}
-            cx="70"
-            cy="70"
-            r={R}
-            fill="none"
-            stroke={s.color}
-            strokeWidth="16"
-            strokeDasharray={`${s.dash} ${s.gap}`}
-            strokeDashoffset={s.off}
-          />
-        ))}
-      </svg>
-      <div className="max-w-[12rem] space-y-1">
-        {slices.map((s) => (
-          <div key={s.key} className="flex items-center gap-2 text-xs text-surface-600">
-            <span className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ backgroundColor: s.color }} aria-hidden="true" />
-            <span className="flex-1 truncate">{s.label}</span>
-            <span className="text-surface-400">{income > 0 ? Math.round((s.amount / income) * 100) : 0}%</span>
-          </div>
-        ))}
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span
+            className={`font-medium uppercase tracking-wider ${
+              isSubtotal ? 'text-xs' : 'text-[11px]'
+            } ${palette.label}`}
+          >
+            {isSubtotal && <span className="mr-1 font-mono text-surface-400">=</span>}
+            {label}
+          </span>
+          {sublabel && (
+            <span className="text-xs italic text-surface-400">— {sublabel}</span>
+          )}
+        </div>
+        <span
+          className={`font-mono font-semibold ${
+            isSubtotal ? 'text-xl' : 'text-base'
+          } ${palette.amount}`}
+        >
+          {negative ? '−' : ''}
+          {formatUSD(Math.abs(amount))}
+        </span>
+      </div>
+      <div
+        className="mt-1.5 h-3 overflow-hidden rounded-full bg-surface-100"
+        role="img"
+        aria-label={`${label} ${formatUSD(Math.abs(amount))} per month`}
+      >
+        <div
+          className={`h-full rounded-full transition-[width] duration-300 ${palette.bar}`}
+          style={{ width: `${Math.max(widthPct, 2)}%` }}
+        />
       </div>
     </div>
   )
 }
 
-function FlowBar({
-  heading,
-  total,
-  scaleMax,
-  buckets,
-}: {
-  heading: string
-  total: number
-  scaleMax: number
-  buckets: Bucket[]
-}) {
-  const filledPct = scaleMax > 0 ? (total / scaleMax) * 100 : 0
+// ---------------------------------------------------------------------------
+// Subtract row — the deductions (fixed / living) with expandable breakdown
+// ---------------------------------------------------------------------------
 
+type BreakdownRow = {
+  key: string
+  label: string
+  /** Resolved monthly outflow. Meaningless when needsEntry is true. */
+  amount: number
+  /** Computed from balance × APR (credit-card interest-only floor) — render
+   *  with an asterisk and footnote so the user knows it's a derived estimate. */
+  estimated?: boolean
+  /** Debt exists but has no resolvable monthly outflow — render as a muted
+   *  "needs payment" row so the gap is visible, but don't include in totals. */
+  needsEntry?: boolean
+}
+type BreakdownGroup = { label?: string; rows: BreakdownRow[] }
+
+/** Sort resolved rows by amount desc; needs-entry rows trail at the bottom. */
+function byAmountResolvableFirst(a: BreakdownRow, b: BreakdownRow): number {
+  if (a.needsEntry && !b.needsEntry) return 1
+  if (!a.needsEntry && b.needsEntry) return -1
+  return b.amount - a.amount
+}
+
+function fixedFootnote(hasEstimated: boolean, groups: BreakdownGroup[]): string | undefined {
+  const needsCount = groups.reduce(
+    (s, g) => s + g.rows.filter((r) => r.needsEntry).length,
+    0,
+  )
+  const parts: string[] = []
+  if (hasEstimated) {
+    parts.push(
+      '* Interest-only estimate from balance × APR. Set the actual monthly payment on Financials for precision.',
+    )
+  }
+  if (needsCount > 0) {
+    parts.push(
+      `${needsCount} row${needsCount === 1 ? '' : 's'} marked "needs payment" — add a monthly payment on Financials to include in cash flow.`,
+    )
+  }
+  return parts.length > 0 ? parts.join(' ') : undefined
+}
+
+function SubtractRow({
+  label,
+  amount,
+  tagline,
+  taglineAccent,
+  open,
+  onToggle,
+  groups,
+  emptyHint,
+  footnote,
+}: {
+  label: string
+  amount: number
+  tagline: string
+  taglineAccent?: boolean
+  open: boolean
+  onToggle: () => void
+  groups: BreakdownGroup[]
+  emptyHint: string
+  footnote?: string
+}) {
+  const totalRows = groups.reduce((s, g) => s + g.rows.length, 0)
+  const disabled = totalRows === 0 && !footnote
   return (
-    <div>
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium uppercase tracking-wider text-surface-500">{heading}</span>
-        <span className="font-mono font-medium text-surface-900">{formatUSD(total)}/mo</span>
-      </div>
-      <div
-        className="mt-2 h-3 overflow-hidden rounded-full bg-surface-100"
-        role="img"
-        aria-label={`${heading} ${formatUSD(total)} per month broken down by category`}
+    <div className="border-l-2 border-dashed border-surface-200 pl-4">
+      <button
+        type="button"
+        onClick={disabled ? undefined : onToggle}
+        disabled={disabled}
+        className={`group flex w-full items-baseline justify-between gap-3 rounded-md py-1 text-left transition-colors ${
+          disabled ? 'cursor-default' : 'hover:bg-surface-50'
+        } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400`}
+        aria-expanded={open}
       >
-        <div className="flex h-full" style={{ width: `${filledPct}%` }}>
-          {buckets.map((b) => {
-            const segPct = total > 0 ? (b.amount / total) * 100 : 0
-            return (
-              <div
-                key={b.key}
-                className="h-full"
-                style={{ width: `${segPct}%`, backgroundColor: b.color }}
-                title={`${b.label}: ${formatUSD(b.amount)}/mo`}
-              />
-            )
-          })}
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-sm text-surface-400">−</span>
+          <span className="text-sm font-medium text-surface-700">{label}</span>
+          <span
+            className={`text-xs italic ${
+              taglineAccent ? 'text-accent-600' : 'text-surface-400'
+            }`}
+          >
+            — {tagline}
+          </span>
         </div>
-      </div>
-      <ul className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-        {buckets.map((b) => {
-          const pct = total > 0 ? (b.amount / total) * 100 : 0
-          return (
-            <li key={b.key} className="flex items-center gap-2 text-xs text-surface-600">
-              <span
-                className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-sm"
-                style={{ backgroundColor: b.color }}
-                aria-hidden="true"
-              />
-              <span className="flex-1 truncate">{b.label}</span>
-              <span className="font-mono font-medium text-surface-900">{formatUSD(b.amount)}</span>
-              <span className="w-10 text-right text-surface-400">{pct.toFixed(0)}%</span>
-            </li>
-          )
-        })}
-      </ul>
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-sm font-semibold text-surface-700">
+            −{formatUSD(amount)}
+          </span>
+          {!disabled && (
+            <ChevronDown
+              size={14}
+              className={`text-surface-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          )}
+        </div>
+      </button>
+      {open && (
+        <div className="mt-1 ml-4 space-y-3">
+          {totalRows === 0 ? (
+            <div className="py-2 text-xs italic text-surface-400">{emptyHint}</div>
+          ) : (
+            groups.map((g, gi) => (
+              <div key={g.label ?? `g-${gi}`}>
+                {g.label && (
+                  <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-surface-400">
+                    {g.label}
+                  </div>
+                )}
+                <div className="space-y-0.5">
+                  {g.rows.map((r) => (
+                    <div
+                      key={r.key}
+                      className="flex items-baseline justify-between gap-3 py-1"
+                    >
+                      <span
+                        className={`text-xs ${
+                          r.needsEntry ? 'italic text-surface-400' : 'text-surface-500'
+                        }`}
+                      >
+                        {r.label}
+                        {r.estimated && (
+                          <span className="ml-1 text-accent-600" aria-label="interest-only estimate">
+                            *
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`font-mono text-xs ${
+                          r.needsEntry ? 'italic text-surface-400' : 'text-surface-700'
+                        }`}
+                      >
+                        {r.needsEntry ? 'needs payment' : formatUSD(r.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+          {footnote && (
+            <div className="border-t border-dashed border-surface-200 pt-2 text-[11px] italic text-surface-400">
+              {footnote}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

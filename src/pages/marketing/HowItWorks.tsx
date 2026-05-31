@@ -40,11 +40,11 @@ const sections: Section[] = [
   },
   {
     eyebrow: 'Step 03',
-    title: 'Prepay in exact amounts. Retire payments early.',
-    body: "Here's the key to paying off your loan faster. Instead of sending a round-number extra payment that drifts the math, the platform tells you the exact principal portion of your next scheduled payment — or the sum across several — and prints a label for the check. You're not 'paying ahead.' You're permanently retiring a numbered payment from the schedule.",
+    title: 'Prepay with confidence.',
+    body: "The more additional principal you send, the faster the loan is retired. The platform tells you exactly what your balance should be after each additional payment. So you're not paying ahead, you're retiring your mortgage early.",
     bullets: [
-      'Single-payment prepayments: knock out payment #6 with one check',
-      'Multi-payment prepayments: retire #6–#8 with one sum',
+      'All additional principal prepayments accelerate the loan',
+      'Compare your balance against your monthly statement to check for accuracy',
       'Every prepayment updates your projected payoff and interest saved',
     ],
     icon: Calculator,
@@ -65,9 +65,10 @@ const sections: Section[] = [
   {
     eyebrow: 'Always-on',
     title: 'Education built around the methodology.',
-    body: 'Articles, calculators, and walkthroughs that explain why the prepayment workflow works — when biweekly programs are a marketing trick, why recasts matter, how to catch a servicer transfer that loses a payment in the seam.',
+    body: 'Articles, calculators, and walkthroughs that explain why the prepayment workflow works — when biweekly programs are a marketing trick, when a refinance is actually worth it, how to catch a servicer transfer that loses a payment in the seam.',
     bullets: [
-      'Plain-English deep-dives on prepayment, recasts, PMI, servicer transfers',
+      'Plain-English deep-dives on prepayment, PMI, servicer transfers',
+      'When is a refinance feasible and beneficial?',
       'Public mortgage payoff calculator — no account required',
       'New content as the platform grows',
     ],
@@ -271,7 +272,7 @@ function SectionVisual({ kind }: { kind: Section['visual'] }) {
     const posts = [
       { tag: 'Strategy', title: 'When biweekly payments actually beat extra principal' },
       { tag: 'Calculator', title: 'See your payoff date in under 60 seconds' },
-      { tag: 'Explainer', title: 'What a recast is, and when to use one' },
+      { tag: 'Explainer', title: 'Refinance — when is it beneficial to use one' },
     ]
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card-lg">
