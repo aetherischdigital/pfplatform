@@ -439,6 +439,43 @@ export async function deleteMortgage(id: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Cash-flow contribution per debt
+//
+// Drives both the totals (Discretionary, Left over) and the per-row breakdown
+// in the dashboard waterfall. Three states for any debt:
+//
+//   { amount, estimated: false } — user-entered monthlyPayment, treat as authoritative
+//   { amount, estimated: true  } — interest-only floor computed from balance × APR
+//                                  (credit cards only; revolving, no fixed amortization)
+//   null                         — no resolvable outflow; surface in the UI as a
+//                                  "needs monthly payment" row so it's visible as
+//                                  a gap rather than silently dropped from cash flow
+// ---------------------------------------------------------------------------
+
+export type MonthlyOutflow = { amount: number; estimated: boolean }
+
+export function expenseMonthlyOutflow(e: Expense): MonthlyOutflow | null {
+  if (e.monthlyPayment != null && e.monthlyPayment > 0) {
+    return { amount: e.monthlyPayment, estimated: false }
+  }
+  // Credit cards are the only revolving unsecured debt — interest-only is a
+  // defensible floor. Installment debts (student loan, personal loan) have a
+  // fixed amortizing payment the user knows from their statement; we'd mislead
+  // by guessing.
+  if (e.category === 'credit_card' && e.rate != null && e.rate > 0 && e.balance > 0) {
+    return { amount: (e.balance * e.rate) / 100 / 12, estimated: true }
+  }
+  return null
+}
+
+export function liabilityMonthlyOutflow(l: Liability): MonthlyOutflow | null {
+  if (l.monthlyPayment != null && l.monthlyPayment > 0) {
+    return { amount: l.monthlyPayment, estimated: false }
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Derived totals
 // ---------------------------------------------------------------------------
 
@@ -453,14 +490,20 @@ export type Totals = {
   netWorth: number
   homeEquity: number
   monthlyIncome: number
-  /** Monthly debt payments: secured + unsecured + mortgage P&I. */
+  /** Monthly debt payments: secured + unsecured + mortgage P&I. These are
+   *  contractually fixed — Thomas's "fixed expenses" in the waterfall. */
   monthlyDebtPayments: number
-  /** Monthly household / living spend. */
+  /** Monthly household / living spend. The "coachable" / variable layer. */
   monthlyLivingExpenses: number
   /** Total monthly outflow = debt payments + living expenses. */
   monthlyExpenses: number
-  /** Income − total outflow. The "what's left" / discretionary number. */
-  monthlyCashFlow: number
+  /** Income − fixed debt payments. The "before lifestyle" surplus — the
+   *  number Thomas wants the user thinking about before living expenses
+   *  eat into it. */
+  monthlyDiscretionary: number
+  /** Income − all outflow (debts + living). What's truly free to direct
+   *  at principal. The bottom line of the cash-flow waterfall. */
+  monthlyLeftover: number
 }
 
 export function totals(pfs: Pfs): Totals {
@@ -480,8 +523,14 @@ export function totals(pfs: Pfs): Totals {
     pfs.mortgage?.startingHomeValue ??
     0
 
-  const securedPayments = pfs.liabilities.reduce((s, l) => s + (l.monthlyPayment ?? 0), 0)
-  const unsecuredPayments = pfs.expenses.reduce((s, e) => s + (e.monthlyPayment ?? 0), 0)
+  const securedPayments = pfs.liabilities.reduce(
+    (s, l) => s + (liabilityMonthlyOutflow(l)?.amount ?? 0),
+    0,
+  )
+  const unsecuredPayments = pfs.expenses.reduce(
+    (s, e) => s + (expenseMonthlyOutflow(e)?.amount ?? 0),
+    0,
+  )
   const mortgagePayment = pfs.mortgage?.monthlyPayment ?? 0
   const monthlyDebtPayments = securedPayments + unsecuredPayments + mortgagePayment
   const monthlyLivingExpenses = pfs.livingExpenses.reduce((s, e) => s + e.monthlyAmount, 0)
@@ -498,6 +547,7 @@ export function totals(pfs: Pfs): Totals {
     monthlyDebtPayments,
     monthlyLivingExpenses,
     monthlyExpenses,
-    monthlyCashFlow: monthlyIncome - monthlyExpenses,
+    monthlyDiscretionary: monthlyIncome - monthlyDebtPayments,
+    monthlyLeftover: monthlyIncome - monthlyExpenses,
   }
 }

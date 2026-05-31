@@ -185,7 +185,11 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
           <>
             <Field
               label="Monthly payment (optional)"
-              hint="Your recurring payment. Used in the cash-flow / discretionary-income view."
+              hint={
+                kind === 'expense'
+                  ? 'Your recurring monthly payment. For credit cards, we estimate interest-only from balance × APR if you leave this blank.'
+                  : "Your recurring monthly payment. Without this, the debt won't appear in your cash flow waterfall."
+              }
               error={fieldErrors.monthlyPayment}
             >
               <div className="relative">

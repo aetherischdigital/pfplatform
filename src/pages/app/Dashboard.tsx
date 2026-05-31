@@ -70,7 +70,7 @@ export default function Dashboard() {
             Let&rsquo;s build your ledger. Once you add a few PFS entries, this dashboard fills in.
           </p>
         </div>
-        <OnboardingCard hasAnyPfs={false} hasMortgage={false} />
+        <OnboardingCard hasAnyPfs={false} hasMortgage={false} hasCashFlowInputs={false} />
       </div>
     )
   }
@@ -88,16 +88,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <OnboardingCard hasAnyPfs={hasAnyData} hasMortgage={!!pfs.mortgage} />
+      <OnboardingCard
+        hasAnyPfs={hasAnyData}
+        hasMortgage={!!pfs.mortgage}
+        hasCashFlowInputs={pfs.income.length > 0 && pfs.livingExpenses.length > 0}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Net worth" value={formatUSD(t.netWorth)} />
         <Stat label="Home equity" value={formatUSD(t.homeEquity)} accent />
         <Stat
-          label="Monthly cash flow"
-          value={`${t.monthlyCashFlow >= 0 ? '+' : '−'}${formatUSD(Math.abs(t.monthlyCashFlow))}`}
-          delta={`${formatUSD(t.monthlyIncome)} in / ${formatUSD(t.monthlyExpenses)} out`}
-          trend={t.monthlyCashFlow >= 0 ? 'positive' : 'negative'}
+          label="Left over / mo"
+          value={`${t.monthlyLeftover >= 0 ? '+' : '−'}${formatUSD(Math.abs(t.monthlyLeftover))}`}
+          delta={leftoverDelta(t.monthlyDebtPayments, t.monthlyLivingExpenses)}
+          trend={t.monthlyLeftover >= 0 ? 'positive' : 'negative'}
         />
         <PayoffStat pfs={pfs} />
       </div>
@@ -121,45 +125,57 @@ export default function Dashboard() {
         <SummaryCard
           title="Assets"
           total={t.totalAssets}
-          rows={pfs.assets.map((a) => ({
-            id: a.id,
-            label: a.label,
-            sub: ASSET_CATEGORY_LABELS[a.category],
-            value: formatUSD(a.value),
-          }))}
+          groups={[
+            {
+              rows: pfs.assets.map((a) => ({
+                id: a.id,
+                label: a.label,
+                sub: ASSET_CATEGORY_LABELS[a.category],
+                value: formatUSD(a.value),
+              })),
+            },
+          ]}
           totalSign="+"
           emptyHint="No assets yet."
         />
         <SummaryCard
           title="Liabilities"
           total={t.totalLiabilities}
-          rows={[
-            ...(pfs.mortgage
-              ? [
-                  {
-                    id: pfs.mortgage.id,
-                    label: pfs.mortgage.propertyLabel,
-                    sub: `Mortgage • ${pfs.mortgage.ratePct}%`,
-                    value: formatUSD(pfs.mortgage.balance),
-                  },
-                ]
-              : []),
-            ...pfs.liabilities.map((l) => ({
-              id: l.id,
-              label: l.label,
-              sub: l.rate
-                ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
-                : LIABILITY_CATEGORY_LABELS[l.category],
-              value: formatUSD(l.balance),
-            })),
-            ...pfs.expenses.map((e) => ({
-              id: e.id,
-              label: e.label,
-              sub: e.rate
-                ? `${EXPENSE_CATEGORY_LABELS[e.category]} • ${e.rate}%`
-                : EXPENSE_CATEGORY_LABELS[e.category],
-              value: formatUSD(e.balance),
-            })),
+          groups={[
+            {
+              label: 'Secured',
+              rows: [
+                ...(pfs.mortgage
+                  ? [
+                      {
+                        id: pfs.mortgage.id,
+                        label: pfs.mortgage.propertyLabel,
+                        sub: `Mortgage • ${pfs.mortgage.ratePct}%`,
+                        value: formatUSD(pfs.mortgage.balance),
+                      },
+                    ]
+                  : []),
+                ...pfs.liabilities.map((l) => ({
+                  id: l.id,
+                  label: l.label,
+                  sub: l.rate
+                    ? `${LIABILITY_CATEGORY_LABELS[l.category]} • ${l.rate}%`
+                    : LIABILITY_CATEGORY_LABELS[l.category],
+                  value: formatUSD(l.balance),
+                })),
+              ],
+            },
+            {
+              label: 'Unsecured',
+              rows: pfs.expenses.map((e) => ({
+                id: e.id,
+                label: e.label,
+                sub: e.rate
+                  ? `${EXPENSE_CATEGORY_LABELS[e.category]} • ${e.rate}%`
+                  : EXPENSE_CATEGORY_LABELS[e.category],
+                value: formatUSD(e.balance),
+              })),
+            },
           ]}
           totalSign="−"
           emptyHint="No liabilities yet."
@@ -376,20 +392,23 @@ function Row({
 }
 
 type SummaryRow = { id: string; label: string; sub: string; value: string }
+type SummaryGroup = { label?: string; rows: SummaryRow[] }
 
 function SummaryCard({
   title,
   total,
-  rows,
+  groups,
   totalSign,
   emptyHint,
 }: {
   title: string
   total: number
-  rows: SummaryRow[]
+  groups: SummaryGroup[]
   totalSign: '+' | '−'
   emptyHint: string
 }) {
+  // Drop empty groups so we don't render a "Secured" header with no rows under it.
+  const visible = groups.filter((g) => g.rows.length > 0)
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
       <div className="flex items-baseline justify-between">
@@ -399,22 +418,37 @@ function SummaryCard({
           {formatUSD(total)}
         </div>
       </div>
-      {rows.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="mt-4 rounded-md border border-dashed border-surface-200 px-4 py-6 text-center text-sm text-surface-500">
           {emptyHint}
         </div>
       ) : (
-        <ul className="mt-4 divide-y divide-surface-200 border-t border-surface-200">
-          {rows.map((r) => (
-            <li key={r.id} className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-sm font-medium text-surface-900">{r.label}</div>
-                <div className="text-xs text-surface-500">{r.sub}</div>
-              </div>
-              <span className="font-mono text-sm text-surface-900">{r.value}</span>
-            </li>
+        <div className="mt-4 space-y-4">
+          {visible.map((g, gi) => (
+            <div key={g.label ?? `g-${gi}`}>
+              {g.label && (
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-surface-400">
+                  {g.label}
+                </div>
+              )}
+              <ul
+                className={`divide-y divide-surface-200 ${
+                  gi === 0 ? 'border-t border-surface-200' : ''
+                }`}
+              >
+                {g.rows.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <div className="text-sm font-medium text-surface-900">{r.label}</div>
+                      <div className="text-xs text-surface-500">{r.sub}</div>
+                    </div>
+                    <span className="font-mono text-sm text-surface-900">{r.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )
@@ -493,6 +527,14 @@ function ErrorState({ message }: { message: string }) {
       </Button>
     </div>
   )
+}
+
+function leftoverDelta(debts: number, living: number): string | undefined {
+  const parts: string[] = []
+  if (debts > 0) parts.push(`${formatUSD(debts)} debts`)
+  if (living > 0) parts.push(`${formatUSD(living)} living`)
+  if (parts.length === 0) return undefined
+  return `after ${parts.join(' + ')}`
 }
 
 function greetingForNow(): string {

@@ -132,7 +132,7 @@ export default function Financials() {
           Personal Financial Statement
         </h1>
         <p className="mt-1 text-sm text-surface-500">
-          The living document — assets, liabilities, income, and expenses.
+          The living document — your assets, debts, and income.
         </p>
       </header>
 
@@ -270,8 +270,22 @@ export default function Financials() {
         )}
       </Section>
 
+      <div className="space-y-3 border-t border-surface-200 pt-8">
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-display text-xl font-semibold tracking-tight text-surface-900">
+            Cash flow inputs
+          </h2>
+          <span className="font-mono text-xs uppercase tracking-wider text-surface-500">
+            outside the PFS
+          </span>
+        </div>
+        <p className="text-sm text-surface-500">
+          Household spend that feeds your cash flow waterfall. Not part of the Personal Financial Statement.
+        </p>
+      </div>
+
       <Section
-        title="Living expenses"
+        title="Household expenses"
         total={t.monthlyLivingExpenses}
         totalSign="−"
         totalSuffix=" / mo"
@@ -279,8 +293,8 @@ export default function Financials() {
       >
         {pfs.livingExpenses.length === 0 ? (
           <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No living expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
-            These aren&rsquo;t part of your PFS — they power your discretionary-income view.
+            No household expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
+            These feed your cash flow waterfall on the dashboard.
           </div>
         ) : (
           <ItemList
