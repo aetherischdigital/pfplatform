@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   LogOut,
   Mail,
@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { BRAND } from '../../config/brand'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
@@ -33,6 +34,7 @@ import {
 export default function Account() {
   const { user, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   // Supabase's User exposes `new_email` while a change is pending confirmation
   // — we surface that under the Email field so the user knows the link is
   // waiting in their NEW inbox.
@@ -86,6 +88,48 @@ export default function Account() {
   const [spouseFieldErrors, setSpouseFieldErrors] = useState<{
     spouseBirthdate?: string
   }>({})
+
+  const [startingCheckout, setStartingCheckout] = useState(false)
+
+  // Stripe Checkout redirects back here with ?stripe=success|cancel. Surface
+  // the outcome as a banner, then strip the params so refresh doesn't re-fire.
+  useEffect(() => {
+    const stripeResult = searchParams.get('stripe')
+    if (!stripeResult) return
+    if (stripeResult === 'success') {
+      setSuccessMessage('Checkout completed in Stripe. Verify in your dashboard.')
+    } else if (stripeResult === 'cancel') {
+      setError('Checkout was canceled. No charge was made.')
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('stripe')
+    next.delete('session_id')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const startPlusCheckout = async () => {
+    setStartingCheckout(true)
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke<{
+        url?: string
+        error?: string
+      }>('create-checkout-session', {
+        body: {
+          tier: 'plus',
+          // Strip any existing query so Stripe's redirect template substitutes cleanly.
+          returnUrl: window.location.origin + window.location.pathname,
+        },
+      })
+      if (invokeError) throw invokeError
+      if (!data?.url) throw new Error(data?.error ?? 'No checkout URL returned.')
+      window.location.href = data.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start checkout.')
+      setStartingCheckout(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -836,6 +880,26 @@ export default function Account() {
           <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
             See plans
           </ButtonLink>
+        </div>
+        <div className="border-t border-surface-100 px-6 py-5">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-surface-600">
+              <div className="font-medium text-surface-900">Plus tier — sandbox checkout</div>
+              <div className="mt-0.5 text-surface-500">
+                Round-trip through Stripe-hosted checkout with a test card
+                (e.g. 4242 4242 4242 4242). Real billing is not live yet.
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={startPlusCheckout}
+              disabled={startingCheckout}
+              className="flex-shrink-0"
+            >
+              {startingCheckout ? 'Opening Stripe…' : 'Try Plus checkout'}
+            </Button>
+          </div>
         </div>
         <div className="border-t border-surface-100 px-6 py-5">
           <WaitlistInterestRow

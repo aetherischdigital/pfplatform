@@ -414,6 +414,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Per-function platform config. `verify_jwt = false` disables the gateway-level
+# JWT check so CORS preflight (OPTIONS, no Authorization header) can pass; the
+# function still verifies the JWT in code via supabase.auth.getUser(). Without
+# this, browser fetches from a different origin fail their preflight.
+[functions.create-checkout-session]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
