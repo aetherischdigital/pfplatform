@@ -109,7 +109,7 @@ export default function LandingStatement() {
               points={[
                 'A living Personal Financial Statement — the banker’s own instrument',
                 'Your amortization, line by line, split to the penny',
-                'Prepay exact principal to retire future payments off the schedule',
+                'Send additional principal and retire your loan years early',
                 'Find the hidden payment already sitting in your paycheck',
               ]}
             />
@@ -183,8 +183,8 @@ export default function LandingStatement() {
                 <li>
                   <span className="no">02</span>
                   <div>
-                    <h4>Prepay in exact principal</h4>
-                    <p>Pay the exact principal of a future installment and it&rsquo;s struck from the schedule for good.</p>
+                    <h4>Prepay with confidence</h4>
+                    <p>The more additional principal you send, the faster the loan is retired — you&rsquo;re not paying ahead, you&rsquo;re retiring it early.</p>
                   </div>
                 </li>
                 <li>

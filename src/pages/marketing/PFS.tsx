@@ -14,8 +14,8 @@ const pillars = [
     body: 'Every scheduled payment as a numbered row, with the exact principal and interest split. The source of truth your bank should agree with.',
   },
   {
-    title: 'Prepay in exact principal amounts',
-    body: 'Knock future payments off the schedule by paying their principal portion now. We tell you the exact dollar amount — no rounding, no drift, no fee programs.',
+    title: 'Prepay with confidence',
+    body: 'The more additional principal you send, the faster the loan is retired. The platform tells you exactly what your balance should be after each payment — no fee programs, no drift.',
   },
   {
     title: 'Finding Hidden Money',

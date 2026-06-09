@@ -14,7 +14,7 @@ const values = [
   },
   {
     title: 'The math is checkable',
-    body: 'Every projection shows its inputs. Every prepayment is the exact principal portion of a specific payment. No rounded numbers, no opaque models — if the math is wrong, you can see it.',
+    body: 'Every projection shows its inputs. Every prepayment is additional principal that retires your loan faster. No rounded numbers, no opaque models — if the math is wrong, you can see it.',
   },
   {
     title: 'Your data, your call',
@@ -79,9 +79,9 @@ export default function About() {
                 {BRAND.name} exists to flip that. We start with the Personal Financial Statement — the
                 same instrument a banker uses to evaluate a borrower — and turn it into a living
                 ledger you control. Every scheduled payment becomes a numbered row, with the exact
-                principal and interest split known the day the loan closes. Every prepayment is sent
-                in the precise principal-portion amount of upcoming payments, so the math is checkable
-                to the penny.
+                principal and interest split known the day the loan closes. Every prepayment is
+                additional principal that retires the loan faster, and the math is checkable to the
+                penny.
               </p>
               <p>
                 The platform is deliberately manual. No bank logins. No auto-sync. You are the
