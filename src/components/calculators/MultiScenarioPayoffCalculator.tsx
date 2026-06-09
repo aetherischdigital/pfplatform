@@ -19,6 +19,8 @@ export type MultiScenarioCalculatorDefaults = {
   propertyTaxAnnual?: number | null
   homeownersInsuranceAnnual?: number | null
   hoaMonthly?: number | null
+  floodInsuranceAnnual?: number | null
+  pmiMipMonthly?: number | null
 }
 
 type Props = {
@@ -192,6 +194,8 @@ export default function MultiScenarioPayoffCalculator({ defaults }: Props) {
               propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
               homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
               hoaMonthly={defaults?.hoaMonthly ?? null}
+              floodInsuranceAnnual={defaults?.floodInsuranceAnnual ?? null}
+              pmiMipMonthly={defaults?.pmiMipMonthly ?? null}
             />
           </div>
         </div>

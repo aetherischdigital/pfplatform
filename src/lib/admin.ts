@@ -177,6 +177,11 @@ export async function fetchUserSummary(userId: string): Promise<AdminUserSummary
     propertyTaxAnnual: nN(m.property_tax_annual),
     homeownersInsuranceAnnual: nN(m.homeowners_insurance_annual),
     hoaMonthly: nN(m.hoa_monthly),
+    // Not surfaced by the admin_user_summary RPC — the admin overview doesn't
+    // break PITI down to this level. Null keeps the type honest.
+    firstPaymentDate: null,
+    floodInsuranceAnnual: null,
+    pmiMipMonthly: null,
     isPrimary: m.is_primary,
     dateAcquired: m.date_acquired,
     originalCost: nN(m.original_cost),

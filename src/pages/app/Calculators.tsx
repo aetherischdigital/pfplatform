@@ -258,6 +258,8 @@ function pfsToCalculatorDefaults(pfs: Pfs | null): PayoffCalculatorDefaults | un
     propertyTaxAnnual: m.propertyTaxAnnual,
     homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
     hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
   }
 }
 
@@ -271,6 +273,8 @@ function pfsToAmortizationDefaults(pfs: Pfs | null): AmortizationCalculatorDefau
     propertyTaxAnnual: m.propertyTaxAnnual,
     homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
     hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
   }
 }
 
@@ -298,6 +302,8 @@ function pfsToMultiScenarioDefaults(pfs: Pfs | null): MultiScenarioCalculatorDef
     propertyTaxAnnual: m.propertyTaxAnnual,
     homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
     hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
   }
 }
 
@@ -311,5 +317,7 @@ function pfsToRefinanceDefaults(pfs: Pfs | null): RefinanceCalculatorDefaults | 
     propertyTaxAnnual: m.propertyTaxAnnual,
     homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
     hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
   }
 }

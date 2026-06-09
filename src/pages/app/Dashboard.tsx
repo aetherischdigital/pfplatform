@@ -345,6 +345,12 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
             {m.homeownersInsuranceAnnual != null && (
               <PitiRow label="Insurance" value={`${formatUSD(m.homeownersInsuranceAnnual / 12)} (${formatUSD(m.homeownersInsuranceAnnual)}/yr)`} />
             )}
+            {m.floodInsuranceAnnual != null && (
+              <PitiRow label="Flood insurance" value={`${formatUSD(m.floodInsuranceAnnual / 12)} (${formatUSD(m.floodInsuranceAnnual)}/yr)`} />
+            )}
+            {m.pmiMipMonthly != null && m.pmiMipMonthly > 0 && (
+              <PitiRow label="PMI / MIP" value={formatUSD(m.pmiMipMonthly)} />
+            )}
             {m.hoaMonthly != null && m.hoaMonthly > 0 && (
               <PitiRow label="HOA" value={formatUSD(m.hoaMonthly)} />
             )}

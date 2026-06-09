@@ -112,11 +112,17 @@ export type Mortgage = {
   balance: number
   ratePct: number
   termMonthsRemaining: number
+  /** Date the first scheduled payment is/was due. Null until entered. Anchors
+   *  the numbered amortization schedule to real calendar dates. */
+  firstPaymentDate: string | null
   monthlyPayment: number
   extraPrincipal: number
   // Phase 2 PITI extras (nullable until users opt in).
   propertyTaxAnnual: number | null
   homeownersInsuranceAnnual: number | null
+  floodInsuranceAnnual: number | null
+  /** Monthly PMI (conventional) / MIP (FHA) premium. */
+  pmiMipMonthly: number | null
   hoaMonthly: number | null
   // Phase 2 multi-property: schema allows multiple mortgages per user, with
   // exactly one flagged is_primary.
@@ -222,10 +228,13 @@ type MortgageRow = {
   balance: string | number
   rate_pct: string | number
   term_months_remaining: number
+  first_payment_date: string | null
   monthly_payment: string | number
   extra_principal: string | number
   property_tax_annual: string | number | null
   homeowners_insurance_annual: string | number | null
+  flood_insurance_annual: string | number | null
+  pmi_mip_monthly: string | number | null
   hoa_monthly: string | number | null
   is_primary: boolean
   date_acquired: string | null
@@ -246,10 +255,13 @@ function toMortgage(m: MortgageRow): Mortgage {
     balance: num(m.balance),
     ratePct: num(m.rate_pct),
     termMonthsRemaining: m.term_months_remaining,
+    firstPaymentDate: m.first_payment_date,
     monthlyPayment: num(m.monthly_payment),
     extraPrincipal: num(m.extra_principal),
     propertyTaxAnnual: nullableNum(m.property_tax_annual),
     homeownersInsuranceAnnual: nullableNum(m.homeowners_insurance_annual),
+    floodInsuranceAnnual: nullableNum(m.flood_insurance_annual),
+    pmiMipMonthly: nullableNum(m.pmi_mip_monthly),
     hoaMonthly: nullableNum(m.hoa_monthly),
     isPrimary: m.is_primary,
     dateAcquired: m.date_acquired,
@@ -271,7 +283,7 @@ export async function fetchPfs(): Promise<Pfs> {
     supabase
       .from('mortgages')
       .select(
-        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,monthly_payment,extra_principal,property_tax_annual,homeowners_insurance_annual,hoa_monthly,is_primary,date_acquired,original_cost,pct_ownership,created_at',
+        'id,property_label,starting_home_value,balance,rate_pct,term_months_remaining,first_payment_date,monthly_payment,extra_principal,property_tax_annual,homeowners_insurance_annual,flood_insurance_annual,pmi_mip_monthly,hoa_monthly,is_primary,date_acquired,original_cost,pct_ownership,created_at',
       )
       .order('created_at', { ascending: true }),
     supabase
@@ -470,10 +482,13 @@ export type MortgageInput = {
   balance: number
   ratePct: number
   termMonthsRemaining: number
+  firstPaymentDate: string | null
   monthlyPayment: number
   extraPrincipal: number
   propertyTaxAnnual: number | null
   homeownersInsuranceAnnual: number | null
+  floodInsuranceAnnual: number | null
+  pmiMipMonthly: number | null
   hoaMonthly: number | null
   dateAcquired: string | null
   originalCost: number | null
@@ -488,10 +503,13 @@ function mortgageRow(input: MortgageInput) {
     balance: input.balance,
     rate_pct: input.ratePct,
     term_months_remaining: input.termMonthsRemaining,
+    first_payment_date: input.firstPaymentDate,
     monthly_payment: input.monthlyPayment,
     extra_principal: input.extraPrincipal,
     property_tax_annual: input.propertyTaxAnnual,
     homeowners_insurance_annual: input.homeownersInsuranceAnnual,
+    flood_insurance_annual: input.floodInsuranceAnnual,
+    pmi_mip_monthly: input.pmiMipMonthly,
     hoa_monthly: input.hoaMonthly,
     date_acquired: input.dateAcquired,
     original_cost: input.originalCost,
@@ -674,10 +692,17 @@ export function totalMonthlyHousingOutflow(m: Mortgage | null): {
   if (!m) return null
   const taxes = m.propertyTaxAnnual ?? 0
   const insurance = m.homeownersInsuranceAnnual ?? 0
+  const flood = m.floodInsuranceAnnual ?? 0
+  const pmi = m.pmiMipMonthly ?? 0
   const hoa = m.hoaMonthly ?? 0
-  const piti = m.propertyTaxAnnual != null || m.homeownersInsuranceAnnual != null || m.hoaMonthly != null
+  const piti =
+    m.propertyTaxAnnual != null ||
+    m.homeownersInsuranceAnnual != null ||
+    m.floodInsuranceAnnual != null ||
+    m.pmiMipMonthly != null ||
+    m.hoaMonthly != null
   return {
-    total: m.monthlyPayment + taxes / 12 + insurance / 12 + hoa,
+    total: m.monthlyPayment + taxes / 12 + insurance / 12 + flood / 12 + pmi + hoa,
     hasPiti: piti,
   }
 }

@@ -6,6 +6,8 @@ type Props = {
   extraPrincipal?: number
   propertyTaxAnnual: number | null
   homeownersInsuranceAnnual: number | null
+  floodInsuranceAnnual?: number | null
+  pmiMipMonthly?: number | null
   hoaMonthly: number | null
 }
 
@@ -19,16 +21,24 @@ export default function PitiLine({
   extraPrincipal = 0,
   propertyTaxAnnual,
   homeownersInsuranceAnnual,
+  floodInsuranceAnnual = null,
+  pmiMipMonthly = null,
   hoaMonthly,
 }: Props) {
   const hasAny =
-    propertyTaxAnnual != null || homeownersInsuranceAnnual != null || hoaMonthly != null
+    propertyTaxAnnual != null ||
+    homeownersInsuranceAnnual != null ||
+    floodInsuranceAnnual != null ||
+    pmiMipMonthly != null ||
+    hoaMonthly != null
   if (!hasAny) return null
 
   const tax = propertyTaxAnnual != null ? propertyTaxAnnual / 12 : 0
   const insurance = homeownersInsuranceAnnual != null ? homeownersInsuranceAnnual / 12 : 0
+  const flood = floodInsuranceAnnual != null ? floodInsuranceAnnual / 12 : 0
+  const pmi = pmiMipMonthly ?? 0
   const hoa = hoaMonthly ?? 0
-  const total = monthlyPayment + extraPrincipal + tax + insurance + hoa
+  const total = monthlyPayment + extraPrincipal + tax + insurance + flood + pmi + hoa
 
   return (
     <div className="mt-3 border-t border-surface-200 pt-3">
@@ -42,6 +52,8 @@ export default function PitiLine({
         <span>P&amp;I + extra {formatUSD(monthlyPayment + extraPrincipal)}</span>
         {propertyTaxAnnual != null && <span>· tax {formatUSD(tax)}</span>}
         {homeownersInsuranceAnnual != null && <span>· insurance {formatUSD(insurance)}</span>}
+        {floodInsuranceAnnual != null && <span>· flood {formatUSD(flood)}</span>}
+        {pmiMipMonthly != null && pmiMipMonthly > 0 && <span>· PMI/MIP {formatUSD(pmi)}</span>}
         {hoaMonthly != null && hoaMonthly > 0 && <span>· HOA {formatUSD(hoa)}</span>}
       </div>
     </div>

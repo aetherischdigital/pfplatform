@@ -57,6 +57,13 @@ export default function MortgageModal({
   const [hoaMonthly, setHoaMonthly] = useState(
     existing?.hoaMonthly != null ? String(existing.hoaMonthly) : '',
   )
+  const [floodInsuranceAnnual, setFloodInsuranceAnnual] = useState(
+    existing?.floodInsuranceAnnual != null ? String(existing.floodInsuranceAnnual) : '',
+  )
+  const [pmiMipMonthly, setPmiMipMonthly] = useState(
+    existing?.pmiMipMonthly != null ? String(existing.pmiMipMonthly) : '',
+  )
+  const [firstPaymentDate, setFirstPaymentDate] = useState(existing?.firstPaymentDate ?? '')
   // Schedule C extras (overdelivery)
   const [dateAcquired, setDateAcquired] = useState(existing?.dateAcquired ?? '')
   const [originalCost, setOriginalCost] = useState(
@@ -76,6 +83,8 @@ export default function MortgageModal({
     extraPrincipal?: string
     propertyTaxAnnual?: string
     homeownersInsuranceAnnual?: string
+    floodInsuranceAnnual?: string
+    pmiMipMonthly?: string
     hoaMonthly?: string
   }>({})
   const [saving, setSaving] = useState(false)
@@ -93,6 +102,8 @@ export default function MortgageModal({
     termMonthsRemaining: number | null
     propertyTaxAnnual: number | null
     homeownersInsuranceAnnual: number | null
+    floodInsuranceAnnual: number | null
+    pmiMipMonthly: number | null
     hoaMonthly: number | null
   }
 
@@ -123,6 +134,10 @@ export default function MortgageModal({
       errs.homeownersInsuranceAnnual = 'Enter a positive number or leave blank.'
     if (p.hoaMonthly !== null && p.hoaMonthly < 0)
       errs.hoaMonthly = 'Enter a positive number or leave blank.'
+    if (p.floodInsuranceAnnual !== null && p.floodInsuranceAnnual < 0)
+      errs.floodInsuranceAnnual = 'Enter a positive number or leave blank.'
+    if (p.pmiMipMonthly !== null && p.pmiMipMonthly < 0)
+      errs.pmiMipMonthly = 'Enter a positive number or leave blank.'
     // A payment that doesn't cover the first month's interest never amortizes —
     // the dashboard would otherwise render a blank "—" payoff with no clue why.
     if (
@@ -158,6 +173,8 @@ export default function MortgageModal({
       // the DB stores as "not entered" rather than a fabricated $0.
       propertyTaxAnnual: parseMoney(propertyTaxAnnual),
       homeownersInsuranceAnnual: parseMoney(homeownersInsuranceAnnual),
+      floodInsuranceAnnual: parseMoney(floodInsuranceAnnual),
+      pmiMipMonthly: parseMoney(pmiMipMonthly),
       hoaMonthly: parseMoney(hoaMonthly),
     }
 
@@ -181,10 +198,13 @@ export default function MortgageModal({
       balance: parsed.balance,
       ratePct: parsed.ratePct,
       termMonthsRemaining: parsed.termMonthsRemaining,
+      firstPaymentDate: firstPaymentDate.trim() === '' ? null : firstPaymentDate,
       monthlyPayment: parsed.monthlyPayment,
       extraPrincipal: parsed.extraPrincipal,
       propertyTaxAnnual: parsed.propertyTaxAnnual,
       homeownersInsuranceAnnual: parsed.homeownersInsuranceAnnual,
+      floodInsuranceAnnual: parsed.floodInsuranceAnnual,
+      pmiMipMonthly: parsed.pmiMipMonthly,
       hoaMonthly: parsed.hoaMonthly,
       dateAcquired: dateAcquired.trim() === '' ? null : dateAcquired,
       originalCost: parseMoney(originalCost),
@@ -290,6 +310,18 @@ export default function MortgageModal({
           </Field>
         </div>
 
+        <Field
+          label="1st payment date"
+          hint="When the first scheduled payment is or was due — anchors the numbered schedule to real dates. Optional."
+        >
+          <input
+            type="date"
+            value={firstPaymentDate}
+            onChange={(e) => setFirstPaymentDate(e.target.value)}
+            className={modalFieldClass}
+          />
+        </Field>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Monthly P&amp;I payment"
@@ -346,6 +378,31 @@ export default function MortgageModal({
               value={homeownersInsuranceAnnual}
               onChange={setHomeownersInsuranceAnnual}
               invalid={!!fieldErrors.homeownersInsuranceAnnual}
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Flood insurance / yr"
+            hint="Annual flood-insurance premium, if your property requires it."
+            error={fieldErrors.floodInsuranceAnnual}
+          >
+            <CurrencyInput
+              value={floodInsuranceAnnual}
+              onChange={setFloodInsuranceAnnual}
+              invalid={!!fieldErrors.floodInsuranceAnnual}
+            />
+          </Field>
+          <Field
+            label="PMI / MIP / mo"
+            hint="Monthly mortgage insurance — PMI on conventional, MIP on FHA. Skip once it drops off."
+            error={fieldErrors.pmiMipMonthly}
+          >
+            <CurrencyInput
+              value={pmiMipMonthly}
+              onChange={setPmiMipMonthly}
+              invalid={!!fieldErrors.pmiMipMonthly}
             />
           </Field>
         </div>
