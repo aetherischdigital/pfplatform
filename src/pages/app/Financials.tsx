@@ -358,7 +358,7 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Household expenses"
+        title="Spending"
         total={t.monthlyLivingExpenses}
         totalSign="−"
         totalSuffix=" / mo"
@@ -366,7 +366,7 @@ export default function Financials() {
       >
         {pfs.livingExpenses.length === 0 ? (
           <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No household expenses yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
+            No spending entered yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
             These feed your cash flow waterfall on the dashboard.
           </div>
         ) : (

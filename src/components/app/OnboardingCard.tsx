@@ -73,7 +73,7 @@ export default function OnboardingCard({
     },
     {
       icon: Wallet,
-      title: 'Add income & household expenses',
+      title: 'Add income & spending',
       body: "Your paycheck plus rent, groceries, utilities — what powers your cash flow waterfall.",
       ctaLabel: 'Open the PFS',
       ctaTo: '/app/financials',
