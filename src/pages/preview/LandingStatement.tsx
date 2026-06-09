@@ -145,7 +145,7 @@ export default function LandingStatement() {
               {[
                 ['044', '410.12', '2,118.10', '390,652', false],
                 ['045', '412.34', '2,115.88', '390,240', false],
-                ['046', '414.57', '2,113.65', '389,825', true],
+                ['046', '414.57', '2,113.65', '389,825', false],
                 ['047', '416.82', '2,111.40', '389,408', false],
                 ['048', '419.07', '2,109.15', '388,989', false],
               ].map(([n, p, i, b, retired]) => (
@@ -158,8 +158,8 @@ export default function LandingStatement() {
                 </div>
               ))}
               <div className="pfoot">
-                <span><span className="k">PREPAY $414.57</span></span>
-                <span>RETIRES PAYMENT 046 →</span>
+                <span><span className="k">+$250/MO TO PRINCIPAL</span></span>
+                <span>RETIRE 9.4 YRS SOONER →</span>
               </div>
             </div>
 
