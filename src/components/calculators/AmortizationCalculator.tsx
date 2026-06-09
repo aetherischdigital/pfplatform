@@ -134,7 +134,7 @@ export default function AmortizationCalculator({ defaults }: Props) {
 
           <div className="max-h-[28rem] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-surface-50 text-left text-xs font-medium uppercase tracking-wider text-surface-500">
+              <thead className="sticky top-0 z-10 bg-surface-50 text-left font-mono text-[11px] uppercase tracking-wider text-surface-500">
                 <tr>
                   <th className="px-4 py-3">Month</th>
                   <th className="px-4 py-3 text-right">Payment</th>

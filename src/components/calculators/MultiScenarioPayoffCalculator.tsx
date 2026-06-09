@@ -213,7 +213,7 @@ export default function MultiScenarioPayoffCalculator({ defaults }: Props) {
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-left text-xs font-medium uppercase tracking-wider text-surface-500">
+              <thead className="bg-surface-50 text-left font-mono text-[11px] uppercase tracking-wider text-surface-500">
                 <tr>
                   <th className="px-4 py-3">Scenario</th>
                   <th className="px-4 py-3 text-right">Payoff</th>

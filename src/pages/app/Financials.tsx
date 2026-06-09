@@ -551,7 +551,7 @@ function Headline({
 }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'

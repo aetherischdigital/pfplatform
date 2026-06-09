@@ -191,7 +191,7 @@ export default function RefinanceCompareCalculator({ defaults }: Props) {
               <DetailRow label="Closing costs (out of pocket)" value={formatUSD(closingCosts)} />
             </dl>
             <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-surface-500">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-surface-500">
                 True PITI comparison
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -258,7 +258,7 @@ function ResultStat({
           : 'text-surface-900'
   return (
     <div className="p-6">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${toneClass}`}
       >

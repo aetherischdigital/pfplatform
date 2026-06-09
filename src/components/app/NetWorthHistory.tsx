@@ -171,7 +171,7 @@ function Stat({
           : 'text-surface-900'
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">
         {label}
       </div>
       <div className={`mt-1 font-display text-xl font-semibold tracking-tight ${color}`}>

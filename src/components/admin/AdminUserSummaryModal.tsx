@@ -166,7 +166,7 @@ function SummaryBody({ summary }: { summary: AdminUserSummary }) {
         </div>
         {(summary.profile.spouseName || summary.profile.spouseBirthdate || summary.profile.spouseOccupation) && (
           <div className="mt-3 rounded-lg border border-surface-200 bg-surface-50 p-3">
-            <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
+            <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">
               Spouse / co-applicant
             </div>
             <div className="mt-2 grid gap-2 sm:grid-cols-3 text-sm text-surface-700">
@@ -374,7 +374,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-surface-500">
+      <div className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-surface-500">
         {icon}
         {label}
       </div>
@@ -396,7 +396,7 @@ function Stat({
     tone === 'good' ? 'text-success-700' : tone === 'bad' ? 'text-danger-700' : 'text-surface-900'
   return (
     <div className="rounded-lg border border-surface-200 bg-surface-50 p-3">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div className={`mt-1 font-display text-lg font-semibold tracking-tight ${color}`}>
         {value}
       </div>

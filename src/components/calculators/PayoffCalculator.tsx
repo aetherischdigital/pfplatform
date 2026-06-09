@@ -174,7 +174,7 @@ function ResultStat({
 }) {
   return (
     <div className="p-6">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
