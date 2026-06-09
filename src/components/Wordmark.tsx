@@ -24,18 +24,16 @@ export default function Wordmark({
   compact = false,
 }: Props) {
   const color = variant === 'light' ? 'text-white' : 'text-surface-900'
-  const accent = variant === 'light' ? 'text-accent-400' : 'text-accent-500'
-  const markBg = variant === 'light' ? 'bg-white' : 'bg-surface-900'
-  const markFg = variant === 'light' ? 'text-surface-900' : 'text-accent-500'
+  const accent = variant === 'light' ? 'text-accent-400' : 'text-accent-600'
+  const ring = variant === 'light' ? 'border-white/45' : 'border-accent-400'
+  const markFg = variant === 'light' ? 'text-white' : 'text-surface-900'
   return (
-    <Link to={to} className={`group inline-flex items-center gap-2 ${color}`}>
+    <Link to={to} className={`group inline-flex items-center gap-2.5 ${color}`}>
       <span
-        className={`grid h-7 w-7 place-items-center rounded-md ${markBg}`}
+        className={`grid h-8 w-8 place-items-center rounded-full border ${ring} transition-colors group-hover:border-accent-500`}
         aria-hidden
       >
-        <span className={`font-display font-extrabold text-[9px] leading-none tracking-tighter ${markFg}`}>
-          PFP
-        </span>
+        <span className={`font-label text-[13px] leading-none ${markFg}`}>P</span>
       </span>
       <span className={`font-display font-semibold tracking-tight ${sizes[size]}`}>
         {compact ? (

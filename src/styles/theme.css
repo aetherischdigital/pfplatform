@@ -52,9 +52,16 @@
   --color-danger-600: #B0432A;
   --color-danger-700: #863121;
 
-  /* Type stack */
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Fraunces", "Inter Tight", "Inter", Georgia, serif;
+  /* Type stack — "The Statement" heritage system.
+     - display : Cormorant Garamond  (headings, h1–h3, font-display)
+     - body    : EB Garamond serif   (marketing prose, via .font-body on MarketingLayout)
+     - sans    : Hanken Grotesk       (app/UI body + the global default)
+     - label   : Marcellus            (eyebrows, kickers, foil CTAs)
+     - mono    : JetBrains Mono        (tabular figures) */
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-label: "Marcellus", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 
   /* Elevation */

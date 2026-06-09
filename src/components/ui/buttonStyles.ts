@@ -8,7 +8,8 @@ const variants: Record<ButtonVariant, string> = {
   primary: 'bg-surface-900 text-white hover:bg-surface-800',
   secondary: 'border border-surface-300 text-surface-900 bg-white hover:bg-surface-50',
   ghost: 'text-surface-700 hover:text-surface-900 hover:bg-surface-100',
-  accent: 'bg-accent-500 text-surface-50 hover:bg-accent-600',
+  accent:
+    'bg-gradient-to-b from-accent-400 to-accent-600 text-surface-50 font-label uppercase tracking-[0.1em] shadow-card hover:from-accent-500 hover:to-accent-600',
   danger: 'bg-danger-600 text-white hover:bg-danger-700',
 }
 

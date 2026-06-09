@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import Container from '../../components/ui/Container'
-import { ButtonLink } from '../../components/ui/Button'
+import PageHeader from '../../components/marketing/PageHeader'
+import '../preview/statement.css'
 import BlogCoverImage from '../../components/BlogCoverImage'
 import { listPostsByDateDesc, type BlogPost } from '../../lib/blogPosts'
 import { usePageMeta } from '../../lib/usePageMeta'
@@ -36,47 +36,40 @@ export default function Blog() {
 
   return (
     <>
-      <section className="bg-gradient-to-b from-surface-50 to-white">
-        <Container className="py-20 text-center">
-          <p className="font-mono text-xs uppercase tracking-wider text-accent-600">Blog</p>
-          <h1 className="mx-auto mt-3 max-w-3xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
-            Plain-English deep dives on payoff, equity, and homeownership.
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
-            The same things we'd tell a friend over coffee, written down so you can read them at 11pm.
-          </p>
-        </Container>
-      </section>
+      <PageHeader
+        kicker="Blog"
+        title="Plain-English deep dives on payoff, equity, and homeownership."
+        intro="The same things we'd tell a friend over coffee, written down so you can read them at 11pm."
+      />
 
-      <section className="bg-white">
-        <Container className="py-16">
-          {featured && <FeaturedCard post={featured} />}
+      <div className="stmt">
+        <section className="stmt-section" style={{ paddingBottom: 0 }}>
+          <div className="stmt-wrap">
+            {featured && <FeaturedCard post={featured} />}
 
-          {rest.length > 0 && (
-            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.map((p) => (
-                <PostCard key={p.slug} post={p} />
-              ))}
-            </div>
-          )}
-        </Container>
-      </section>
-
-      <section className="bg-surface-50">
-        <Container className="py-20 text-center">
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-surface-900 sm:text-4xl">
-            Stop reading. Start running numbers.
-          </h2>
-          <p className="mx-auto mt-3 max-w-lg text-surface-500">
-            The free calculator turns the ideas in these articles into your actual numbers.
-          </p>
-          <div className="mt-8 flex justify-center">
-            <ButtonLink to="/calculator" variant="primary" size="lg">
-              Open the calculator <ArrowRight size={16} />
-            </ButtonLink>
+            {rest.length > 0 && (
+              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {rest.map((p) => (
+                  <PostCard key={p.slug} post={p} />
+                ))}
+              </div>
+            )}
           </div>
-        </Container>
-      </section>
+        </section>
+
+        <section className="stmt-close">
+          <div className="stmt-wrap">
+            <div className="stmt-rule"><span className="l" /><span className="d" /><span className="l" /></div>
+            <h2 className="stmt-display stmt-h2">Stop reading. Start running numbers.</h2>
+            <p className="stmt-sub" style={{ margin: '16px auto 0', maxWidth: '30em' }}>
+              The free calculator turns the ideas in these articles into your actual numbers.
+            </p>
+            <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 32 }}>
+              <Link to="/calculator" className="stmt-btn stmt-btn--gold">Open the calculator</Link>
+            </div>
+          </div>
+        </section>
+      </div>
     </>
   )
 }
@@ -85,7 +78,7 @@ function FeaturedCard({ post }: { post: BlogPost }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group block overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+      className="group block overflow-hidden rounded-lg border border-surface-200 bg-white shadow-card transition-[border-color,box-shadow] duration-200 hover:border-surface-300 hover:shadow-card-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
     >
       <div className="grid gap-0 lg:grid-cols-2">
         <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full">
@@ -95,13 +88,13 @@ function FeaturedCard({ post }: { post: BlogPost }) {
             loading="eager"
             className="absolute inset-0 h-full w-full"
           />
-          <span className="absolute left-4 top-4 rounded-full bg-surface-900/90 px-3 py-1 font-mono text-xs uppercase tracking-wider text-accent-400 backdrop-blur">
+          <span className="absolute left-4 top-4 rounded-full bg-surface-900/90 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-accent-400 backdrop-blur">
             Featured
           </span>
         </div>
         <div className="flex flex-col justify-between p-8 lg:p-10">
           <div>
-            <span className="text-xs font-medium uppercase tracking-wider text-accent-600">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-accent-600">
               {post.tag}
             </span>
             <h2 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-tight text-surface-900 sm:text-3xl">
@@ -110,7 +103,7 @@ function FeaturedCard({ post }: { post: BlogPost }) {
             <p className="mt-4 text-base leading-relaxed text-surface-500">{post.excerpt}</p>
           </div>
           <div className="mt-8 flex items-center justify-between border-t border-surface-200 pt-5">
-            <span className="font-mono text-xs text-surface-500">
+            <span className="font-mono text-[11px] tabular-nums text-surface-500">
               {formatDate(post.publishedAt)} · {post.readingMinutes} min read
             </span>
             <span className="inline-flex items-center gap-1 text-sm font-medium text-surface-900 group-hover:text-accent-600">
@@ -127,7 +120,7 @@ function PostCard({ post }: { post: BlogPost }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-lg motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+      className="group flex flex-col overflow-hidden rounded-lg border border-surface-200 bg-white shadow-card transition-[border-color,box-shadow] duration-200 hover:border-surface-300 hover:shadow-card-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
     >
       <BlogCoverImage
         src={post.coverImage}
@@ -136,10 +129,10 @@ function PostCard({ post }: { post: BlogPost }) {
       />
       <div className="flex flex-1 flex-col p-6">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-wider text-accent-600">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-accent-600">
             {post.tag}
           </span>
-          <span className="font-mono text-xs text-surface-500">
+          <span className="font-mono text-[11px] tabular-nums text-surface-500">
             {post.readingMinutes} min
           </span>
         </div>
@@ -148,7 +141,7 @@ function PostCard({ post }: { post: BlogPost }) {
         </h3>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-surface-500">{post.excerpt}</p>
         <div className="mt-5 flex items-center justify-between text-xs">
-          <span className="text-surface-500">{formatDate(post.publishedAt)}</span>
+          <span className="font-mono tabular-nums text-surface-500">{formatDate(post.publishedAt)}</span>
           <span className="inline-flex items-center gap-1 font-medium text-surface-900 group-hover:text-accent-600">
             Read <ArrowRight size={12} />
           </span>

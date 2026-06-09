@@ -1,40 +1,52 @@
-import { ArrowRight, Sparkles } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { ArrowRight } from 'lucide-react'
 import Container from '../../components/ui/Container'
 import { ButtonLink } from '../../components/ui/Button'
+import PageHeader from '../../components/marketing/PageHeader'
 import PayoffCalculator from '../../components/calculators/PayoffCalculator'
+import '../preview/statement.css'
 
 export default function Calculator() {
   return (
     <>
-      <section className="bg-gradient-to-b from-surface-50 to-white">
-        <Container className="py-16 text-center sm:py-20">
-          <p className="font-mono text-xs uppercase tracking-wider text-accent-600">Free tool</p>
-          <h1 className="mx-auto mt-3 max-w-3xl font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
-            See your payoff date in under 60 seconds.
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-surface-500">
-            Enter your loan, add a few extra dollars a month, and see the years and dollars you&rsquo;d save.
-            No signup required.
-          </p>
-        </Container>
-      </section>
+      <PageHeader
+        kicker="Free tool · no signup"
+        title="See your payoff date in under 60 seconds."
+        intro="Enter your loan, add a few extra dollars a month, and see the years and dollars you'd save. No signup required."
+      />
 
-      <section className="bg-white">
-        <Container className="pb-16">
+      <section>
+        <Container className="py-16">
           <PayoffCalculator
             footer={
-              <div className="flex items-start gap-3 rounded-xl border border-accent-200 bg-accent-100 p-5">
-                <Sparkles size={16} className="mt-0.5 flex-shrink-0 text-accent-600" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-surface-900">
-                    Want to save this scenario and track real progress?
-                  </p>
-                  <p className="mt-1 text-sm text-surface-600">
-                    Sign up for free to compare multiple strategies side by side and update them as
-                    your finances change.
+              <div
+                className="flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                style={{
+                  borderRadius: 4,
+                  border: '1px solid var(--color-accent-400)',
+                  outline: '1px solid color-mix(in srgb, var(--color-accent-400) 30%, transparent)',
+                  outlineOffset: 4,
+                  background: 'var(--color-surface-100)',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "'Marcellus', serif",
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.22em',
+                      fontSize: 11,
+                      color: 'var(--color-accent-600)',
+                    }}
+                  >
+                    Save your scenario
+                  </div>
+                  <p className="mt-1.5 text-sm text-surface-600">
+                    Sign up free to compare multiple strategies side by side and update them as your
+                    finances change.
                   </p>
                 </div>
-                <ButtonLink to="/signup" variant="primary" size="sm">
+                <ButtonLink to="/signup" variant="accent" size="sm" className="flex-shrink-0">
                   Start free <ArrowRight size={14} />
                 </ButtonLink>
               </div>
@@ -43,34 +55,49 @@ export default function Calculator() {
         </Container>
       </section>
 
-      <section className="bg-surface-50">
-        <Container size="md" className="py-20">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-surface-900 sm:text-3xl">
-            How this works
-          </h2>
-          <div className="mt-6 grid gap-6 text-sm leading-relaxed text-surface-600 sm:grid-cols-2">
-            <p>
-              Every month, your scheduled payment splits between interest (paid to the bank) and
-              principal (reducing your balance). Early in a 30-year loan, most of your payment is
-              interest.
-            </p>
-            <p>
-              When you pay extra, all of it goes to principal. That smaller balance generates less
-              interest next month — and the savings compound over decades.
-            </p>
-            <p>
-              The chart shows two paths: your baseline schedule and the scenario with extra
-              principal. The shaded area between them is the interest you don&rsquo;t pay.
-            </p>
-            <p className="text-surface-500">
-              <em>
-                Educational only. Doesn&rsquo;t model PMI, taxes, insurance, or refinance scenarios — those
-                live in the full app once you sign up.
-              </em>
+      <div className="stmt">
+        <section className="stmt-section stmt-section--alt">
+          <div className="stmt-wrap" style={{ maxWidth: 880 }}>
+            <span className="stmt-label">The mechanics</span>
+            <h2 className="stmt-display stmt-h2" style={{ marginTop: 14 }}>How this works.</h2>
+            <div
+              style={{
+                marginTop: 28,
+                display: 'grid',
+                gap: 28,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              }}
+            >
+              <Mechanic n="01" title="Interest first">
+                Every month, your scheduled payment splits between interest (paid to the bank) and
+                principal (reducing your balance). Early in a 30-year loan, most of it is interest.
+              </Mechanic>
+              <Mechanic n="02" title="Extra goes to principal">
+                When you pay extra, all of it goes to principal. That smaller balance generates less
+                interest next month — and the savings compound over decades.
+              </Mechanic>
+              <Mechanic n="03" title="The shaded area is yours">
+                The chart shows two paths: your baseline schedule and the scenario with extra
+                principal. The shaded area between them is the interest you don&rsquo;t pay.
+              </Mechanic>
+            </div>
+            <p className="stmt-sub" style={{ marginTop: 28, fontSize: 16, fontStyle: 'italic' }}>
+              Educational only. Doesn&rsquo;t model PMI, taxes, insurance, or refinance scenarios —
+              those live in the full app once you sign up.
             </p>
           </div>
-        </Container>
-      </section>
+        </section>
+      </div>
     </>
+  )
+}
+
+function Mechanic({ n, title, children }: { n: string; title: string; children: ReactNode }) {
+  return (
+    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+      <div className="stmt-mono" style={{ fontSize: 13, color: 'var(--gold-deep)' }}>{n}</div>
+      <h3 className="stmt-display" style={{ fontSize: 22, fontWeight: 600, margin: '8px 0 0' }}>{title}</h3>
+      <p style={{ marginTop: 8, fontSize: 16, color: 'var(--soft)' }}>{children}</p>
+    </div>
   )
 }

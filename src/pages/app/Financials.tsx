@@ -241,7 +241,7 @@ export default function Financials() {
         rightAction={
           <div className="flex gap-2">
             {!pfs.mortgage && (
-              <Button variant="secondary" size="sm" onClick={() => setMortgageModalOpen(true)}>
+              <Button variant="secondary" size="sm" onClick={() => setMortgageModal({ existing: null })}>
                 <Plus size={14} /> Mortgage
               </Button>
             )}

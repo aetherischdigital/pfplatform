@@ -26,7 +26,7 @@ export default function ThemeToggle({ className = '' }: Props) {
       onClick={cycle}
       title={labels[preference]}
       aria-label={labels[preference]}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${className}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-md border border-surface-300 text-surface-500 transition-colors hover:border-accent-400 hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${className}`}
     >
       <Icon size={16} />
     </button>

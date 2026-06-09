@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Marcellus&display=swap');
+
+/* ════════════════════════════════════════════════════════════════════════
+   "THE STATEMENT" — rich heritage personal-finance landing.
+   Restores the engraved/document richness (dark ledger plates, walnut foil,
+   paper grain, Cormorant) but drives EVERY colour through the site's theme
+   tokens (--color-surface-* / --color-accent-*) so it themes for light AND
+   dark. Scoped under .stmt.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.stmt {
+  --ink: var(--color-surface-900);
+  --paper: var(--color-surface-50);
+  --line: var(--color-surface-200);
+  --line-strong: var(--color-surface-300);
+  --soft: var(--color-surface-600);
+  --faint: var(--color-surface-500);
+  --gold: var(--color-accent-400);
+  --gold-deep: var(--color-accent-600);
+
+  /* .stmt is now a *styling scope* for the rich statement body sections; the
+     page chrome (header/footer) + paper atmosphere live in MarketingLayout so
+     every public page shares them. */
+  position: relative;
+  color: var(--color-surface-900);
+  font-size: 18px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.stmt *, .stmt *::before, .stmt *::after { box-sizing: border-box; }
+.stmt a { text-decoration: none; }
+.stmt a:not(.stmt-btn) { color: inherit; }
+.stmt-wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+/* ── Type helpers ───────────────────────────────────────────────────────── */
+.stmt-display { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; line-height: 1.02; letter-spacing: -0.005em; }
+.stmt-script { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 600; }
+.stmt-label { font-family: 'Marcellus', serif; text-transform: uppercase; letter-spacing: 0.36em; font-size: 11px; color: var(--gold-deep); }
+.stmt-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.stmt-btn {
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer; border: none;
+  font-family: 'Marcellus', serif; letter-spacing: 0.13em; text-transform: uppercase; font-size: 13px;
+  padding: 14px 26px; transition: transform 0.18s, box-shadow 0.25s, background 0.2s, border-color 0.2s, color 0.2s;
+}
+.stmt-btn--gold {
+  color: var(--color-surface-50);
+  background: linear-gradient(150deg, var(--color-accent-400), var(--color-accent-500) 70%, var(--color-accent-600));
+  box-shadow: 0 1px 0 color-mix(in srgb, white 25%, transparent) inset, 0 8px 22px -10px color-mix(in srgb, var(--color-accent-600) 80%, transparent);
+}
+.stmt-btn--gold:hover { transform: translateY(-2px); box-shadow: 0 1px 0 color-mix(in srgb, white 30%, transparent) inset, 0 14px 30px -12px color-mix(in srgb, var(--color-accent-600) 90%, transparent); }
+.stmt-btn--ink { color: var(--color-surface-50); background: var(--color-surface-900); }
+.stmt-btn--ink:hover { transform: translateY(-2px); background: var(--color-surface-800); }
+.stmt-btn--ghost { background: transparent; color: var(--color-surface-900); border: 1px solid var(--line-strong); }
+.stmt-btn--ghost:hover { border-color: var(--gold); color: var(--gold-deep); }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.stmt-top { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--color-surface-50) 82%, transparent); backdrop-filter: blur(10px); }
+.stmt-top .bar { display: flex; align-items: center; justify-content: space-between; height: 74px; }
+.stmt-brand { display: flex; align-items: center; gap: 13px; }
+.stmt-brand .mark { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--gold); display: grid; place-items: center; font-family: 'Marcellus', serif; font-size: 14px; color: var(--color-surface-900); background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--color-accent-400) 45%, transparent), transparent 70%); }
+.stmt-brand .name { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 22px; }
+.stmt-nav { display: flex; align-items: center; gap: 28px; }
+.stmt-nav a { font-size: 15px; color: var(--soft); transition: color 0.2s; position: relative; }
+.stmt-nav a:hover { color: var(--color-surface-900); }
+.stmt-nav a::after { content: ''; position: absolute; left: 0; bottom: -5px; height: 1px; width: 0; background: var(--gold); transition: width 0.25s; }
+.stmt-nav a:hover::after { width: 100%; }
+.stmt-top-right { display: flex; align-items: center; gap: 14px; }
+.stmt-top .stmt-btn { padding: 11px 20px; }
+.stmt-toggle { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line-strong); color: var(--soft); background: transparent; cursor: pointer; transition: color 0.2s, border-color 0.2s; }
+.stmt-toggle:hover { color: var(--color-surface-900); border-color: var(--gold); }
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+.stmt-hero { position: relative; padding: 64px 0 86px; }
+.stmt-hero-grid { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 56px; align-items: center; }
+.stmt-eyebrow { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+.stmt-eyebrow .rule { height: 1px; width: 38px; background: var(--gold); }
+.stmt-eyebrow .serial { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: var(--faint); }
+.stmt-h1 { font-size: clamp(46px, 6.2vw, 84px); margin: 0; }
+.stmt-h1 .em { font-style: italic; color: var(--gold-deep); }
+.stmt-lede { margin: 26px 0 0; max-width: 30em; font-size: 19px; color: var(--soft); }
+.stmt-lede b { font-weight: 600; color: var(--color-surface-900); }
+.stmt-cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+.stmt-fine { margin-top: 26px; display: flex; align-items: center; gap: 15px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.07em; color: var(--faint); }
+.stmt-fine .pipe { width: 1px; height: 12px; background: var(--line-strong); }
+
+/* ── The plate (rich dark ledger surface) ───────────────────────────────── */
+.stmt-plate {
+  position: relative; overflow: hidden; border-radius: 4px;
+  background: linear-gradient(180deg, var(--color-surface-900), color-mix(in srgb, var(--color-surface-900) 88%, black));
+  color: var(--color-surface-50);
+  border: 1px solid color-mix(in srgb, var(--color-accent-400) 35%, transparent);
+  box-shadow: 0 34px 70px -34px color-mix(in srgb, var(--color-surface-900) 80%, transparent), 0 2px 0 color-mix(in srgb, var(--color-accent-400) 30%, transparent) inset;
+}
+.stmt-plate::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.stmt-plate > * { position: relative; z-index: 1; }
+.stmt-plate .phead { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--color-accent-400) 25%, transparent); }
+.stmt-plate .phead .t { font-family: 'Marcellus', serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 11px; color: var(--gold); }
+.stmt-plate .phead .m { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: color-mix(in srgb, var(--color-surface-50) 65%, transparent); }
+
+/* figures + chart inside a plate */
+.stmt-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: color-mix(in srgb, var(--color-accent-400) 18%, transparent); }
+.stmt-fig { padding: 18px 22px; background: var(--color-surface-900); }
+.stmt-fig .k { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--color-surface-50) 55%, transparent); }
+.stmt-fig .v { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 30px; margin-top: 2px; }
+.stmt-fig .v.gold { color: var(--gold); }
+.stmt-chart { padding: 14px 18px 18px; }
+.stmt-chart svg { width: 100%; height: auto; display: block; }
+
+/* ledger rows inside a plate */
+.stmt-row { display: grid; grid-template-columns: 2.4rem 1fr 1fr 1.2fr; gap: 10px; padding: 11px 22px; font-family: 'JetBrains Mono', monospace; font-size: 13px; border-bottom: 1px solid color-mix(in srgb, var(--color-surface-50) 8%, transparent); }
+.stmt-row.h { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-surface-50) 50%, transparent); }
+.stmt-row .r { text-align: right; }
+.stmt-row .dim { color: color-mix(in srgb, var(--color-surface-50) 60%, transparent); }
+.stmt-row.retired { background: color-mix(in srgb, var(--color-accent-400) 14%, transparent); position: relative; }
+.stmt-row.retired .strike { text-decoration: line-through; color: color-mix(in srgb, var(--color-surface-50) 55%, transparent); }
+.stmt-row .stamp { position: absolute; right: 16px; top: 50%; transform: translateY(-50%) rotate(-8deg); font-family: 'Marcellus', serif; letter-spacing: 0.16em; font-size: 12px; color: var(--color-danger-600); border: 1.5px solid var(--color-danger-600); padding: 2px 9px; border-radius: 3px; opacity: 0.9; }
+.stmt-plate .pfoot { display: flex; align-items: center; justify-content: space-between; padding: 15px 22px; background: color-mix(in srgb, var(--color-accent-400) 9%, transparent); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; }
+.stmt-plate .pfoot .k { color: var(--gold); }
+
+/* Reusable plate content — label/value lines + a big figure — so secondary
+   pages can build rich engraved panels without bespoke markup each time. */
+.stmt-pbig { padding: 18px 22px 4px; font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 34px; line-height: 1.1; }
+.stmt-pline { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 22px; border-top: 1px solid color-mix(in srgb, var(--color-surface-50) 8%, transparent); }
+.stmt-pline .lbl { font-size: 15px; color: color-mix(in srgb, var(--color-surface-50) 80%, transparent); }
+.stmt-pline .lbl .sub { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: color-mix(in srgb, var(--color-surface-50) 50%, transparent); margin-top: 2px; }
+.stmt-pline .val { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap; }
+.stmt-pline .val.dim { color: color-mix(in srgb, var(--color-surface-50) 55%, transparent); }
+.stmt-pline.hl { background: color-mix(in srgb, var(--color-accent-400) 13%, transparent); }
+.stmt-pline.hl .lbl, .stmt-pline.hl .val { color: var(--gold); }
+.stmt-ptag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+a.stmt-pline { transition: background 0.2s; }
+a.stmt-pline:hover { background: color-mix(in srgb, var(--color-accent-400) 13%, transparent); }
+a.stmt-pline:hover .val { color: var(--gold); }
+
+/* Left-column eyebrow used on the dark method/ledger split (on-paper variant
+   is .stmt-label; this is for use on the paper sections of secondary pages). */
+.stmt-bullets { list-style: none; margin: 22px 0 0; padding: 0; }
+.stmt-bullets li { display: flex; gap: 12px; padding: 8px 0; font-size: 16px; color: var(--soft); }
+.stmt-bullets li::before { content: '§'; color: var(--gold-deep); font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.25; }
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+.stmt-section { position: relative; padding: 84px 0; }
+.stmt-section--alt { background: var(--color-surface-100); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.stmt-head { max-width: 40em; }
+.stmt-head .stmt-label { display: inline-block; margin-bottom: 18px; }
+.stmt-h2 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(34px, 4.2vw, 54px); line-height: 1.04; margin: 0; }
+.stmt-sub { margin-top: 15px; font-size: 19px; color: var(--soft); }
+
+/* ── Triage toggle + cards ──────────────────────────────────────────────── */
+.stmt-toggle-row { display: inline-flex; margin-top: 26px; border: 1px solid var(--line-strong); border-radius: 3px; padding: 4px; background: color-mix(in srgb, var(--color-surface-50) 50%, transparent); }
+.stmt-toggle-row button { font-family: 'Marcellus', serif; letter-spacing: 0.1em; text-transform: uppercase; font-size: 12px; padding: 9px 18px; border: none; background: transparent; color: var(--soft); cursor: pointer; transition: all 0.2s; }
+.stmt-toggle-row button.on { background: var(--color-surface-900); color: var(--color-surface-50); }
+.stmt-note { margin-top: 14px; font-size: 17px; color: var(--soft); min-height: 1.6em; }
+
+.stmt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 48px; }
+.stmt-card { position: relative; display: flex; flex-direction: column; padding: 38px 34px 34px; background: var(--color-white); border: 1px solid var(--line); border-radius: 4px; outline: 1px solid color-mix(in srgb, var(--color-accent-400) 30%, transparent); outline-offset: 4px; transition: transform 0.3s, box-shadow 0.3s, outline-color 0.3s; }
+.stmt-card:hover { transform: translateY(-4px); box-shadow: 0 26px 50px -30px color-mix(in srgb, var(--color-surface-900) 50%, transparent); outline-color: var(--gold); }
+.stmt-card .cap { display: flex; align-items: baseline; justify-content: space-between; }
+.stmt-card .cap .num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--gold-deep); }
+.stmt-card h3 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 30px; line-height: 1.1; margin: 8px 0 0; }
+.stmt-card ul { list-style: none; margin: 22px 0 0; padding: 0; flex: 1; }
+.stmt-card li { display: flex; gap: 11px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 16px; color: var(--soft); }
+.stmt-card li::before { content: '§'; color: var(--gold-deep); font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.3; }
+.stmt-sign { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.stmt-sign .x { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 20px; color: var(--color-surface-900); border-bottom: 1px solid var(--faint); padding-right: 40px; }
+.stmt-sign .go { font-family: 'Marcellus', serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; color: var(--gold-deep); display: inline-flex; gap: 7px; align-items: center; white-space: nowrap; transition: gap 0.2s; }
+.stmt-card:hover .go { gap: 12px; }
+
+/* ── Method ─────────────────────────────────────────────────────────────── */
+.stmt-ledger-grid { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 56px; align-items: center; }
+.stmt-method { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.stmt-method li { display: grid; grid-template-columns: 3rem 1fr; gap: 18px; padding: 26px 0; border-bottom: 1px solid var(--line); }
+.stmt-method .no { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--gold-deep); }
+.stmt-method h4 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 26px; margin: 0; color: var(--color-surface-900); }
+.stmt-method p { margin: 8px 0 0; font-size: 16px; color: var(--soft); }
+
+/* ── Proof band ─────────────────────────────────────────────────────────── */
+.stmt-proof { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.stmt-proof .cell { padding: 34px 24px; text-align: center; border-right: 1px solid var(--line); }
+.stmt-proof .cell:last-child { border-right: none; }
+.stmt-proof .v { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 40px; color: var(--color-surface-900); }
+.stmt-proof .k { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); margin-top: 6px; }
+
+/* ── Closing + footer ───────────────────────────────────────────────────── */
+.stmt-close { text-align: center; padding: 104px 0; }
+.stmt-close .stmt-h2 { font-size: clamp(40px, 5.4vw, 70px); }
+.stmt-close .em { font-style: italic; color: var(--gold-deep); }
+.stmt-rule { display: flex; align-items: center; gap: 14px; color: var(--gold); max-width: 300px; margin: 0 auto 28px; }
+.stmt-rule .l { height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.stmt-rule .d { width: 5px; height: 5px; transform: rotate(45deg); background: var(--gold); }
+.stmt-foot { border-top: 1px solid var(--line); padding: 38px 0; }
+.stmt-foot .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.stmt-foot .fine { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--faint); letter-spacing: 0.05em; }
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+.stmt-rise { opacity: 0; transform: translateY(18px); animation: stmt-rise 0.8s cubic-bezier(0.2,0.7,0.2,1) forwards; }
+@keyframes stmt-rise { to { opacity: 1; transform: none; } }
+
+@media (max-width: 880px) {
+  .stmt-hero-grid, .stmt-ledger-grid, .stmt-cards { grid-template-columns: 1fr; }
+  .stmt-nav { display: none; }
+  .stmt-proof { grid-template-columns: 1fr; }
+  .stmt-proof .cell { border-right: none; border-bottom: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { .stmt-rise { animation: none; opacity: 1; transform: none; } }
