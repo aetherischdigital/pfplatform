@@ -278,7 +278,7 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-surface-500">{headlineLabel}</div>
+          <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{headlineLabel}</div>
           <div className="font-display text-xl font-semibold text-accent-600">
             {formatUSD(headlineEquity)}
           </div>
@@ -331,7 +331,7 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
       </dl>
       {piti?.hasPiti ? (
         <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-surface-500">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">
             True monthly housing cost
           </div>
           <div className="mt-1.5 font-display text-xl font-semibold text-surface-900">
@@ -391,7 +391,7 @@ function PayoffStat({ pfs }: { pfs: Pfs }) {
   if (!m || !scenario) {
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-        <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
+        <div className="font-mono text-[11px] uppercase tracking-wider text-surface-400">
           Projected payoff
         </div>
         <div className="mt-2 font-display text-base font-medium text-surface-500">
@@ -435,7 +435,7 @@ function Stat({
         : 'text-success-600'
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'

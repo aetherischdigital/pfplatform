@@ -155,7 +155,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-surface-900 text-white'
+                    ? 'bg-accent-500 text-surface-50'
                     : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
                 }`
               }
@@ -229,7 +229,7 @@ function AdminSection({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="mt-6 border-t border-surface-200 pt-4">
-      <div className="flex items-center gap-1.5 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-500">
+      <div className="flex items-center gap-1.5 px-3 pb-2 font-label text-[11px] uppercase tracking-[0.22em] text-accent-600">
         <Shield size={12} /> Admin tools
       </div>
       {adminLinks.map((item) => {
