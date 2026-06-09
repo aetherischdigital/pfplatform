@@ -10,8 +10,10 @@ import ViewAsBanner from './components/ViewAsBanner'
 import RouteFallback from './components/RouteFallback'
 import ErrorBoundary from './components/ErrorBoundary'
 
-// Landing eager — first paint on cold cache
-import Landing from './pages/marketing/Landing'
+// Landing eager — first paint on cold cache. "The Statement" is now the
+// canonical public design; it renders inside the shared MarketingLayout so it
+// shares one header/footer/type system with every other page.
+import LandingStatement from './pages/preview/LandingStatement'
 
 // Everything else split per-route so the initial bundle stays small
 const HowItWorks = lazy(() => import('./pages/marketing/HowItWorks'))
@@ -23,6 +25,8 @@ const BlogPost = lazy(() => import('./pages/marketing/BlogPost'))
 const Privacy = lazy(() => import('./pages/marketing/Privacy'))
 const Terms = lazy(() => import('./pages/marketing/Terms'))
 const Disclosures = lazy(() => import('./pages/marketing/Disclosures'))
+
+const PFS = lazy(() => import('./pages/marketing/PFS'))
 
 const Dashboard = lazy(() => import('./pages/app/Dashboard'))
 const Financials = lazy(() => import('./pages/app/Financials'))
@@ -47,13 +51,16 @@ export default function App() {
           <Routes>
             {/* Public marketing */}
             <Route element={<MarketingLayout />}>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<LandingStatement />} />
+              <Route path="/landing-a" element={<LandingStatement />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/calculator" element={<Calculator />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/about" element={<About />} />
+              {/* New individual destination off the redesigned landing. */}
+              <Route path="/pfs" element={<PFS />} />
               {/* Legal placeholders — skeleton only, awaiting counsel-provided content.
                   noindex'd in usePageMeta and excluded from PUBLIC_ROUTES until live. */}
               <Route path="/privacy" element={<Privacy />} />

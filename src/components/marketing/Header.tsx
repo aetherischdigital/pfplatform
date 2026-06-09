@@ -18,8 +18,10 @@ const links = [
 ]
 
 const linkClasses = ({ isActive }: { isActive: boolean }) =>
-  `rounded text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 ${
-    isActive ? 'text-surface-900' : 'text-surface-500 hover:text-surface-900'
+  `border-b-2 pb-0.5 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 ${
+    isActive
+      ? 'border-accent-400 text-surface-900'
+      : 'border-transparent text-surface-600 hover:border-accent-300 hover:text-surface-900'
   }`
 
 export default function Header() {
@@ -63,7 +65,7 @@ export default function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-surface-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-surface-200 bg-surface-50/85 backdrop-blur">
       <Container>
         <div className="flex h-16 items-center justify-between">
           <Wordmark size="md" />

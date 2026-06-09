@@ -2,13 +2,12 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import Container from '../../components/ui/Container'
-import { ButtonLink } from '../../components/ui/Button'
 import BlogCoverImage from '../../components/BlogCoverImage'
 import { getPostBySlug, listPostsByDateDesc } from '../../lib/blogPosts'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { BRAND } from '../../config/brand'
 import NotFound from '../NotFound'
+import '../preview/statement.css'
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>()
@@ -32,24 +31,14 @@ export default function BlogPost() {
           image: post.coverImage,
           datePublished: post.publishedAt,
           dateModified: post.publishedAt,
-          author: {
-            '@type': 'Organization',
-            name: BRAND.name,
-            url: BRAND.siteUrl,
-          },
+          author: { '@type': 'Organization', name: BRAND.name, url: BRAND.siteUrl },
           publisher: {
             '@type': 'Organization',
             name: BRAND.name,
             url: BRAND.siteUrl,
-            logo: {
-              '@type': 'ImageObject',
-              url: `${BRAND.siteUrl}/og-image.png`,
-            },
+            logo: { '@type': 'ImageObject', url: `${BRAND.siteUrl}/og-image.png` },
           },
-          mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': `${BRAND.siteUrl}/blog/${post.slug}`,
-          },
+          mainEntityOfPage: { '@type': 'WebPage', '@id': `${BRAND.siteUrl}/blog/${post.slug}` },
           articleSection: post.tag,
           wordCount: post.body.split(/\s+/).length,
         }
@@ -63,166 +52,111 @@ export default function BlogPost() {
     .slice(0, 3)
 
   return (
-    <>
-      <section className="bg-gradient-to-b from-surface-50 to-white">
-        <Container size="md" className="py-16">
+    <div className="stmt">
+      {/* ── Masthead ─────────────────────────────────────────────────────── */}
+      <section className="stmt-section--alt" style={{ padding: '56px 0' }}>
+        <div className="stmt-wrap" style={{ maxWidth: 760 }}>
           <Link
             to="/blog"
-            className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--soft)' }}
           >
-            <ArrowLeft size={14} />
-            All posts
+            <ArrowLeft size={14} /> All posts
           </Link>
-          <div className="mt-8">
-            <span className="text-xs font-medium uppercase tracking-wider text-accent-600">
-              {post.tag}
-            </span>
-            <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.1] tracking-tight text-surface-900 sm:text-5xl">
+          <div style={{ marginTop: 28 }}>
+            <span className="stmt-label">{post.tag}</span>
+            <h1 className="stmt-display" style={{ marginTop: 12, fontSize: 'clamp(36px, 5vw, 58px)', lineHeight: 1.04 }}>
               {post.title}
             </h1>
-            <p className="mt-4 text-lg text-surface-500">{post.excerpt}</p>
-            <div className="mt-6 flex items-center gap-3 text-xs text-surface-500">
-              <span>{formatDate(post.publishedAt)}</span>
-              <span aria-hidden>·</span>
-              <span>{post.readingMinutes} min read</span>
+            <p className="stmt-sub" style={{ marginTop: 18 }}>{post.excerpt}</p>
+            <div className="stmt-mono" style={{ marginTop: 22, fontSize: 11, letterSpacing: '0.08em', color: 'var(--faint)' }}>
+              {formatDate(post.publishedAt)} · {post.readingMinutes} MIN READ
             </div>
           </div>
-        </Container>
+        </div>
       </section>
 
-      <section className="bg-white">
-        <Container size="md" className="pt-2 pb-10">
-          <BlogCoverImage
-            src={post.coverImage}
-            alt={post.title}
-            loading="eager"
-            className="aspect-[21/9] w-full rounded-2xl"
-          />
-        </Container>
+      {/* ── Cover ────────────────────────────────────────────────────────── */}
+      <div className="stmt-wrap" style={{ maxWidth: 760, marginTop: 40 }}>
+        <div style={{ borderRadius: 4, overflow: 'hidden', border: '1px solid var(--color-accent-400)', outline: '1px solid color-mix(in srgb, var(--color-accent-400) 30%, transparent)', outlineOffset: 4 }}>
+          <BlogCoverImage src={post.coverImage} alt={post.title} loading="eager" className="aspect-[21/9] w-full" />
+        </div>
+      </div>
+
+      {/* ── Article ──────────────────────────────────────────────────────── */}
+      <section className="stmt-section" style={{ paddingTop: 48 }}>
+        <article className="stmt-wrap" style={{ maxWidth: 720 }}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: (props) => <p style={{ margin: '0 0 22px', fontSize: 19, lineHeight: 1.78, color: 'var(--soft)' }} {...props} />,
+              h2: (props) => (
+                <h2 className="stmt-display" style={{ margin: '44px 0 14px', fontSize: 32, fontWeight: 600, color: 'var(--color-surface-900)' }} {...props} />
+              ),
+              h3: (props) => (
+                <h3 className="stmt-display" style={{ margin: '32px 0 10px', fontSize: 23, fontWeight: 600, color: 'var(--color-surface-900)' }} {...props} />
+              ),
+              ul: (props) => <ul style={{ margin: '0 0 22px 22px', display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none' }} {...props} />,
+              ol: (props) => <ol style={{ margin: '0 0 22px 22px', display: 'flex', flexDirection: 'column', gap: 8 }} {...props} />,
+              li: (props) => <li style={{ fontSize: 18, lineHeight: 1.65, color: 'var(--soft)' }} {...props} />,
+              strong: (props) => <strong style={{ fontWeight: 600, color: 'var(--color-surface-900)' }} {...props} />,
+              em: (props) => <em style={{ fontStyle: 'italic' }} {...props} />,
+              a: ({ href, children, ...rest }) => {
+                const isInternal = typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')
+                const style = { color: 'var(--gold-deep)', textDecoration: 'underline', textUnderlineOffset: 2 } as const
+                if (isInternal && href) {
+                  return <Link to={href} style={style}>{children}</Link>
+                }
+                return <a href={href} target="_blank" rel="noopener noreferrer" style={style} {...rest}>{children}</a>
+              },
+              code: (props) => (
+                <code className="stmt-mono" style={{ background: 'var(--color-surface-100)', padding: '2px 6px', borderRadius: 3, fontSize: '0.9em' }} {...props} />
+              ),
+              blockquote: (props) => (
+                <blockquote style={{ margin: '28px 0', borderLeft: '2px solid var(--color-accent-400)', paddingLeft: 22, fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 24, lineHeight: 1.35, color: 'var(--color-surface-900)' }} {...props} />
+              ),
+              hr: () => (
+                <div className="stmt-rule" style={{ maxWidth: 220, margin: '40px auto' }}>
+                  <span className="l" /><span className="d" /><span className="l" />
+                </div>
+              ),
+            }}
+          >
+            {post.body}
+          </ReactMarkdown>
+        </article>
       </section>
 
-      <section className="bg-white">
-        <Container size="md" className="pb-16">
-          <article className="text-surface-700">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                p: (props) => (
-                  <p className="mb-5 text-base leading-[1.75]" {...props} />
-                ),
-                h2: (props) => (
-                  <h2
-                    className="mt-12 mb-4 font-display text-2xl font-semibold tracking-tight text-surface-900"
-                    {...props}
-                  />
-                ),
-                h3: (props) => (
-                  <h3
-                    className="mt-10 mb-3 font-display text-lg font-semibold text-surface-900"
-                    {...props}
-                  />
-                ),
-                ul: (props) => (
-                  <ul className="mb-5 ml-5 list-disc space-y-2" {...props} />
-                ),
-                ol: (props) => (
-                  <ol className="mb-5 ml-5 list-decimal space-y-2" {...props} />
-                ),
-                li: (props) => <li className="leading-relaxed" {...props} />,
-                strong: (props) => (
-                  <strong className="font-semibold text-surface-900" {...props} />
-                ),
-                em: (props) => <em className="italic" {...props} />,
-                a: ({ href, children, ...rest }) => {
-                  // Internal links (anything starting with / that isn't a
-                  // protocol-relative URL) route through React Router so the
-                  // navigation stays SPA. External links get target=_blank
-                  // + rel hardening.
-                  const isInternal = typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')
-                  const className =
-                    'rounded text-accent-600 underline underline-offset-2 transition-colors hover:text-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50'
-                  if (isInternal && href) {
-                    return (
-                      <Link to={href} className={className}>
-                        {children}
-                      </Link>
-                    )
-                  }
-                  return (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={className}
-                      {...rest}
-                    >
-                      {children}
-                    </a>
-                  )
-                },
-                code: (props) => (
-                  <code
-                    className="rounded bg-surface-100 px-1.5 py-0.5 font-mono text-[0.9em] text-surface-900"
-                    {...props}
-                  />
-                ),
-                blockquote: (props) => (
-                  <blockquote
-                    className="my-6 border-l-4 border-accent-400 pl-4 italic text-surface-600"
-                    {...props}
-                  />
-                ),
-                hr: () => <hr className="my-10 border-surface-200" />,
-              }}
-            >
-              {post.body}
-            </ReactMarkdown>
-          </article>
-        </Container>
-      </section>
-
-      <section className="border-t border-surface-200 bg-surface-50">
-        <Container size="md" className="py-14">
-          <h2 className="font-display text-xl font-semibold tracking-tight text-surface-900">
-            Keep reading
-          </h2>
-          <div className="mt-5 grid gap-3">
+      {/* ── Keep reading ─────────────────────────────────────────────────── */}
+      <section className="stmt-section stmt-section--alt">
+        <div className="stmt-wrap" style={{ maxWidth: 760 }}>
+          <span className="stmt-label">Keep reading</span>
+          <div style={{ marginTop: 24, display: 'grid', gap: 14 }}>
             {otherPosts.map((p) => (
               <Link
                 key={p.slug}
                 to={`/blog/${p.slug}`}
-                className="group flex items-center justify-between gap-4 rounded-xl border border-surface-200 bg-white p-5 transition-[colors,transform] duration-200 hover:-translate-y-0.5 hover:border-surface-300 motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                className="group"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: 20, borderRadius: 4, border: '1px solid var(--line)', background: 'var(--color-white)', outline: '1px solid color-mix(in srgb, var(--color-accent-400) 22%, transparent)', outlineOffset: 3 }}
               >
-                <div className="min-w-0">
-                  <div className="text-xs font-medium uppercase tracking-wider text-accent-600">
-                    {p.tag}
-                  </div>
-                  <div className="mt-1 truncate font-display text-base font-semibold text-surface-900">
+                <div style={{ minWidth: 0 }}>
+                  <span className="stmt-ptag" style={{ color: 'var(--gold-deep)' }}>{p.tag}</span>
+                  <div className="stmt-display" style={{ marginTop: 4, fontSize: 20, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.title}
                   </div>
                 </div>
-                <ArrowRight
-                  size={16}
-                  className="flex-shrink-0 text-surface-300 transition-colors group-hover:text-surface-900"
-                />
+                <ArrowRight size={16} style={{ flexShrink: 0, color: 'var(--gold-deep)' }} />
               </Link>
             ))}
           </div>
-          <div className="mt-10 flex justify-center">
-            <ButtonLink to="/calculator" variant="primary" size="lg">
-              Run your numbers <ArrowRight size={16} />
-            </ButtonLink>
+          <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 40 }}>
+            <Link to="/calculator" className="stmt-btn stmt-btn--gold">Run your numbers <ArrowRight size={16} /></Link>
           </div>
-        </Container>
+        </div>
       </section>
-    </>
+    </div>
   )
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
