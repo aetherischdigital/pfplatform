@@ -45,7 +45,7 @@ export default function PFS() {
       >
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink to="/signup" variant="accent" size="lg">
-            Start free <ArrowRight size={16} />
+            Get started <ArrowRight size={16} />
           </ButtonLink>
           <ButtonLink to="/calculator" variant="secondary" size="lg">
             Try the calculator
@@ -122,11 +122,11 @@ export default function PFS() {
             <h2 className="stmt-display stmt-h2">Start with the statement.</h2>
             <p className="stmt-sub" style={{ margin: '16px auto 0', maxWidth: '32em' }}>
               Five minutes of input builds your ledger. From there, every number on your dashboard is
-              grounded in something real. Free for as long as you need it.
+              grounded in something real — yours from the day you join.
             </p>
             <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 32 }}>
               <Link to="/signup" className="stmt-btn stmt-btn--gold">
-                Start free
+                Get started
                 <svg width="16" height="10" viewBox="0 0 16 10" fill="none" aria-hidden>
                   <path d="M0 5h14M10 1l4 4-4 4" stroke="currentColor" strokeWidth="1.3" />
                 </svg>

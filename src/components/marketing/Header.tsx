@@ -102,7 +102,7 @@ export default function Header() {
             ) : (
               <>
                 <Button onClick={onSignIn} variant="ghost" size="sm">Sign in</Button>
-                <Button onClick={onStartFree} variant="primary" size="sm">Start free</Button>
+                <Button onClick={onStartFree} variant="primary" size="sm">Get started</Button>
               </>
             )}
           </div>
@@ -149,7 +149,7 @@ export default function Header() {
                 ) : (
                   <>
                     <Button onClick={onSignIn} variant="secondary" size="md">Sign in</Button>
-                    <Button onClick={onStartFree} variant="primary" size="md">Start free</Button>
+                    <Button onClick={onStartFree} variant="primary" size="md">Get started</Button>
                   </>
                 )}
               </div>

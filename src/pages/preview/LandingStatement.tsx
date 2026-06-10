@@ -42,8 +42,8 @@ export default function LandingStatement() {
               </div>
               <div className="stmt-fine stmt-rise" style={{ animationDelay: '310ms' }}>
                 <span>NO BANK LOGINS</span><span className="pipe" />
-                <span>NO CARD REQUIRED</span><span className="pipe" />
-                <span>FREE TO START</span>
+                <span>NO THIRD-PARTY SYNCING</span><span className="pipe" />
+                <span>EXPORT ANYTIME</span>
               </div>
             </div>
 
@@ -227,7 +227,7 @@ export default function LandingStatement() {
           </h2>
           <p className="stmt-sub" style={{ margin: '18px auto 0', maxWidth: '34em' }}>
             Five minutes of input opens your statement. A schedule the bank should agree with, and
-            the tools to keep them honest — yours to keep, free for as long as you need it.
+            the tools to keep them honest — yours from the day you join.
           </p>
           <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 34 }}>
             <Link to="/signup" className="stmt-btn stmt-btn--gold">Open your ledger <Arrow /></Link>

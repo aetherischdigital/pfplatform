@@ -12,7 +12,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
       { to: '/how-it-works', label: 'How it works' },
       { to: '/calculator', label: 'Calculator' },
       { to: '/pricing', label: 'Pricing' },
-      { to: '/signup', label: 'Start free' },
+      { to: '/signup', label: 'Get started' },
     ],
   },
   {

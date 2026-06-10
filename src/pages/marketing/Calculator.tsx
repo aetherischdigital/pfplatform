@@ -42,12 +42,12 @@ export default function Calculator() {
                     Save your scenario
                   </div>
                   <p className="mt-1.5 text-sm text-surface-600">
-                    Sign up free to compare multiple strategies side by side and update them as your
+                    Sign up to compare multiple strategies side by side and update them as your
                     finances change.
                   </p>
                 </div>
                 <ButtonLink to="/signup" variant="accent" size="sm" className="flex-shrink-0">
-                  Start free <ArrowRight size={14} />
+                  Get started <ArrowRight size={14} />
                 </ButtonLink>
               </div>
             }

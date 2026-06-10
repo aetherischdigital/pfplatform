@@ -121,10 +121,10 @@ export default function HowItWorks() {
             <h2 className="stmt-display stmt-h2">Ready to start your ledger?</h2>
             <p className="stmt-sub" style={{ margin: '16px auto 0', maxWidth: '32em' }}>
               Five minutes of input gets you your full amortization schedule and a dashboard
-              you&rsquo;ll actually use. No card, no commitment.
+              you&rsquo;ll actually use. Set up in five minutes.
             </p>
             <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 32 }}>
-              <Link to="/signup" className="stmt-btn stmt-btn--gold">Start free <Arrow /></Link>
+              <Link to="/signup" className="stmt-btn stmt-btn--gold">Get started <Arrow /></Link>
             </div>
           </div>
         </section>

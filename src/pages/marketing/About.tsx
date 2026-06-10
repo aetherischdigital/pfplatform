@@ -119,12 +119,12 @@ export default function About() {
         <section className="stmt-close">
           <div className="stmt-wrap">
             <div className="stmt-rule"><span className="l" /><span className="d" /><span className="l" /></div>
-            <h2 className="stmt-display stmt-h2">Try it free.</h2>
+            <h2 className="stmt-display stmt-h2">Get started.</h2>
             <p className="stmt-sub" style={{ margin: '16px auto 0', maxWidth: '30em' }}>
-              See your numbers, then see your plan. Five minutes, no card.
+              See your numbers, then see your plan. Five minutes to set up.
             </p>
             <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 32 }}>
-              <Link to="/signup" className="stmt-btn stmt-btn--gold">Start free</Link>
+              <Link to="/signup" className="stmt-btn stmt-btn--gold">Get started</Link>
             </div>
           </div>
         </section>
