@@ -20,26 +20,13 @@ type Tier = {
 
 const tiers: Tier[] = [
   {
-    name: 'Free',
-    price: '$0',
-    cadence: 'forever',
-    blurb: 'Run the calculators, see your payoff date, and try the dashboard.',
-    cta: 'Start free',
-    features: [
-      'Mortgage payoff calculator',
-      'Basic equity projection',
-      'Save one financial snapshot',
-      'Read all educational content',
-    ],
-  },
-  {
     name: 'Plus',
     comingSoon: true,
     blurb: 'For homeowners who want a living plan they update over time.',
     cta: 'Join the waitlist',
     highlighted: true,
     features: [
-      'Everything in Free',
+      'The full calculator suite',
       'Full Personal Financial Statement',
       'Multi-scenario comparison',
       'Refinance + recast modeling',
@@ -63,31 +50,31 @@ const tiers: Tier[] = [
 ]
 
 const compareRows: { label: string; values: (boolean | string)[] }[] = [
-  { label: 'Mortgage payoff calculator', values: [true, true, true] },
-  { label: 'Equity projection', values: ['Basic', 'Full', 'Full'] },
-  { label: 'Personal Financial Statement', values: [false, true, true] },
-  { label: 'Scenario comparison', values: [false, true, true] },
-  { label: 'Snapshot history', values: [false, true, true] },
-  { label: 'Refinance + recast modeling', values: [false, true, true] },
-  { label: 'Manage clients', values: [false, false, 'Up to 25'] },
-  { label: 'Branded reports', values: [false, false, true] },
-  { label: 'Support', values: ['Self-serve', 'Email', 'Priority'] },
+  { label: 'Mortgage payoff calculator', values: [true, true] },
+  { label: 'Equity projection', values: ['Full', 'Full'] },
+  { label: 'Personal Financial Statement', values: [true, true] },
+  { label: 'Scenario comparison', values: [true, true] },
+  { label: 'Snapshot history', values: [true, true] },
+  { label: 'Refinance + recast modeling', values: [true, true] },
+  { label: 'Manage clients', values: [false, 'Up to 25'] },
+  { label: 'Branded reports', values: [false, true] },
+  { label: 'Support', values: ['Email', 'Priority'] },
 ]
 
 export default function Pricing() {
   return (
     <>
       <PageHeader
-        kicker="Pricing · free today"
+        kicker="Pricing · coming soon"
         title="Simple pricing. Real value at every tier."
-        intro="Start free today. Plus and Pro are in the works — reserve your spot now and we'll let you know the moment they're live."
+        intro="Membership plans are being finalized. Reserve your spot now and we'll let you know the moment they're live."
       />
 
       <div className="stmt">
         {/* ── Tiers ──────────────────────────────────────────────────────── */}
         <section className="stmt-section">
           <div className="stmt-wrap">
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="mx-auto grid max-w-3xl gap-6 sm:grid-cols-2">
               {tiers.map((t) => {
                 const tag = t.comingSoon ? 'Coming soon' : t.highlighted ? 'Most popular' : null
                 return (
@@ -177,12 +164,12 @@ export default function Pricing() {
         <section className="stmt-close">
           <div className="stmt-wrap">
             <div className="stmt-rule"><span className="l" /><span className="d" /><span className="l" /></div>
-            <h2 className="stmt-display stmt-h2">Have questions before you sign up?</h2>
+            <h2 className="stmt-display stmt-h2">Have questions before you join?</h2>
             <p className="stmt-sub" style={{ margin: '16px auto 0', maxWidth: '30em' }}>
-              Start free — no card, no commitment. Upgrade only if you find it useful.
+              Reserve your spot now — we&rsquo;ll let you know the moment membership opens.
             </p>
             <div className="stmt-cta" style={{ justifyContent: 'center', marginTop: 32 }}>
-              <Link to="/signup" className="stmt-btn stmt-btn--gold">Start free</Link>
+              <Link to="/signup" className="stmt-btn stmt-btn--gold">Get started</Link>
             </div>
           </div>
         </section>
