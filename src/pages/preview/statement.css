@@ -82,6 +82,8 @@
 .stmt-h1 .em { font-style: italic; color: var(--gold-deep); }
 .stmt-lede { margin: 26px 0 0; max-width: 30em; font-size: 19px; color: var(--soft); }
 .stmt-lede b { font-weight: 600; color: var(--color-surface-900); }
+/* Reserve the tallest lede so switching persona never reflows the hero. */
+.stmt-hero .stmt-lede { min-height: 7em; }
 .stmt-cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
 .stmt-fine { margin-top: 26px; display: flex; align-items: center; gap: 15px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.07em; color: var(--faint); }
 .stmt-fine .pipe { width: 1px; height: 12px; background: var(--line-strong); }
@@ -150,7 +152,7 @@ a.stmt-pline:hover .val { color: var(--gold); }
 .stmt-sub { margin-top: 15px; font-size: 19px; color: var(--soft); }
 
 /* ── Triage toggle + cards ──────────────────────────────────────────────── */
-.stmt-toggle-row { display: inline-flex; margin-top: 26px; border: 1px solid var(--line-strong); border-radius: 3px; padding: 4px; background: color-mix(in srgb, var(--color-surface-50) 50%, transparent); }
+.stmt-toggle-row { display: inline-flex; flex-wrap: wrap; max-width: 100%; margin-top: 26px; border: 1px solid var(--line-strong); border-radius: 3px; padding: 4px; background: color-mix(in srgb, var(--color-surface-50) 50%, transparent); }
 .stmt-toggle-row button { font-family: 'Marcellus', serif; letter-spacing: 0.1em; text-transform: uppercase; font-size: 12px; padding: 9px 18px; border: none; background: transparent; color: var(--soft); cursor: pointer; transition: all 0.2s; }
 .stmt-toggle-row button.on { background: var(--color-surface-900); color: var(--color-surface-50); }
 .stmt-note { margin-top: 14px; font-size: 17px; color: var(--soft); min-height: 1.6em; }
