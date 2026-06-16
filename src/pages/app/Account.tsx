@@ -17,6 +17,11 @@ import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { BRAND } from '../../config/brand'
 import { supabase } from '../../lib/supabase'
+import {
+  fetchOwnSubscription,
+  isEntitling,
+  type Subscription,
+} from '../../lib/subscription'
 import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
@@ -90,6 +95,28 @@ export default function Account() {
   }>({})
 
   const [startingCheckout, setStartingCheckout] = useState(false)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+
+  // Load the user's current subscription state. The webhook handler keeps
+  // this in sync with Stripe; we just read it.
+  useEffect(() => {
+    let cancelled = false
+    fetchOwnSubscription()
+      .then((s) => {
+        if (!cancelled) setSubscription(s)
+      })
+      .catch(() => {
+        // Subscription read failures shouldn't block the rest of the page —
+        // worst case the user sees the Free state and can retry checkout.
+      })
+      .finally(() => {
+        if (!cancelled) setSubscriptionLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Stripe Checkout redirects back here with ?stripe=success|cancel. Surface
   // the outcome as a banner, then strip the params so refresh doesn't re-fire.
@@ -97,7 +124,13 @@ export default function Account() {
     const stripeResult = searchParams.get('stripe')
     if (!stripeResult) return
     if (stripeResult === 'success') {
-      setSuccessMessage('Checkout completed in Stripe. Verify in your dashboard.')
+      setSuccessMessage(
+        "Subscription confirmed. If the status below doesn't update right away, give the webhook a few seconds and refresh.",
+      )
+      // Webhook may have written the row by now; pull the fresh state.
+      void fetchOwnSubscription()
+        .then((s) => setSubscription(s))
+        .catch(() => undefined)
     } else if (stripeResult === 'cancel') {
       setError('Checkout was canceled. No charge was made.')
     }
@@ -865,42 +898,32 @@ export default function Account() {
         <header className="border-b border-surface-200 px-6 py-4">
           <h2 className="font-display text-lg font-semibold text-surface-900">Subscription</h2>
         </header>
-        <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-surface-600">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-surface-900">Free plan</span>
-              <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
-                Current
-              </span>
-            </div>
-            <div className="mt-0.5 text-surface-500">
-              Plus and Pro tiers land in the next release.
-            </div>
-          </div>
-          <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
-            See plans
-          </ButtonLink>
-        </div>
-        <div className="border-t border-surface-100 px-6 py-5">
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-surface-600">
-              <div className="font-medium text-surface-900">Plus tier — sandbox checkout</div>
-              <div className="mt-0.5 text-surface-500">
-                Round-trip through Stripe-hosted checkout with a test card
-                (e.g. 4242 4242 4242 4242). Real billing is not live yet.
+        <SubscriptionStatusRow
+          subscription={subscription}
+          loading={subscriptionLoading}
+        />
+        {!isEntitling(subscription) && (
+          <div className="border-t border-surface-100 px-6 py-5">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-surface-600">
+                <div className="font-medium text-surface-900">Plus tier — sandbox checkout</div>
+                <div className="mt-0.5 text-surface-500">
+                  Round-trip through Stripe-hosted checkout with a test card
+                  (e.g. 4242 4242 4242 4242). Real billing is not live yet.
+                </div>
               </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={startPlusCheckout}
+                disabled={startingCheckout}
+                className="flex-shrink-0"
+              >
+                {startingCheckout ? 'Opening Stripe…' : 'Try Plus checkout'}
+              </Button>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={startPlusCheckout}
-              disabled={startingCheckout}
-              className="flex-shrink-0"
-            >
-              {startingCheckout ? 'Opening Stripe…' : 'Try Plus checkout'}
-            </Button>
           </div>
-        </div>
+        )}
         <div className="border-t border-surface-100 px-6 py-5">
           <WaitlistInterestRow
             profile={profile}
@@ -932,6 +955,72 @@ export default function Account() {
 
     </div>
   )
+}
+
+function SubscriptionStatusRow({
+  subscription,
+  loading,
+}: {
+  subscription: Subscription | null
+  loading: boolean
+}) {
+  if (loading) {
+    return (
+      <div className="px-6 py-5">
+        <div className="h-5 w-32 animate-pulse rounded bg-surface-100" />
+        <div className="mt-2 h-4 w-64 animate-pulse rounded bg-surface-100" />
+      </div>
+    )
+  }
+
+  const entitling = isEntitling(subscription)
+  const tierLabel = entitling ? prettyTier(subscription!.tier) : 'Free plan'
+  const periodEnd = subscription?.currentPeriodEnd
+    ? formatLongDate(subscription.currentPeriodEnd)
+    : null
+
+  return (
+    <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-surface-600">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-surface-900">{tierLabel}</span>
+          <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
+            Current
+          </span>
+          {subscription?.cancelAtPeriodEnd && (
+            <span className="inline-flex items-center rounded-full bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700">
+              Cancels at period end
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 text-surface-500">
+          {entitling && periodEnd
+            ? subscription!.cancelAtPeriodEnd
+              ? `Access ends ${periodEnd}.`
+              : `Renews ${periodEnd}.`
+            : 'Plus and Pro tiers land in the next release.'}
+        </div>
+      </div>
+      <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
+        See plans
+      </ButtonLink>
+    </div>
+  )
+}
+
+function prettyTier(tier: string): string {
+  const capped = tier.charAt(0).toUpperCase() + tier.slice(1)
+  return `${capped} plan`
+}
+
+function formatLongDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 function WaitlistInterestRow({

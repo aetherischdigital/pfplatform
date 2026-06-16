@@ -421,6 +421,12 @@ deno_version = 2
 [functions.create-checkout-session]
 verify_jwt = false
 
+# Stripe webhook receiver — callers are Stripe's servers, not browsers, and
+# the request is authenticated via Stripe-Signature (HMAC of body + timestamp
+# against STRIPE_WEBHOOK_SECRET). No user JWT exists for these calls.
+[functions.stripe-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
