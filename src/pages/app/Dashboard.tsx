@@ -86,7 +86,7 @@ export default function Dashboard() {
             Let&rsquo;s build your ledger. Once you add a few PFS entries, this dashboard fills in.
           </p>
         </div>
-        <OnboardingCard hasAnyPfs={false} hasMortgage={false} hasCashFlowInputs={false} />
+        <OnboardingCard hasProperty={false} hasAnyPfs={false} hasCashFlowInputs={false} />
         <div>
           <p className="font-mono text-xs font-semibold uppercase tracking-wider text-surface-500">
             Coming next
@@ -127,8 +127,8 @@ export default function Dashboard() {
       </div>
 
       <OnboardingCard
+        hasProperty={pfs.properties.length > 0}
         hasAnyPfs={hasAnyData}
-        hasMortgage={!!pfs.mortgage}
         hasCashFlowInputs={pfs.income.length > 0 && pfs.livingExpenses.length > 0}
       />
 

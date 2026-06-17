@@ -31,6 +31,7 @@ const PFS = lazy(() => import('./pages/marketing/PFS'))
 const Dashboard = lazy(() => import('./pages/app/Dashboard'))
 const Financials = lazy(() => import('./pages/app/Financials'))
 const Properties = lazy(() => import('./pages/app/Properties'))
+const PropertyForm = lazy(() => import('./pages/app/PropertyForm'))
 const Calculators = lazy(() => import('./pages/app/Calculators'))
 const Clients = lazy(() => import('./pages/app/Clients'))
 const Account = lazy(() => import('./pages/app/Account'))
@@ -86,6 +87,8 @@ export default function App() {
                 <Route path="/app/dashboard" element={<Dashboard />} />
                 <Route path="/app/financials" element={<Financials />} />
                 <Route path="/app/properties" element={<Properties />} />
+                <Route path="/app/properties/new" element={<PropertyForm />} />
+                <Route path="/app/properties/:id/edit" element={<PropertyForm />} />
                 <Route path="/app/calculators" element={<Calculators />} />
                 <Route path="/app/clients" element={<Clients />} />
                 <Route path="/app/account" element={<Account />} />

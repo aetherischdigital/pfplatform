@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Plus,
   Pencil,
@@ -25,6 +25,7 @@ import {
   totals,
   totalMonthlyHousingOutflow,
   type Property,
+  type Totals,
   type Pfs,
   type PfsRecordKind,
   type LivingExpense,
@@ -45,7 +46,6 @@ import { Button } from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import PfsRecordModal, { type ExistingRecord } from '../../components/pfs/PfsRecordModal'
 import LivingExpenseModal from '../../components/pfs/LivingExpenseModal'
-import PropertyModal from '../../components/pfs/PropertyModal'
 import BusinessVentureModal from '../../components/pfs/BusinessVentureModal'
 import ContingentLiabilityModal from '../../components/pfs/ContingentLiabilityModal'
 
@@ -57,7 +57,8 @@ type PendingDelete =
   | { kind: 'contingent_liability'; id: string; label: string }
 
 export default function Financials() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [pfs, setPfs] = useState<Pfs | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,18 +66,12 @@ export default function Financials() {
   const [recordModal, setRecordModal] = useState<{ kind: PfsRecordKind; existing?: ExistingRecord } | null>(
     null,
   )
-  // Auto-open the property modal when arriving via the onboarding "Add mortgage"
-  // CTA (?add=mortgage). Strip the param immediately so refresh doesn't reopen.
-  const [propertyModal, setPropertyModal] = useState<{ existing: Property | null } | null>(
-    searchParams.get('add') === 'mortgage' ? { existing: null } : null,
-  )
+  // Legacy deep-link (?add=mortgage) now routes to the dedicated add-property page.
   useEffect(() => {
     if (searchParams.get('add') === 'mortgage') {
-      const next = new URLSearchParams(searchParams)
-      next.delete('add')
-      setSearchParams(next, { replace: true })
+      navigate('/app/properties/new', { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, navigate])
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -187,12 +182,15 @@ export default function Financials() {
   return (
     <div className="space-y-8 animate-fade-in">
       <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
-          Personal Financial Statement
+        <div className="flex items-center gap-3">
+          <span className="h-px w-7 bg-accent-400" />
+          <span className="font-label text-[12px] uppercase tracking-[0.28em] text-accent-600">
+            Personal financial statement
+          </span>
+        </div>
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-surface-900">
+          Where you stand
         </h1>
-        <p className="mt-1 text-sm text-surface-500">
-          The living document — your assets, debts, and income.
-        </p>
       </header>
 
       {error && (
@@ -202,17 +200,11 @@ export default function Financials() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Headline label="Net worth" value={formatUSD(t.netWorth)} accent={t.netWorth !== 0} />
-        <Headline label="Total assets" value={formatUSD(t.totalAssets)} />
-        <Headline
-          label="Total liabilities"
-          value={t.totalLiabilities > 0 ? `−${formatUSD(t.totalLiabilities)}` : formatUSD(0)}
-        />
-      </div>
+      <StatementHero t={t} />
 
       <GroupHeader title="Balance sheet" />
 
+      <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
         title="Assets"
         total={t.totalAssets}
@@ -235,6 +227,7 @@ export default function Financials() {
         )}
       </Section>
 
+      <div className="space-y-4">
       <Section
         title="Liabilities (secured debt)"
         total={t.ledgerLiabilities}
@@ -242,7 +235,7 @@ export default function Financials() {
         rightAction={
           <div className="flex gap-2">
             {pfs.properties.length === 0 && (
-              <Button variant="secondary" size="sm" onClick={() => setPropertyModal({ existing: null })}>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/app/properties/new')}>
                 <Plus size={14} /> Property
               </Button>
             )}
@@ -295,6 +288,8 @@ export default function Financials() {
           />
         )}
       </Section>
+      </div>
+      </div>
 
       <Section
         title="Properties"
@@ -307,7 +302,7 @@ export default function Financials() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setPropertyModal({ existing: null })}
+            onClick={() => navigate('/app/properties/new')}
           >
             <Plus size={14} /> {pfs.properties.length === 0 ? 'Add' : 'Add another'}
           </Button>
@@ -323,7 +318,7 @@ export default function Financials() {
               <PropertyRow
                 key={p.id}
                 property={p}
-                onEdit={() => setPropertyModal({ existing: p })}
+                onEdit={() => navigate(`/app/properties/${p.id}/edit`)}
                 onDelete={() => onDeleteProperty(p)}
                 onSetPrimary={() => onSetPrimary(p.id)}
               />
@@ -334,6 +329,7 @@ export default function Financials() {
 
       <GroupHeader title="Cash flow" />
 
+      <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
         title="Income"
         total={t.monthlyIncome}
@@ -386,9 +382,11 @@ export default function Financials() {
           />
         )}
       </Section>
+      </div>
 
       <GroupHeader title="Other holdings & obligations" />
 
+      <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
         title="Business ventures"
         subtitle={
@@ -458,6 +456,7 @@ export default function Financials() {
           </ul>
         )}
       </Section>
+      </div>
 
       {recordModal && (
         <PfsRecordModal
@@ -496,16 +495,6 @@ export default function Financials() {
         />
       )}
 
-      {propertyModal && (
-        <PropertyModal
-          open
-          onClose={() => setPropertyModal(null)}
-          onSaved={load}
-          existing={propertyModal.existing}
-          defaultType={pfs.primaryProperty ? 'other' : 'primary'}
-        />
-      )}
-
       {livingModal && (
         <LivingExpenseModal
           open
@@ -537,31 +526,96 @@ export default function Financials() {
 
 function GroupHeader({ title }: { title: string }) {
   return (
-    <h2 className="-mb-3 pt-2 font-mono text-xs font-semibold uppercase tracking-wider text-surface-500">
-      {title}
-    </h2>
+    <div className="-mb-3 flex items-center gap-3 pt-2">
+      <span className="font-label text-[12px] uppercase tracking-[0.24em] text-accent-600">
+        {title}
+      </span>
+      <span className="h-px flex-1 bg-surface-200" />
+    </div>
   )
 }
 
-function Headline({
-  label,
-  value,
-  accent,
-}: {
-  label: string
-  value: string
-  accent?: boolean
-}) {
+function StatementHero({ t }: { t: Totals }) {
+  const asOf = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  const signed = (n: number) => (n < 0 ? `−${formatUSD(Math.abs(n))}` : formatUSD(n))
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
-      <div
-        className={`mt-2 font-display text-2xl font-semibold tracking-tight ${
-          accent ? 'text-accent-600' : 'text-surface-900'
+    <div className="overflow-hidden rounded-xl border border-surface-800 bg-surface-900 text-surface-50 shadow-card-lg">
+      <div className="grid gap-px bg-surface-800 lg:grid-cols-2">
+        {/* Net worth */}
+        <div className="bg-surface-900 p-6 sm:p-8">
+          <div className="flex items-center justify-between">
+            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-accent-200">
+              Net worth
+            </span>
+            <span className="font-mono text-[11px] text-surface-400">as of {asOf}</span>
+          </div>
+          <div className="mt-3 font-display text-4xl font-semibold tracking-tight">
+            {formatUSD(t.netWorth)}
+          </div>
+          <dl className="mt-6 space-y-2.5 text-sm">
+            <LedgerLine label="Total assets" value={`+${formatUSD(t.totalAssets)}`} />
+            <LedgerLine
+              label="Total liabilities"
+              value={t.totalLiabilities > 0 ? `−${formatUSD(t.totalLiabilities)}` : formatUSD(0)}
+            />
+            <div className="border-t border-surface-700 pt-2.5">
+              <LedgerLine label="Net worth" value={formatUSD(t.netWorth)} strong />
+            </div>
+          </dl>
+        </div>
+        {/* Monthly cash flow */}
+        <div className="bg-surface-900 p-6 sm:p-8">
+          <div className="flex items-center justify-between">
+            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-accent-200">
+              Monthly cash flow
+            </span>
+            <span className="font-mono text-[11px] text-surface-400">/ mo</span>
+          </div>
+          <div
+            className={`mt-3 font-display text-4xl font-semibold tracking-tight ${
+              t.monthlyLeftover < 0 ? 'text-danger-200' : ''
+            }`}
+          >
+            {signed(t.monthlyLeftover)}
+          </div>
+          <div className="mt-1 text-xs text-surface-400">left over to direct at principal</div>
+          <dl className="mt-5 space-y-2.5 text-sm">
+            <LedgerLine label="Income" value={`+${formatUSD(t.monthlyIncome)}`} />
+            <LedgerLine
+              label="Fixed expenses"
+              value={t.monthlyDebtPayments > 0 ? `−${formatUSD(t.monthlyDebtPayments)}` : formatUSD(0)}
+            />
+            <LedgerLine
+              label="Household spending"
+              value={
+                t.monthlyLivingExpenses > 0 ? `−${formatUSD(t.monthlyLivingExpenses)}` : formatUSD(0)
+              }
+            />
+            <div className="border-t border-surface-700 pt-2.5">
+              <LedgerLine label="Left over" value={signed(t.monthlyLeftover)} strong />
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LedgerLine({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className={strong ? 'font-medium text-surface-50' : 'text-surface-300'}>{label}</dt>
+      <dd
+        className={`font-mono tabular-nums ${
+          strong ? 'text-base font-semibold text-surface-50' : 'text-surface-100'
         }`}
       >
         {value}
-      </div>
+      </dd>
     </div>
   )
 }
@@ -595,26 +649,29 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
-      <header className="flex items-center justify-between gap-4 border-b border-surface-200 px-6 py-4">
+    <section className="overflow-hidden rounded-lg border border-surface-200 bg-white shadow-card">
+      <header className="flex items-start justify-between gap-4 border-b border-surface-200 px-5 py-3.5">
         <div className="min-w-0">
-          <h2 className="font-display text-lg font-semibold text-surface-900">{title}</h2>
-          {total != null && totalSign ? (
-            <div className="mt-0.5 font-mono text-sm text-surface-500">
+          <h2 className="font-label text-[12px] uppercase tracking-[0.2em] text-accent-600">
+            {title}
+          </h2>
+          {subtitle && <p className="mt-1 text-xs leading-relaxed text-surface-500">{subtitle}</p>}
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-3">
+          {total != null && totalSign && (
+            <span className="font-mono text-sm tabular-nums text-surface-900">
               {total > 0 ? totalSign : ''}
               {formatUSD(total)}
               {totalSuffix}
-            </div>
-          ) : subtitle ? (
-            <div className="mt-0.5 text-sm text-surface-500">{subtitle}</div>
-          ) : null}
+            </span>
+          )}
+          {rightAction ??
+            (onAdd && (
+              <Button variant="secondary" size="sm" onClick={onAdd}>
+                <Plus size={14} /> Add
+              </Button>
+            ))}
         </div>
-        {rightAction ??
-          (onAdd && (
-            <Button variant="secondary" size="sm" onClick={onAdd}>
-              <Plus size={14} /> Add
-            </Button>
-          ))}
       </header>
       {children}
     </section>

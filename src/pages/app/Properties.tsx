@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Star, Building2, AlertTriangle, Home } from 'lucide-react'
 import {
   fetchPfs,
@@ -12,7 +13,6 @@ import {
 import { formatUSD } from '../../lib/mortgage'
 import { Button } from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
-import PropertyModal from '../../components/pfs/PropertyModal'
 
 /** Monthly carrying cost (taxes + insurance + flood + HOA) — loan-independent. */
 function carryMonthly(p: Property): number {
@@ -34,7 +34,7 @@ export default function Properties() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [modal, setModal] = useState<{ existing: Property | null } | null>(null)
+  const navigate = useNavigate()
   const [pendingDelete, setPendingDelete] = useState<Property | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -129,7 +129,7 @@ export default function Properties() {
             Every home at a glance — value, equity, and true monthly cost.
           </p>
         </div>
-        <Button variant="primary" size="md" onClick={() => setModal({ existing: null })}>
+        <Button variant="primary" size="md" onClick={() => navigate('/app/properties/new')}>
           <Plus size={16} /> Add property
         </Button>
       </header>
@@ -152,7 +152,7 @@ export default function Properties() {
             monthly cost of ownership.
           </p>
           <div className="mt-5">
-            <Button variant="primary" size="md" onClick={() => setModal({ existing: null })}>
+            <Button variant="primary" size="md" onClick={() => navigate('/app/properties/new')}>
               <Plus size={16} /> Add your first property
             </Button>
           </div>
@@ -170,23 +170,13 @@ export default function Properties() {
               <PropertyCard
                 key={p.id}
                 property={p}
-                onEdit={() => setModal({ existing: p })}
+                onEdit={() => navigate(`/app/properties/${p.id}/edit`)}
                 onDelete={() => setPendingDelete(p)}
                 onSetPrimary={() => onSetPrimary(p.id)}
               />
             ))}
           </div>
         </>
-      )}
-
-      {modal && (
-        <PropertyModal
-          open
-          onClose={() => setModal(null)}
-          onSaved={load}
-          existing={modal.existing}
-          defaultType={pfs.primaryProperty ? 'other' : 'primary'}
-        />
       )}
 
       <ConfirmDialog
