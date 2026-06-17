@@ -3,6 +3,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
   FileText,
+  Building2,
   Calculator,
   Users,
   User,
@@ -25,6 +26,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
   const items: NavItem[] = [
     { to: '/app/dashboard', label: 'Dashboard', icon: Home },
     { to: '/app/financials', label: 'Financials', icon: FileText },
+    { to: '/app/properties', label: 'Properties', icon: Building2 },
     { to: '/app/calculators', label: 'Calculators', icon: Calculator },
   ]
   if (role === 'advisor') {

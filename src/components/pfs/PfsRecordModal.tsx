@@ -122,7 +122,10 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
     }
   }
 
-  const categoryOptions = categoryOptionsFor(kind)
+  const categoryOptions = categoryOptionsFor(
+    kind,
+    existing?.kind === 'asset' ? existing.category : undefined,
+  )
 
   return (
     <Modal
@@ -144,7 +147,10 @@ export default function PfsRecordModal({ open, onClose, onSaved, kind, existing 
         </Field>
 
         {categoryOptions && (
-          <Field label="Category">
+          <Field
+            label="Category"
+            hint={kind === 'asset' ? 'Homes and other real estate live under Properties now.' : undefined}
+          >
             <select
               required
               value={category}
@@ -282,7 +288,7 @@ function Field({
 function defaultCategory(kind: PfsRecordKind): string {
   switch (kind) {
     case 'asset':
-      return 'real_estate'
+      return 'cash'
     case 'liability':
       return 'auto_loan'
     case 'expense':
@@ -332,7 +338,7 @@ function initialFormState(
 function placeholderFor(kind: PfsRecordKind): string {
   switch (kind) {
     case 'asset':
-      return 'Primary residence'
+      return 'Checking & savings'
     case 'liability':
       return 'Auto loan — Honda'
     case 'income':
@@ -344,9 +350,14 @@ function placeholderFor(kind: PfsRecordKind): string {
 
 function categoryOptionsFor(
   kind: PfsRecordKind,
+  includeValue?: string,
 ): { value: string; label: string }[] | null {
   if (kind === 'asset') {
-    return Object.entries(ASSET_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
+    // Real estate is owned by Properties now — hide it for new assets, but keep
+    // it selectable when editing a legacy real_estate row so it isn't mislabeled.
+    return Object.entries(ASSET_CATEGORY_LABELS)
+      .filter(([value]) => value !== 'real_estate' || value === includeValue)
+      .map(([value, label]) => ({ value, label }))
   }
   if (kind === 'liability') {
     return Object.entries(LIABILITY_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))

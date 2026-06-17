@@ -5,6 +5,7 @@ import {
   ListOrdered,
   RefreshCw,
   Split,
+  Table,
   TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -23,10 +24,11 @@ import MultiScenarioPayoffCalculator, {
 import RefinanceCompareCalculator, {
   type RefinanceCalculatorDefaults,
 } from '../../components/calculators/RefinanceCompareCalculator'
-import { fetchPfs, type Pfs } from '../../lib/pfs'
+import PayoffMatrix from '../../components/calculators/PayoffMatrix'
+import { fetchPfs, type Pfs, type Mortgage } from '../../lib/pfs'
 import { markCalculatorVisited } from '../../lib/onboarding'
 
-type TabId = 'payoff' | 'amortization' | 'equity' | 'scenarios' | 'refinance'
+type TabId = 'payoff' | 'amortization' | 'equity' | 'scenarios' | 'refinance' | 'matrix'
 
 type Tab = {
   id: TabId
@@ -75,6 +77,13 @@ const TABS: Tab[] = [
     blurb:
       'A lower payment isn’t free. What does it cost — and when does it pay for itself?',
   },
+  {
+    id: 'matrix',
+    label: 'All loans',
+    icon: Table,
+    title: 'Payoff matrix',
+    blurb: 'Every property’s loan side by side — balance, payoff date, and interest at a glance.',
+  },
 ]
 
 function tabFromHash(hash: string): TabId {
@@ -89,6 +98,7 @@ export default function Calculators() {
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     typeof window === 'undefined' ? 'payoff' : tabFromHash(window.location.hash),
   )
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -128,17 +138,45 @@ export default function Calculators() {
 
   const active = TABS.find((t) => t.id === activeTab) ?? TABS[0]
 
+  const mortgages = pfs?.mortgages ?? []
+  const selectedMortgage: Mortgage | null =
+    (selectedId ? mortgages.find((m) => m.propertyId === selectedId) : undefined) ??
+    pfs?.mortgage ??
+    mortgages[0] ??
+    null
+  // The defaults builders read pfs.mortgage; swap in the chosen property's loan
+  // so picking a property re-fills every single-loan calculator.
+  const calcPfs = pfs ? { ...pfs, mortgage: selectedMortgage } : null
+
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
-          Calculators
-        </h1>
-        <p className="mt-1 text-sm text-surface-500">
-          {pfs?.mortgage
-            ? 'Pre-filled with your mortgage. Edit any value to model a what-if.'
-            : 'Run scenarios on your loan. Add a mortgage in your PFS to pre-fill these.'}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
+            Calculators
+          </h1>
+          <p className="mt-1 text-sm text-surface-500">
+            {selectedMortgage
+              ? `Pre-filled from ${selectedMortgage.propertyLabel}. Edit any value to model a what-if.`
+              : 'Run scenarios on your loan. Add a property with a mortgage to pre-fill these.'}
+          </p>
+        </div>
+        {mortgages.length > 1 && activeTab !== 'matrix' && (
+          <label className="text-sm">
+            <span className="mr-2 text-surface-500">Property</span>
+            <select
+              value={selectedMortgage?.propertyId ?? ''}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="rounded-md border border-surface-300 bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+            >
+              {mortgages.map((m) => (
+                <option key={m.propertyId} value={m.propertyId}>
+                  {m.propertyLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </header>
 
       {error && (
@@ -193,16 +231,18 @@ export default function Calculators() {
 
         {loading ? (
           <PayoffCalculatorSkeleton />
+        ) : activeTab === 'matrix' ? (
+          <PayoffMatrix mortgages={mortgages} />
         ) : activeTab === 'payoff' ? (
-          <PayoffCalculator defaults={pfsToCalculatorDefaults(pfs)} />
+          <PayoffCalculator defaults={pfsToCalculatorDefaults(calcPfs)} />
         ) : activeTab === 'amortization' ? (
-          <AmortizationCalculator defaults={pfsToAmortizationDefaults(pfs)} />
+          <AmortizationCalculator defaults={pfsToAmortizationDefaults(calcPfs)} />
         ) : activeTab === 'equity' ? (
-          <EquityProjectionCalculator defaults={pfsToEquityDefaults(pfs)} />
+          <EquityProjectionCalculator defaults={pfsToEquityDefaults(calcPfs)} />
         ) : activeTab === 'scenarios' ? (
-          <MultiScenarioPayoffCalculator defaults={pfsToMultiScenarioDefaults(pfs)} />
+          <MultiScenarioPayoffCalculator defaults={pfsToMultiScenarioDefaults(calcPfs)} />
         ) : (
-          <RefinanceCompareCalculator defaults={pfsToRefinanceDefaults(pfs)} />
+          <RefinanceCompareCalculator defaults={pfsToRefinanceDefaults(calcPfs)} />
         )}
       </section>
     </div>

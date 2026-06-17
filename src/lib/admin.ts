@@ -108,22 +108,31 @@ type RawSummary = {
     spouse_occupation: string | null
     created_at: string
   }
-  mortgages: Array<{
+  properties: Array<{
     id: string
-    property_label: string
-    starting_home_value: string | number
-    balance: string | number
-    rate_pct: string | number
-    term_months_remaining: number
-    monthly_payment: string | number
-    extra_principal: string | number
+    label: string
+    property_type: string
+    address: string | null
+    market_value: string | number
     property_tax_annual: string | number | null
     homeowners_insurance_annual: string | number | null
+    flood_insurance_annual: string | number | null
     hoa_monthly: string | number | null
-    is_primary: boolean
+    monthly_rent: string | number | null
     date_acquired: string | null
     original_cost: string | number | null
     pct_ownership: string | number
+  }>
+  mortgages: Array<{
+    id: string
+    property_id: string
+    balance: string | number
+    rate_pct: string | number
+    term_months_remaining: number
+    first_payment_date: string | null
+    monthly_payment: string | number
+    extra_principal: string | number
+    pmi_mip_monthly: string | number | null
   }>
   pfs_records: Array<{
     id: string
@@ -165,28 +174,34 @@ export async function fetchUserSummary(userId: string): Promise<AdminUserSummary
   if (error) throw error
   const raw = data as RawSummary
 
-  const mortgages: Mortgage[] = raw.mortgages.map((m) => ({
-    id: m.id,
-    propertyLabel: m.property_label,
-    startingHomeValue: n(m.starting_home_value),
-    balance: n(m.balance),
-    ratePct: n(m.rate_pct),
-    termMonthsRemaining: m.term_months_remaining,
-    monthlyPayment: n(m.monthly_payment),
-    extraPrincipal: n(m.extra_principal),
-    propertyTaxAnnual: nN(m.property_tax_annual),
-    homeownersInsuranceAnnual: nN(m.homeowners_insurance_annual),
-    hoaMonthly: nN(m.hoa_monthly),
-    // Not surfaced by the admin_user_summary RPC — the admin overview doesn't
-    // break PITI down to this level. Null keeps the type honest.
-    firstPaymentDate: null,
-    floodInsuranceAnnual: null,
-    pmiMipMonthly: null,
-    isPrimary: m.is_primary,
-    dateAcquired: m.date_acquired,
-    originalCost: nN(m.original_cost),
-    pctOwnership: n(m.pct_ownership),
-  }))
+  // Loans live on mortgages; the home (label, value, carrying costs) lives on
+  // properties. Join them into the fat Mortgage the admin modal renders. A
+  // paid-off property (no loan) simply produces no row here.
+  const propsById = new Map(raw.properties.map((p) => [p.id, p]))
+  const mortgages: Mortgage[] = raw.mortgages.map((m) => {
+    const p = propsById.get(m.property_id)
+    return {
+      id: m.id,
+      propertyId: m.property_id,
+      propertyLabel: p?.label ?? 'Property',
+      startingHomeValue: p ? n(p.market_value) : 0,
+      balance: n(m.balance),
+      ratePct: n(m.rate_pct),
+      termMonthsRemaining: m.term_months_remaining,
+      firstPaymentDate: m.first_payment_date,
+      monthlyPayment: n(m.monthly_payment),
+      extraPrincipal: n(m.extra_principal),
+      propertyTaxAnnual: p ? nN(p.property_tax_annual) : null,
+      homeownersInsuranceAnnual: p ? nN(p.homeowners_insurance_annual) : null,
+      floodInsuranceAnnual: p ? nN(p.flood_insurance_annual) : null,
+      pmiMipMonthly: nN(m.pmi_mip_monthly),
+      hoaMonthly: p ? nN(p.hoa_monthly) : null,
+      isPrimary: p?.property_type === 'primary',
+      dateAcquired: p?.date_acquired ?? null,
+      originalCost: p ? nN(p.original_cost) : null,
+      pctOwnership: p ? n(p.pct_ownership) : 100,
+    }
+  })
 
   const assets: Asset[] = []
   const liabilities: Liability[] = []

@@ -16,14 +16,15 @@ import {
   INCOME_CATEGORY_LABELS,
   EXPENSE_CATEGORY_LABELS,
   LIVING_EXPENSE_CATEGORY_LABELS,
-  deleteMortgage,
+  PROPERTY_TYPE_LABELS,
+  deleteProperty,
   deletePfsRecord,
   deleteLivingExpense,
   fetchPfs,
-  setPrimaryMortgage,
+  setPrimaryProperty,
   totals,
   totalMonthlyHousingOutflow,
-  type Mortgage,
+  type Property,
   type Pfs,
   type PfsRecordKind,
   type LivingExpense,
@@ -44,14 +45,14 @@ import { Button } from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import PfsRecordModal, { type ExistingRecord } from '../../components/pfs/PfsRecordModal'
 import LivingExpenseModal from '../../components/pfs/LivingExpenseModal'
-import MortgageModal from '../../components/pfs/MortgageModal'
+import PropertyModal from '../../components/pfs/PropertyModal'
 import BusinessVentureModal from '../../components/pfs/BusinessVentureModal'
 import ContingentLiabilityModal from '../../components/pfs/ContingentLiabilityModal'
 
 type PendingDelete =
   | { kind: 'record'; id: string; label: string }
   | { kind: 'living_expense'; id: string; label: string }
-  | { kind: 'mortgage'; id: string; propertyLabel: string }
+  | { kind: 'property'; id: string; label: string }
   | { kind: 'business_venture'; id: string; label: string }
   | { kind: 'contingent_liability'; id: string; label: string }
 
@@ -64,9 +65,9 @@ export default function Financials() {
   const [recordModal, setRecordModal] = useState<{ kind: PfsRecordKind; existing?: ExistingRecord } | null>(
     null,
   )
-  // Auto-open the mortgage modal when arriving via the onboarding "Add mortgage"
+  // Auto-open the property modal when arriving via the onboarding "Add mortgage"
   // CTA (?add=mortgage). Strip the param immediately so refresh doesn't reopen.
-  const [mortgageModal, setMortgageModal] = useState<{ existing: Mortgage | null } | null>(
+  const [propertyModal, setPropertyModal] = useState<{ existing: Property | null } | null>(
     searchParams.get('add') === 'mortgage' ? { existing: null } : null,
   )
   useEffect(() => {
@@ -128,18 +129,18 @@ export default function Financials() {
   const onDeleteRecord = (id: string, label: string) =>
     setPendingDelete({ kind: 'record', id, label })
 
-  const onDeleteMortgage = (mortgage: Mortgage) => {
+  const onDeleteProperty = (property: Property) => {
     setPendingDelete({
-      kind: 'mortgage',
-      id: mortgage.id,
-      propertyLabel: mortgage.propertyLabel,
+      kind: 'property',
+      id: property.id,
+      label: property.label,
     })
   }
 
   const onSetPrimary = async (id: string) => {
     setError(null)
     try {
-      await setPrimaryMortgage(id)
+      await setPrimaryProperty(id)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set primary property.')
@@ -158,8 +159,8 @@ export default function Financials() {
         case 'living_expense':
           await deleteLivingExpense(pendingDelete.id)
           break
-        case 'mortgage':
-          await deleteMortgage(pendingDelete.id)
+        case 'property':
+          await deleteProperty(pendingDelete.id)
           break
         case 'business_venture':
           await deleteBusinessVenture(pendingDelete.id)
@@ -240,9 +241,9 @@ export default function Financials() {
         totalSign="−"
         rightAction={
           <div className="flex gap-2">
-            {!pfs.mortgage && (
-              <Button variant="secondary" size="sm" onClick={() => setMortgageModal({ existing: null })}>
-                <Plus size={14} /> Mortgage
+            {pfs.properties.length === 0 && (
+              <Button variant="secondary" size="sm" onClick={() => setPropertyModal({ existing: null })}>
+                <Plus size={14} /> Property
               </Button>
             )}
             <Button
@@ -255,7 +256,7 @@ export default function Financials() {
           </div>
         }
       >
-        {!pfs.mortgage && pfs.liabilities.length === 0 ? (
+        {pfs.liabilities.length === 0 ? (
           <EmptyRow kind="liability" />
         ) : (
           <ItemList
@@ -298,33 +299,33 @@ export default function Financials() {
       <Section
         title="Properties"
         subtitle={
-          pfs.mortgages.length === 0
-            ? 'Used by payoff projections and equity math.'
-            : `${pfs.mortgages.length} ${pfs.mortgages.length === 1 ? 'property' : 'properties'}. Your primary mortgage feeds the dashboard's payoff and equity charts.`
+          pfs.properties.length === 0
+            ? 'Homes you own — drives equity and payoff math.'
+            : `${pfs.properties.length} ${pfs.properties.length === 1 ? 'property' : 'properties'}. Your primary home feeds the dashboard's payoff and equity charts.`
         }
         rightAction={
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setMortgageModal({ existing: null })}
+            onClick={() => setPropertyModal({ existing: null })}
           >
-            <Plus size={14} /> {pfs.mortgages.length === 0 ? 'Add' : 'Add another'}
+            <Plus size={14} /> {pfs.properties.length === 0 ? 'Add' : 'Add another'}
           </Button>
         }
       >
-        {pfs.mortgages.length === 0 ? (
+        {pfs.properties.length === 0 ? (
           <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No properties on file. Add one to enable payoff projections.
+            No properties on file. Add one to track equity, payoff, and true housing cost.
           </div>
         ) : (
           <ul className="divide-y divide-surface-200">
-            {pfs.mortgages.map((m) => (
+            {pfs.properties.map((p) => (
               <PropertyRow
-                key={m.id}
-                mortgage={m}
-                onEdit={() => setMortgageModal({ existing: m })}
-                onDelete={() => onDeleteMortgage(m)}
-                onSetPrimary={() => onSetPrimary(m.id)}
+                key={p.id}
+                property={p}
+                onEdit={() => setPropertyModal({ existing: p })}
+                onDelete={() => onDeleteProperty(p)}
+                onSetPrimary={() => onSetPrimary(p.id)}
               />
             ))}
           </ul>
@@ -358,7 +359,8 @@ export default function Financials() {
       </Section>
 
       <Section
-        title="Spending"
+        title="Household spending"
+        subtitle="Everyday living costs. Skip your mortgage, property taxes, and home insurance — those come from Properties so they're never counted twice."
         total={t.monthlyLivingExpenses}
         totalSign="−"
         totalSuffix=" / mo"
@@ -366,8 +368,9 @@ export default function Financials() {
       >
         {pfs.livingExpenses.length === 0 ? (
           <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No spending entered yet. Add rent, utilities, phone, internet, groceries, insurance, etc.
-            These feed your cash flow waterfall on the dashboard.
+            No spending entered yet. Add rent (if you rent), utilities, phone, internet, groceries,
+            auto/health insurance, etc. Skip your mortgage and home costs — those come from
+            Properties. These feed your cash flow waterfall on the dashboard.
           </div>
         ) : (
           <ItemList
@@ -493,13 +496,13 @@ export default function Financials() {
         />
       )}
 
-      {mortgageModal && (
-        <MortgageModal
+      {propertyModal && (
+        <PropertyModal
           open
-          onClose={() => setMortgageModal(null)}
+          onClose={() => setPropertyModal(null)}
           onSaved={load}
-          existing={mortgageModal.existing}
-          defaultIsPrimary={pfs.mortgages.length === 0}
+          existing={propertyModal.existing}
+          defaultType={pfs.primaryProperty ? 'other' : 'primary'}
         />
       )}
 
@@ -514,10 +517,10 @@ export default function Financials() {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={pendingDelete?.kind === 'mortgage' ? 'Delete mortgage?' : 'Delete entry?'}
+        title={pendingDelete?.kind === 'property' ? 'Delete property?' : 'Delete entry?'}
         message={
-          pendingDelete?.kind === 'mortgage'
-            ? `Delete the mortgage for "${pendingDelete.propertyLabel}"? Payoff projections and equity math will go with it.`
+          pendingDelete?.kind === 'property'
+            ? `Delete "${pendingDelete.label}"? Its mortgage, equity, and payoff projections go with it.`
             : pendingDelete?.kind === 'record' || pendingDelete?.kind === 'living_expense'
               ? `Delete "${pendingDelete.label}"? This can't be undone.`
               : ''
@@ -619,42 +622,60 @@ function Section({
 }
 
 function PropertyRow({
-  mortgage: m,
+  property: p,
   onEdit,
   onDelete,
   onSetPrimary,
 }: {
-  mortgage: Mortgage
+  property: Property
   onEdit: () => void
   onDelete: () => void
   onSetPrimary: () => void
 }) {
+  const m = p.mortgage
+  const isPrimary = p.propertyType === 'primary'
+  const equity = p.marketValue - (m?.balance ?? 0)
   const piti = totalMonthlyHousingOutflow(m)
+  // True monthly housing cost incl. carrying costs — works with or without a
+  // loan, so a paid-off rental still nets correctly.
+  const carryMonthly =
+    (p.propertyTaxAnnual ?? 0) / 12 +
+    (p.homeownersInsuranceAnnual ?? 0) / 12 +
+    (p.floodInsuranceAnnual ?? 0) / 12 +
+    (p.hoaMonthly ?? 0)
+  const housingMonthly = (m?.monthlyPayment ?? 0) + (m?.pmiMipMonthly ?? 0) + carryMonthly
+  const netCashFlow =
+    p.propertyType === 'rental' && p.monthlyRent != null ? p.monthlyRent - housingMonthly : null
   return (
     <li className="px-6 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Home size={14} className="text-surface-400" />
-            <span className="font-medium text-surface-900">{m.propertyLabel}</span>
-            {m.isPrimary && (
+            <span className="font-medium text-surface-900">{p.label}</span>
+            <span className="inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
+              {PROPERTY_TYPE_LABELS[p.propertyType]}
+            </span>
+            {isPrimary && (
               <span className="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-700">
                 <Star size={10} fill="currentColor" /> Primary
               </span>
             )}
           </div>
+          {p.address && <div className="mt-1 text-xs text-surface-500">{p.address}</div>}
           <div className="mt-1 text-xs text-surface-500">
-            {m.ratePct}% • {m.termMonthsRemaining} mo left • {m.pctOwnership}% ownership
-            {m.dateAcquired && ` • acquired ${formatAcquired(m.dateAcquired)}`}
+            {m ? `${m.ratePct}% • ${m.termMonthsRemaining} mo left` : 'Owned outright'}
+            {` • ${p.pctOwnership}% ownership`}
+            {p.dateAcquired && ` • acquired ${formatAcquired(p.dateAcquired)}`}
           </div>
         </div>
         <div className="flex flex-shrink-0 gap-1">
-          {!m.isPrimary && (
+          {!isPrimary && (
             <button
               type="button"
               onClick={onSetPrimary}
               className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-              aria-label={`Make ${m.propertyLabel} primary`}
+              aria-label={`Make ${p.label} primary`}
               title="Make primary"
             >
               <Star size={14} />
@@ -664,7 +685,7 @@ function PropertyRow({
             type="button"
             onClick={onEdit}
             className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-            aria-label={`Edit ${m.propertyLabel}`}
+            aria-label={`Edit ${p.label}`}
           >
             <Pencil size={14} />
           </button>
@@ -672,7 +693,7 @@ function PropertyRow({
             type="button"
             onClick={onDelete}
             className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-            aria-label={`Delete ${m.propertyLabel}`}
+            aria-label={`Delete ${p.label}`}
           >
             <Trash2 size={14} />
           </button>
@@ -680,45 +701,46 @@ function PropertyRow({
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-        <PropertyDetail label="Balance" value={formatUSD(m.balance)} />
-        <PropertyDetail label="P&amp;I / mo" value={formatUSD(m.monthlyPayment)} />
-        <PropertyDetail label="Home value" value={formatUSD(m.startingHomeValue)} />
-        <PropertyDetail label="Extra principal" value={formatUSD(m.extraPrincipal)} />
+        <PropertyDetail label="Value" value={formatUSD(p.marketValue)} />
+        <PropertyDetail label="Equity" value={formatUSD(equity)} />
+        {m ? (
+          <>
+            <PropertyDetail label="Balance" value={formatUSD(m.balance)} />
+            <PropertyDetail label="P&amp;I / mo" value={formatUSD(m.monthlyPayment)} />
+          </>
+        ) : (
+          p.propertyType === 'rental' &&
+          p.monthlyRent != null && (
+            <PropertyDetail label="Rent / mo" value={formatUSD(p.monthlyRent)} />
+          )
+        )}
       </dl>
 
-      {(piti?.hasPiti || m.originalCost != null) && (
+      {(piti?.hasPiti || netCashFlow != null || p.originalCost != null) && (
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-surface-100 pt-3 text-xs text-surface-600 sm:grid-cols-4">
-          {m.propertyTaxAnnual != null && (
-            <PropertyDetail
-              label="Tax / yr"
-              value={formatUSD(m.propertyTaxAnnual)}
-              muted
-            />
+          {p.propertyTaxAnnual != null && (
+            <PropertyDetail label="Tax / yr" value={formatUSD(p.propertyTaxAnnual)} muted />
           )}
-          {m.homeownersInsuranceAnnual != null && (
-            <PropertyDetail
-              label="Ins / yr"
-              value={formatUSD(m.homeownersInsuranceAnnual)}
-              muted
-            />
+          {p.homeownersInsuranceAnnual != null && (
+            <PropertyDetail label="Ins / yr" value={formatUSD(p.homeownersInsuranceAnnual)} muted />
           )}
-          {m.hoaMonthly != null && m.hoaMonthly > 0 && (
-            <PropertyDetail label="HOA / mo" value={formatUSD(m.hoaMonthly)} muted />
+          {p.floodInsuranceAnnual != null && (
+            <PropertyDetail label="Flood / yr" value={formatUSD(p.floodInsuranceAnnual)} muted />
           )}
-          {m.originalCost != null && (
-            <PropertyDetail
-              label="Orig. cost"
-              value={formatUSD(m.originalCost)}
-              muted
-            />
+          {p.hoaMonthly != null && p.hoaMonthly > 0 && (
+            <PropertyDetail label="HOA / mo" value={formatUSD(p.hoaMonthly)} muted />
           )}
-          {piti?.hasPiti && (
-            <PropertyDetail
-              label="PITI / mo"
-              value={formatUSD(piti.total)}
-              muted
-              highlight
-            />
+          {m && piti?.hasPiti && (
+            <PropertyDetail label="PITI / mo" value={formatUSD(piti.total)} muted highlight />
+          )}
+          {p.propertyType === 'rental' && m && p.monthlyRent != null && (
+            <PropertyDetail label="Rent / mo" value={formatUSD(p.monthlyRent)} muted />
+          )}
+          {netCashFlow != null && (
+            <PropertyDetail label="Net cash flow" value={formatUSD(netCashFlow)} muted highlight />
+          )}
+          {p.originalCost != null && (
+            <PropertyDetail label="Orig. cost" value={formatUSD(p.originalCost)} muted />
           )}
         </dl>
       )}
