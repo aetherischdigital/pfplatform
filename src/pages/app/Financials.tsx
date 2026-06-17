@@ -6,7 +6,6 @@ import {
   Trash2,
   AlertTriangle,
   Home,
-  Star,
   Briefcase,
   ShieldAlert,
 } from 'lucide-react'
@@ -17,14 +16,10 @@ import {
   EXPENSE_CATEGORY_LABELS,
   LIVING_EXPENSE_CATEGORY_LABELS,
   PROPERTY_TYPE_LABELS,
-  deleteProperty,
   deletePfsRecord,
   deleteLivingExpense,
   fetchPfs,
-  setPrimaryProperty,
   totals,
-  totalMonthlyHousingOutflow,
-  type Property,
   type Totals,
   type Pfs,
   type PfsRecordKind,
@@ -52,7 +47,6 @@ import ContingentLiabilityModal from '../../components/pfs/ContingentLiabilityMo
 type PendingDelete =
   | { kind: 'record'; id: string; label: string }
   | { kind: 'living_expense'; id: string; label: string }
-  | { kind: 'property'; id: string; label: string }
   | { kind: 'business_venture'; id: string; label: string }
   | { kind: 'contingent_liability'; id: string; label: string }
 
@@ -124,24 +118,6 @@ export default function Financials() {
   const onDeleteRecord = (id: string, label: string) =>
     setPendingDelete({ kind: 'record', id, label })
 
-  const onDeleteProperty = (property: Property) => {
-    setPendingDelete({
-      kind: 'property',
-      id: property.id,
-      label: property.label,
-    })
-  }
-
-  const onSetPrimary = async (id: string) => {
-    setError(null)
-    try {
-      await setPrimaryProperty(id)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not set primary property.')
-    }
-  }
-
   const confirmDelete = async () => {
     if (!pendingDelete) return
     setDeleting(true)
@@ -153,9 +129,6 @@ export default function Financials() {
           break
         case 'living_expense':
           await deleteLivingExpense(pendingDelete.id)
-          break
-        case 'property':
-          await deleteProperty(pendingDelete.id)
           break
         case 'business_venture':
           await deleteBusinessVenture(pendingDelete.id)
@@ -293,37 +266,68 @@ export default function Financials() {
 
       <Section
         title="Properties"
-        subtitle={
-          pfs.properties.length === 0
-            ? 'Homes you own — drives equity and payoff math.'
-            : `${pfs.properties.length} ${pfs.properties.length === 1 ? 'property' : 'properties'}. Your primary home feeds the dashboard's payoff and equity charts.`
-        }
+        total={pfs.properties.reduce((s, p) => s + p.marketValue, 0)}
+        totalSign="+"
         rightAction={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => navigate('/app/properties/new')}
-          >
-            <Plus size={14} /> {pfs.properties.length === 0 ? 'Add' : 'Add another'}
+          <Button variant="secondary" size="sm" onClick={() => navigate('/app/properties/new')}>
+            <Plus size={14} /> Add
           </Button>
         }
       >
         {pfs.properties.length === 0 ? (
-          <div className="px-6 py-5 text-center text-sm text-surface-500">
-            No properties on file. Add one to track equity, payoff, and true housing cost.
+          <div className="px-5 py-5 text-sm text-surface-500">
+            No properties on file.{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/app/properties/new')}
+              className="font-medium text-accent-600 underline-offset-2 hover:underline"
+            >
+              Add one →
+            </button>
           </div>
         ) : (
-          <ul className="divide-y divide-surface-200">
-            {pfs.properties.map((p) => (
-              <PropertyRow
-                key={p.id}
-                property={p}
-                onEdit={() => navigate(`/app/properties/${p.id}/edit`)}
-                onDelete={() => onDeleteProperty(p)}
-                onSetPrimary={() => onSetPrimary(p.id)}
-              />
-            ))}
-          </ul>
+          <>
+            <ul className="divide-y divide-surface-200">
+              {pfs.properties.map((p) => {
+                const equity = p.marketValue - (p.mortgage?.balance ?? 0)
+                return (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/properties/${p.id}/edit`)}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-inset"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Home size={14} className="flex-shrink-0 text-surface-400" />
+                        <span className="truncate text-sm font-medium text-surface-900">
+                          {p.label}
+                        </span>
+                        <span className="flex-shrink-0 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
+                          {PROPERTY_TYPE_LABELS[p.propertyType]}
+                        </span>
+                      </span>
+                      <span className="flex flex-shrink-0 items-baseline gap-5 font-mono text-sm tabular-nums">
+                        <span className="text-surface-500">{formatUSD(p.marketValue)}</span>
+                        <span className="text-surface-900">
+                          {formatUSD(equity)}
+                          <span className="ml-1 text-xs text-surface-400">eq</span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            <div className="border-t border-surface-200 px-5 py-2.5 text-right">
+              <button
+                type="button"
+                onClick={() => navigate('/app/properties')}
+                className="text-xs font-medium text-accent-600 underline-offset-2 hover:underline"
+              >
+                Manage properties →
+              </button>
+            </div>
+          </>
         )}
       </Section>
 
@@ -506,13 +510,11 @@ export default function Financials() {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={pendingDelete?.kind === 'property' ? 'Delete property?' : 'Delete entry?'}
+        title="Delete entry?"
         message={
-          pendingDelete?.kind === 'property'
-            ? `Delete "${pendingDelete.label}"? Its mortgage, equity, and payoff projections go with it.`
-            : pendingDelete?.kind === 'record' || pendingDelete?.kind === 'living_expense'
-              ? `Delete "${pendingDelete.label}"? This can't be undone.`
-              : ''
+          pendingDelete?.kind === 'record' || pendingDelete?.kind === 'living_expense'
+            ? `Delete "${pendingDelete.label}"? This can't be undone.`
+            : ''
         }
         confirmLabel="Delete"
         variant="danger"
@@ -678,133 +680,6 @@ function Section({
   )
 }
 
-function PropertyRow({
-  property: p,
-  onEdit,
-  onDelete,
-  onSetPrimary,
-}: {
-  property: Property
-  onEdit: () => void
-  onDelete: () => void
-  onSetPrimary: () => void
-}) {
-  const m = p.mortgage
-  const isPrimary = p.propertyType === 'primary'
-  const equity = p.marketValue - (m?.balance ?? 0)
-  const piti = totalMonthlyHousingOutflow(m)
-  // True monthly housing cost incl. carrying costs — works with or without a
-  // loan, so a paid-off rental still nets correctly.
-  const carryMonthly =
-    (p.propertyTaxAnnual ?? 0) / 12 +
-    (p.homeownersInsuranceAnnual ?? 0) / 12 +
-    (p.floodInsuranceAnnual ?? 0) / 12 +
-    (p.hoaMonthly ?? 0)
-  const housingMonthly = (m?.monthlyPayment ?? 0) + (m?.pmiMipMonthly ?? 0) + carryMonthly
-  const netCashFlow =
-    p.propertyType === 'rental' && p.monthlyRent != null ? p.monthlyRent - housingMonthly : null
-  return (
-    <li className="px-6 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Home size={14} className="text-surface-400" />
-            <span className="font-medium text-surface-900">{p.label}</span>
-            <span className="inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-600">
-              {PROPERTY_TYPE_LABELS[p.propertyType]}
-            </span>
-            {isPrimary && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-700">
-                <Star size={10} fill="currentColor" /> Primary
-              </span>
-            )}
-          </div>
-          {p.address && <div className="mt-1 text-xs text-surface-500">{p.address}</div>}
-          <div className="mt-1 text-xs text-surface-500">
-            {m ? `${m.ratePct}% • ${m.termMonthsRemaining} mo left` : 'Owned outright'}
-            {` • ${p.pctOwnership}% ownership`}
-            {p.dateAcquired && ` • acquired ${formatAcquired(p.dateAcquired)}`}
-          </div>
-        </div>
-        <div className="flex flex-shrink-0 gap-1">
-          {!isPrimary && (
-            <button
-              type="button"
-              onClick={onSetPrimary}
-              className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-              aria-label={`Make ${p.label} primary`}
-              title="Make primary"
-            >
-              <Star size={14} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-            aria-label={`Edit ${p.label}`}
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded-md p-2.5 text-surface-400 md:p-2 transition-colors hover:bg-danger-50 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
-            aria-label={`Delete ${p.label}`}
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-        <PropertyDetail label="Value" value={formatUSD(p.marketValue)} />
-        <PropertyDetail label="Equity" value={formatUSD(equity)} />
-        {m ? (
-          <>
-            <PropertyDetail label="Balance" value={formatUSD(m.balance)} />
-            <PropertyDetail label="P&amp;I / mo" value={formatUSD(m.monthlyPayment)} />
-          </>
-        ) : (
-          p.propertyType === 'rental' &&
-          p.monthlyRent != null && (
-            <PropertyDetail label="Rent / mo" value={formatUSD(p.monthlyRent)} />
-          )
-        )}
-      </dl>
-
-      {(piti?.hasPiti || netCashFlow != null || p.originalCost != null) && (
-        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-surface-100 pt-3 text-xs text-surface-600 sm:grid-cols-4">
-          {p.propertyTaxAnnual != null && (
-            <PropertyDetail label="Tax / yr" value={formatUSD(p.propertyTaxAnnual)} muted />
-          )}
-          {p.homeownersInsuranceAnnual != null && (
-            <PropertyDetail label="Ins / yr" value={formatUSD(p.homeownersInsuranceAnnual)} muted />
-          )}
-          {p.floodInsuranceAnnual != null && (
-            <PropertyDetail label="Flood / yr" value={formatUSD(p.floodInsuranceAnnual)} muted />
-          )}
-          {p.hoaMonthly != null && p.hoaMonthly > 0 && (
-            <PropertyDetail label="HOA / mo" value={formatUSD(p.hoaMonthly)} muted />
-          )}
-          {m && piti?.hasPiti && (
-            <PropertyDetail label="PITI / mo" value={formatUSD(piti.total)} muted highlight />
-          )}
-          {p.propertyType === 'rental' && m && p.monthlyRent != null && (
-            <PropertyDetail label="Rent / mo" value={formatUSD(p.monthlyRent)} muted />
-          )}
-          {netCashFlow != null && (
-            <PropertyDetail label="Net cash flow" value={formatUSD(netCashFlow)} muted highlight />
-          )}
-          {p.originalCost != null && (
-            <PropertyDetail label="Orig. cost" value={formatUSD(p.originalCost)} muted />
-          )}
-        </dl>
-      )}
-    </li>
-  )
-}
-
 function BusinessVentureRow({
   venture: bv,
   onEdit,
@@ -916,29 +791,6 @@ function ContingentRow({
   )
 }
 
-function PropertyDetail({
-  label,
-  value,
-  muted,
-  highlight,
-}: {
-  label: string
-  value: string
-  muted?: boolean
-  highlight?: boolean
-}) {
-  return (
-    <div>
-      <dt className={`text-xs ${muted ? 'text-surface-500' : 'text-surface-500'}`}>{label}</dt>
-      <dd
-        className={`mt-0.5 font-mono text-sm font-medium ${highlight ? 'text-accent-700' : 'text-surface-900'}`}
-      >
-        {value}
-      </dd>
-    </div>
-  )
-}
-
 function debtSub(
   category: string,
   rate: number | undefined,
@@ -951,15 +803,6 @@ function debtSub(
   ]
     .filter(Boolean)
     .join(' • ')
-}
-
-function formatAcquired(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  if (!y || !m || !d) return iso
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 function ItemList({ rows }: { rows: Row[] }) {
