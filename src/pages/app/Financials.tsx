@@ -175,7 +175,8 @@ export default function Financials() {
 
       <StatementHero t={t} />
 
-      <GroupHeader title="Balance sheet" />
+      <section className="space-y-4">
+        <GroupHeader title="Balance sheet" />
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
@@ -330,8 +331,10 @@ export default function Financials() {
           </>
         )}
       </Section>
+      </section>
 
-      <GroupHeader title="Cash flow" />
+      <section className="space-y-4">
+        <GroupHeader title="Cash flow" />
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
@@ -387,8 +390,10 @@ export default function Financials() {
         )}
       </Section>
       </div>
+      </section>
 
-      <GroupHeader title="Other holdings & obligations" />
+      <section className="space-y-4">
+        <GroupHeader title="Other holdings & obligations" />
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
       <Section
@@ -461,6 +466,7 @@ export default function Financials() {
         )}
       </Section>
       </div>
+      </section>
 
       {recordModal && (
         <PfsRecordModal
@@ -528,7 +534,7 @@ export default function Financials() {
 
 function GroupHeader({ title }: { title: string }) {
   return (
-    <div className="-mb-3 flex items-center gap-3 pt-2">
+    <div className="flex items-center gap-3">
       <span className="font-label text-[12px] uppercase tracking-[0.24em] text-accent-600">
         {title}
       </span>
@@ -545,15 +551,15 @@ function StatementHero({ t }: { t: Totals }) {
   })
   const signed = (n: number) => (n < 0 ? `−${formatUSD(Math.abs(n))}` : formatUSD(n))
   return (
-    <div className="overflow-hidden rounded-xl border border-surface-800 bg-surface-900 text-surface-50 shadow-card-lg">
-      <div className="grid gap-px bg-surface-800 lg:grid-cols-2">
+    <div className="overflow-hidden rounded-xl border border-ink-line bg-ink text-ink-fg shadow-card-lg">
+      <div className="grid gap-px bg-ink-line lg:grid-cols-2">
         {/* Net worth */}
-        <div className="bg-surface-900 p-6 sm:p-8">
+        <div className="bg-ink p-6 sm:p-8">
           <div className="flex items-center justify-between">
-            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-accent-200">
+            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-ink-accent">
               Net worth
             </span>
-            <span className="font-mono text-[11px] text-surface-400">as of {asOf}</span>
+            <span className="font-mono text-[11px] text-ink-muted">as of {asOf}</span>
           </div>
           <div className="mt-3 font-display text-4xl font-semibold tracking-tight">
             {formatUSD(t.netWorth)}
@@ -564,27 +570,23 @@ function StatementHero({ t }: { t: Totals }) {
               label="Total liabilities"
               value={t.totalLiabilities > 0 ? `−${formatUSD(t.totalLiabilities)}` : formatUSD(0)}
             />
-            <div className="border-t border-surface-700 pt-2.5">
+            <div className="border-t border-ink-line pt-2.5">
               <LedgerLine label="Net worth" value={formatUSD(t.netWorth)} strong />
             </div>
           </dl>
         </div>
         {/* Monthly cash flow */}
-        <div className="bg-surface-900 p-6 sm:p-8">
+        <div className="bg-ink p-6 sm:p-8">
           <div className="flex items-center justify-between">
-            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-accent-200">
+            <span className="font-label text-[11px] uppercase tracking-[0.28em] text-ink-accent">
               Monthly cash flow
             </span>
-            <span className="font-mono text-[11px] text-surface-400">/ mo</span>
+            <span className="font-mono text-[11px] text-ink-muted">/ mo</span>
           </div>
-          <div
-            className={`mt-3 font-display text-4xl font-semibold tracking-tight ${
-              t.monthlyLeftover < 0 ? 'text-danger-200' : ''
-            }`}
-          >
+          <div className="mt-3 font-display text-4xl font-semibold tracking-tight">
             {signed(t.monthlyLeftover)}
           </div>
-          <div className="mt-1 text-xs text-surface-400">left over to direct at principal</div>
+          <div className="mt-1 text-xs text-ink-muted">left over to direct at principal</div>
           <dl className="mt-5 space-y-2.5 text-sm">
             <LedgerLine label="Income" value={`+${formatUSD(t.monthlyIncome)}`} />
             <LedgerLine
@@ -597,7 +599,7 @@ function StatementHero({ t }: { t: Totals }) {
                 t.monthlyLivingExpenses > 0 ? `−${formatUSD(t.monthlyLivingExpenses)}` : formatUSD(0)
               }
             />
-            <div className="border-t border-surface-700 pt-2.5">
+            <div className="border-t border-ink-line pt-2.5">
               <LedgerLine label="Left over" value={signed(t.monthlyLeftover)} strong />
             </div>
           </dl>
@@ -610,11 +612,9 @@ function StatementHero({ t }: { t: Totals }) {
 function LedgerLine({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className={strong ? 'font-medium text-surface-50' : 'text-surface-300'}>{label}</dt>
+      <dt className={strong ? 'font-medium text-ink-fg' : 'text-ink-muted'}>{label}</dt>
       <dd
-        className={`font-mono tabular-nums ${
-          strong ? 'text-base font-semibold text-surface-50' : 'text-surface-100'
-        }`}
+        className={`font-mono tabular-nums text-ink-fg ${strong ? 'text-base font-semibold' : ''}`}
       >
         {value}
       </dd>
