@@ -2,23 +2,103 @@ import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   Calculator as CalculatorIcon,
-  CalendarClock,
+  ListOrdered,
   RefreshCw,
-  Repeat,
-  Scale,
+  Split,
+  Table,
+  TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import PayoffCalculator, {
   type PayoffCalculatorDefaults,
 } from '../../components/calculators/PayoffCalculator'
-import { fetchPfs, type Pfs } from '../../lib/pfs'
-import { Button } from '../../components/ui/Button'
+import AmortizationCalculator, {
+  type AmortizationCalculatorDefaults,
+} from '../../components/calculators/AmortizationCalculator'
+import EquityProjectionCalculator, {
+  type EquityCalculatorDefaults,
+} from '../../components/calculators/EquityProjectionCalculator'
+import MultiScenarioPayoffCalculator, {
+  type MultiScenarioCalculatorDefaults,
+} from '../../components/calculators/MultiScenarioPayoffCalculator'
+import RefinanceCompareCalculator, {
+  type RefinanceCalculatorDefaults,
+} from '../../components/calculators/RefinanceCompareCalculator'
+import PayoffMatrix from '../../components/calculators/PayoffMatrix'
+import { fetchPfs, type Pfs, type Mortgage } from '../../lib/pfs'
 import { markCalculatorVisited } from '../../lib/onboarding'
+
+type TabId = 'payoff' | 'amortization' | 'equity' | 'scenarios' | 'refinance' | 'matrix'
+
+type Tab = {
+  id: TabId
+  label: string
+  icon: LucideIcon
+  title: string
+  blurb: string
+}
+
+const TABS: Tab[] = [
+  {
+    id: 'payoff',
+    label: 'Payoff',
+    icon: CalculatorIcon,
+    title: 'Mortgage payoff',
+    blurb: 'How much faster does your loan disappear if you send extra each month?',
+  },
+  {
+    id: 'amortization',
+    label: 'Amortization',
+    icon: ListOrdered,
+    title: 'Amortization schedule',
+    blurb:
+      'Where does every dollar of every payment go? Here’s the receipt, month by month.',
+  },
+  {
+    id: 'equity',
+    label: 'Equity',
+    icon: TrendingUp,
+    title: 'Equity projection',
+    blurb:
+      'Two things build equity: your home value rising, and your balance falling. Watch them work together.',
+  },
+  {
+    id: 'scenarios',
+    label: 'Scenarios',
+    icon: Split,
+    title: 'Payoff scenarios',
+    blurb: 'Four ways to retire your loan early. Which one fits your situation?',
+  },
+  {
+    id: 'refinance',
+    label: 'Refinance',
+    icon: RefreshCw,
+    title: 'Refinance compare',
+    blurb:
+      'A lower payment isn’t free. What does it cost — and when does it pay for itself?',
+  },
+  {
+    id: 'matrix',
+    label: 'All loans',
+    icon: Table,
+    title: 'Payoff matrix',
+    blurb: 'Every property’s loan side by side — balance, payoff date, and interest at a glance.',
+  },
+]
+
+function tabFromHash(hash: string): TabId {
+  const id = hash.replace(/^#/, '') as TabId
+  return TABS.some((t) => t.id === id) ? id : 'payoff'
+}
 
 export default function Calculators() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    typeof window === 'undefined' ? 'payoff' : tabFromHash(window.location.hash),
+  )
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -39,19 +119,64 @@ export default function Calculators() {
     }
   }, [])
 
-  const defaults = pfsToCalculatorDefaults(pfs)
+  // Reflect tab choice in the URL hash so deep-links + back/forward work.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onHashChange = () => setActiveTab(tabFromHash(window.location.hash))
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  const selectTab = (id: TabId) => {
+    setActiveTab(id)
+    if (typeof window !== 'undefined') {
+      // Use replaceState so tab clicks don't pollute history; back button still
+      // takes you back to wherever you came from.
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }
+
+  const active = TABS.find((t) => t.id === activeTab) ?? TABS[0]
+
+  const mortgages = pfs?.mortgages ?? []
+  const selectedMortgage: Mortgage | null =
+    (selectedId ? mortgages.find((m) => m.propertyId === selectedId) : undefined) ??
+    pfs?.mortgage ??
+    mortgages[0] ??
+    null
+  // The defaults builders read pfs.mortgage; swap in the chosen property's loan
+  // so picking a property re-fills every single-loan calculator.
+  const calcPfs = pfs ? { ...pfs, mortgage: selectedMortgage } : null
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
-          Calculators
-        </h1>
-        <p className="mt-1 text-sm text-surface-500">
-          {pfs?.mortgage
-            ? 'Pre-filled with your mortgage. Edit any value to model a what-if.'
-            : 'Run scenarios on your loan. Add a mortgage in your PFS to pre-fill these.'}
-        </p>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-surface-900">
+            Calculators
+          </h1>
+          <p className="mt-1 text-sm text-surface-500">
+            {selectedMortgage
+              ? `Pre-filled from ${selectedMortgage.propertyLabel}. Edit any value to model a what-if.`
+              : 'Run scenarios on your loan. Add a property with a mortgage to pre-fill these.'}
+          </p>
+        </div>
+        {mortgages.length > 1 && activeTab !== 'matrix' && (
+          <label className="text-sm">
+            <span className="mr-2 text-surface-500">Property</span>
+            <select
+              value={selectedMortgage?.propertyId ?? ''}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="rounded-md border border-surface-300 bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+            >
+              {mortgages.map((m) => (
+                <option key={m.propertyId} value={m.propertyId}>
+                  {m.propertyLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </header>
 
       {error && (
@@ -61,51 +186,64 @@ export default function Calculators() {
         </div>
       )}
 
+      <div
+        role="tablist"
+        aria-label="Calculators"
+        className="sticky top-0 z-20 -mx-6 overflow-x-auto border-b border-surface-200 bg-surface-50/95 px-6 backdrop-blur"
+      >
+        <div className="flex min-w-max gap-1">
+          {TABS.map((t) => {
+            const Icon = t.icon
+            const isActive = t.id === activeTab
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                type="button"
+                onClick={() => selectTab(t.id)}
+                className={`flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50 ${
+                  isActive
+                    ? 'border-accent-500 text-surface-900'
+                    : 'border-transparent text-surface-500 hover:text-surface-900'
+                }`}
+              >
+                <Icon size={14} />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <section className="rounded-2xl border border-surface-200 bg-white p-7 shadow-card">
         <div className="mb-6 flex items-start gap-3">
           <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-600">
-            <CalculatorIcon size={18} />
+            <active.icon size={18} />
           </div>
           <div>
             <h2 className="font-display text-lg font-semibold text-surface-900">
-              Mortgage payoff
+              {active.title}
             </h2>
-            <p className="mt-0.5 text-sm text-surface-500">
-              Compare your scheduled payoff against extra-principal scenarios.
-            </p>
+            <p className="mt-0.5 text-sm text-surface-500">{active.blurb}</p>
           </div>
         </div>
 
-        {loading ? <PayoffCalculatorSkeleton /> : <PayoffCalculator defaults={defaults} />}
-      </section>
-
-      <section>
-        <h2 className="font-display text-lg font-semibold text-surface-900">More calculators</h2>
-        <p className="mt-1 text-sm text-surface-500">
-          The next set of tools, building on your ledger. Coming with the Phase 2 release.
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ComingSoonTile
-            icon={CalendarClock}
-            title="Prepayment planner"
-            description="Pick which scheduled payments to retire and print a check label for each."
-          />
-          <ComingSoonTile
-            icon={Repeat}
-            title="Recast calculator"
-            description="Model a lump-sum reamortization and the new monthly payment."
-          />
-          <ComingSoonTile
-            icon={RefreshCw}
-            title="Refinance compare"
-            description="Side-by-side: current loan vs. a new rate and term, with break-even."
-          />
-          <ComingSoonTile
-            icon={Scale}
-            title="Biweekly vs. extra principal"
-            description="Honest math on whether a biweekly program beats sending extra yourself."
-          />
-        </div>
+        {loading ? (
+          <PayoffCalculatorSkeleton />
+        ) : activeTab === 'matrix' ? (
+          <PayoffMatrix mortgages={mortgages} />
+        ) : activeTab === 'payoff' ? (
+          <PayoffCalculator defaults={pfsToCalculatorDefaults(calcPfs)} />
+        ) : activeTab === 'amortization' ? (
+          <AmortizationCalculator defaults={pfsToAmortizationDefaults(calcPfs)} />
+        ) : activeTab === 'equity' ? (
+          <EquityProjectionCalculator defaults={pfsToEquityDefaults(calcPfs)} />
+        ) : activeTab === 'scenarios' ? (
+          <MultiScenarioPayoffCalculator defaults={pfsToMultiScenarioDefaults(calcPfs)} />
+        ) : (
+          <RefinanceCompareCalculator defaults={pfsToRefinanceDefaults(calcPfs)} />
+        )}
       </section>
     </div>
   )
@@ -148,32 +286,6 @@ function PayoffCalculatorSkeleton() {
   )
 }
 
-function ComingSoonTile({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon
-  title: string
-  description: string
-}) {
-  return (
-    <div className="relative rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <span className="absolute right-3 top-3 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-500">
-        Phase 2
-      </span>
-      <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface-100 text-surface-500">
-        <Icon size={16} />
-      </div>
-      <h3 className="mt-4 font-display text-base font-semibold text-surface-900">{title}</h3>
-      <p className="mt-1 text-sm text-surface-500">{description}</p>
-      <Button variant="secondary" size="sm" disabled className="mt-4 w-full">
-        Coming soon
-      </Button>
-    </div>
-  )
-}
-
 function pfsToCalculatorDefaults(pfs: Pfs | null): PayoffCalculatorDefaults | undefined {
   if (!pfs?.mortgage) return undefined
   const m = pfs.mortgage
@@ -183,5 +295,69 @@ function pfsToCalculatorDefaults(pfs: Pfs | null): PayoffCalculatorDefaults | un
     termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
     extra: m.extraPrincipal,
     monthlyPayment: m.monthlyPayment,
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
+  }
+}
+
+function pfsToAmortizationDefaults(pfs: Pfs | null): AmortizationCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
+  }
+}
+
+function pfsToEquityDefaults(pfs: Pfs | null): EquityCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    startingHomeValue: m.startingHomeValue,
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    monthlyPayment: m.monthlyPayment,
+    extra: m.extraPrincipal,
+  }
+}
+
+function pfsToMultiScenarioDefaults(pfs: Pfs | null): MultiScenarioCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    balance: m.balance,
+    rate: m.ratePct,
+    termYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    monthlyPayment: m.monthlyPayment,
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
+  }
+}
+
+function pfsToRefinanceDefaults(pfs: Pfs | null): RefinanceCalculatorDefaults | undefined {
+  if (!pfs?.mortgage) return undefined
+  const m = pfs.mortgage
+  return {
+    currentBalance: m.balance,
+    currentRatePct: m.ratePct,
+    currentRemainingYears: Math.max(1, Math.round(m.termMonthsRemaining / 12)),
+    propertyTaxAnnual: m.propertyTaxAnnual,
+    homeownersInsuranceAnnual: m.homeownersInsuranceAnnual,
+    hoaMonthly: m.hoaMonthly,
+    floodInsuranceAnnual: m.floodInsuranceAnnual,
+    pmiMipMonthly: m.pmiMipMonthly,
   }
 }

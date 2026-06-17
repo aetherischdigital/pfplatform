@@ -5,6 +5,7 @@ import {
   LIVING_EXPENSE_CATEGORY_LABELS,
   expenseMonthlyOutflow,
   liabilityMonthlyOutflow,
+  propertyMonthlyOutflow,
   totals,
   type Pfs,
 } from '../../lib/pfs'
@@ -36,13 +37,18 @@ export default function CashFlowSection({ pfs }: Props) {
   //   - normal amount (user-entered monthlyPayment)
   //   - estimated amount (credit-card interest-only floor from balance × APR)
   //   - needs-entry (no resolvable outflow — listed so the gap is visible)
+  // Each property contributes its full housing cost (PITI), tagged to the
+  // property, so taxes/insurance/HOA show here instead of under Household spend.
   const securedItems: BreakdownRow[] = []
-  if (pfs.mortgage && pfs.mortgage.monthlyPayment > 0) {
-    securedItems.push({
-      key: 'mortgage',
-      label: `Mortgage (P&I) · ${pfs.mortgage.propertyLabel}`,
-      amount: pfs.mortgage.monthlyPayment,
-    })
+  for (const p of pfs.properties) {
+    const outflow = propertyMonthlyOutflow(p)
+    if (outflow > 0) {
+      securedItems.push({
+        key: `property-${p.id}`,
+        label: `Housing (PITI) · ${p.label}`,
+        amount: outflow,
+      })
+    }
   }
   for (const l of pfs.liabilities) {
     const outflow = liabilityMonthlyOutflow(l)
@@ -107,7 +113,7 @@ export default function CashFlowSection({ pfs }: Props) {
 
       {empty ? (
         <div className="mt-6 rounded-lg border border-dashed border-surface-200 bg-surface-50 px-4 py-5 text-center text-sm text-surface-500">
-          Add income, debts, and household expenses on{' '}
+          Add income, debts, and spending on{' '}
           <Link
             to="/app/financials"
             className="font-medium text-accent-600 underline-offset-2 hover:underline"
@@ -128,7 +134,7 @@ export default function CashFlowSection({ pfs }: Props) {
           <SubtractRow
             label="Fixed expenses (debt)"
             amount={t.monthlyDebtPayments}
-            tagline="mortgage P&I · secured · unsecured"
+            tagline="housing PITI · secured · unsecured"
             open={fixedOpen}
             onToggle={() => setFixedOpen((v) => !v)}
             groups={fixedGroups}
@@ -145,14 +151,14 @@ export default function CashFlowSection({ pfs }: Props) {
           />
 
           <SubtractRow
-            label="Household expenses"
+            label="Spending"
             amount={t.monthlyLivingExpenses}
             tagline="where you can find more money"
             taglineAccent
             open={livingOpen}
             onToggle={() => setLivingOpen((v) => !v)}
             groups={livingGroups}
-            emptyHint="No household expenses yet."
+            emptyHint="No spending entered yet."
           />
 
           <WaterfallRow

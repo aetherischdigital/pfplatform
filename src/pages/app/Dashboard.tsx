@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, ArrowDownRight, AlertTriangle, Home } from 'lucide-react'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  Home,
+  TrendingUp,
+  Coins,
+  LineChart,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   fetchPfs,
+  totalMonthlyHousingOutflow,
   totals,
   ASSET_CATEGORY_LABELS,
   LIABILITY_CATEGORY_LABELS,
@@ -23,6 +33,7 @@ import EquityProjectionChart from '../../components/EquityProjectionChart'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import OnboardingCard from '../../components/app/OnboardingCard'
 import CashFlowSection from '../../components/app/CashFlowSection'
+import NetWorthHistory from '../../components/app/NetWorthHistory'
 
 export default function Dashboard() {
   const [pfs, setPfs] = useState<Pfs | null>(null)
@@ -54,7 +65,12 @@ export default function Dashboard() {
   if (error || !pfs) return <ErrorState message={error ?? 'No data.'} />
 
   const t = totals(pfs)
-  const hasAnyData = pfs.assets.length > 0 || pfs.liabilities.length > 0 || pfs.income.length > 0 || pfs.expenses.length > 0
+  const hasAnyData =
+    pfs.assets.length > 0 ||
+    pfs.liabilities.length > 0 ||
+    pfs.income.length > 0 ||
+    pfs.expenses.length > 0 ||
+    pfs.livingExpenses.length > 0
 
   const greeting = greetingForNow()
   const name = displayLabel(profile)
@@ -71,6 +87,28 @@ export default function Dashboard() {
           </p>
         </div>
         <OnboardingCard hasAnyPfs={false} hasMortgage={false} hasCashFlowInputs={false} />
+        <div>
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-surface-500">
+            Coming next
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <PreviewCard
+              icon={TrendingUp}
+              title="Equity over time"
+              body="Watch your home value rise and your balance fall — together."
+            />
+            <PreviewCard
+              icon={Coins}
+              title="Cash flow"
+              body="Where the money comes in. Where it goes. What's left over."
+            />
+            <PreviewCard
+              icon={LineChart}
+              title="Net-worth trajectory"
+              body="Save a monthly snapshot, see your trendline take shape."
+            />
+          </div>
+        </div>
       </div>
     )
   }
@@ -120,6 +158,10 @@ export default function Dashboard() {
       )}
 
       <CashFlowSection pfs={pfs} />
+
+      {(t.totalAssets > 0 || t.totalLiabilities > 0) && (
+        <NetWorthHistory totalAssets={t.totalAssets} totalLiabilities={t.totalLiabilities} />
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SummaryCard
@@ -236,7 +278,7 @@ function EquitySection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgage']>
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-surface-500">{headlineLabel}</div>
+          <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{headlineLabel}</div>
           <div className="font-display text-xl font-semibold text-accent-600">
             {formatUSD(headlineEquity)}
           </div>
@@ -268,6 +310,7 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
     () => compareScenarios(m.balance, m.ratePct, m.monthlyPayment, m.extraPrincipal),
     [m],
   )
+  const piti = totalMonthlyHousingOutflow(m)
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-surface-200 bg-white p-6 shadow-card">
@@ -286,11 +329,61 @@ function PayoffPlanSection({ mortgage: m }: { mortgage: NonNullable<Pfs['mortgag
           value={formatUSD(Math.max(0, scenario.interestSaved))}
         />
       </dl>
+      {piti?.hasPiti ? (
+        <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">
+            True monthly housing cost
+          </div>
+          <div className="mt-1.5 font-display text-xl font-semibold text-surface-900">
+            {formatUSD(piti.total)}/mo
+          </div>
+          <dl className="mt-3 space-y-1 text-xs text-surface-600">
+            <PitiRow label="Principal &amp; interest" value={formatUSD(m.monthlyPayment)} />
+            {m.propertyTaxAnnual != null && (
+              <PitiRow label="Property tax" value={`${formatUSD(m.propertyTaxAnnual / 12)} (${formatUSD(m.propertyTaxAnnual)}/yr)`} />
+            )}
+            {m.homeownersInsuranceAnnual != null && (
+              <PitiRow label="Insurance" value={`${formatUSD(m.homeownersInsuranceAnnual / 12)} (${formatUSD(m.homeownersInsuranceAnnual)}/yr)`} />
+            )}
+            {m.floodInsuranceAnnual != null && (
+              <PitiRow label="Flood insurance" value={`${formatUSD(m.floodInsuranceAnnual / 12)} (${formatUSD(m.floodInsuranceAnnual)}/yr)`} />
+            )}
+            {m.pmiMipMonthly != null && m.pmiMipMonthly > 0 && (
+              <PitiRow label="PMI / MIP" value={formatUSD(m.pmiMipMonthly)} />
+            )}
+            {m.hoaMonthly != null && m.hoaMonthly > 0 && (
+              <PitiRow label="HOA" value={formatUSD(m.hoaMonthly)} />
+            )}
+          </dl>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-lg border border-dashed border-surface-200 bg-surface-50 p-4">
+          <div className="text-xs text-surface-500">
+            Want true monthly housing cost?{' '}
+            <Link
+              to="/app/financials"
+              className="font-medium text-accent-600 underline-offset-2 hover:underline"
+            >
+              Edit your property on Financials
+            </Link>{' '}
+            and add property tax, insurance, and HOA.
+          </div>
+        </div>
+      )}
       <div className="mt-auto pt-5">
         <ButtonLink to="/app/calculators" variant="secondary" size="sm" className="w-full">
           Try other scenarios <ArrowRight size={14} />
         </ButtonLink>
       </div>
+    </div>
+  )
+}
+
+function PitiRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-surface-500">{label}</dt>
+      <dd className="font-mono">{value}</dd>
     </div>
   )
 }
@@ -304,7 +397,7 @@ function PayoffStat({ pfs }: { pfs: Pfs }) {
   if (!m || !scenario) {
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-        <div className="text-xs font-medium uppercase tracking-wider text-surface-400">
+        <div className="font-mono text-[11px] uppercase tracking-wider text-surface-400">
           Projected payoff
         </div>
         <div className="mt-2 font-display text-base font-medium text-surface-500">
@@ -348,7 +441,7 @@ function Stat({
         : 'text-success-600'
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -414,7 +507,7 @@ function SummaryCard({
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-lg font-semibold text-surface-900">{title}</h2>
         <div className="font-mono text-xl font-semibold text-surface-900">
-          {totalSign}
+          {total > 0 ? totalSign : ''}
           {formatUSD(total)}
         </div>
       </div>
@@ -450,6 +543,26 @@ function SummaryCard({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function PreviewCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: LucideIcon
+  title: string
+  body: string
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-surface-200 bg-white/50 p-5">
+      <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface-100 text-surface-500">
+        <Icon size={16} />
+      </div>
+      <h3 className="mt-3 font-display text-base font-semibold text-surface-900">{title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-surface-500">{body}</p>
     </div>
   )
 }

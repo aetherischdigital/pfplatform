@@ -20,28 +20,18 @@ if (!PASSWORD) {
   process.exit(1)
 }
 
+// admin@ is the only seeded test account. To shoot other roles, either
+// (a) re-seed the test/realtor accounts or (b) use the View-As feature
+// from the admin sidebar and shoot manually.
 const captures = [
-  // [email, [routeName, urlPath]...]
-  [
-    'test@pfplatform.app',
-    [
-      ['homeowner-dashboard', '/app/dashboard'],
-      ['homeowner-financials', '/app/financials'],
-      ['homeowner-calculators', '/app/calculators'],
-      ['homeowner-account', '/app/account'],
-    ],
-  ],
   [
     'admin@pfplatform.app',
     [
       ['admin-dashboard', '/app/dashboard'],
+      ['admin-financials', '/app/financials'],
+      ['admin-calculators', '/app/calculators'],
+      ['admin-account', '/app/account'],
       ['admin-page', '/admin'],
-    ],
-  ],
-  [
-    'realtor@pfplatform.app',
-    [
-      ['realtor-clients', '/app/clients'],
     ],
   ],
 ]

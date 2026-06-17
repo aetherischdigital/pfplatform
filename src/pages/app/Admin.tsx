@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Search, Shield, UserX, UserCheck } from 'lucide-react'
+import { AlertTriangle, Search, Users, UserX, UserCheck, Eye } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { listUsers, setUserActive, updateUserRole, type AdminUser } from '../../lib/admin'
 import type { UserRole } from '../../lib/profile'
 import { Button } from '../../components/ui/Button'
+import AdminUserSummaryModal from '../../components/admin/AdminUserSummaryModal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 type Filter = 'all' | UserRole
@@ -63,6 +64,7 @@ export default function Admin() {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<Filter>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingAction | null>(null)
 
   const load = useCallback(() => {
@@ -161,9 +163,9 @@ export default function Admin() {
     <div className="space-y-8">
       <header>
         <div className="flex items-center gap-2">
-          <Shield size={18} className="text-accent-600" />
+          <Users size={18} className="text-accent-600" />
           <h1 className="font-display text-2xl font-semibold tracking-tight text-surface-900">
-            Admin
+            Users
           </h1>
         </div>
         <p className="mt-1 text-sm text-surface-500">
@@ -171,14 +173,11 @@ export default function Admin() {
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <CountCard label="Total users" value={counts.total} />
         <CountCard label="Homeowners" value={counts.homeowner} />
         <CountCard label="Advisors" value={counts.advisor} />
         <CountCard label="Admins" value={counts.admin} accent />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
         <CountCard label="Waiting on Plus" value={counts.plus} />
         <CountCard label="Waiting on Pro" value={counts.pro} />
       </div>
@@ -259,7 +258,7 @@ export default function Admin() {
                     <div className="flex items-center gap-2">
                       <label
                         htmlFor={`role-${u.id}`}
-                        className="text-xs font-medium uppercase tracking-wider text-surface-500"
+                        className="font-mono text-[11px] uppercase tracking-wider text-surface-500"
                       >
                         Role
                       </label>
@@ -275,25 +274,34 @@ export default function Admin() {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                    <div className="flex items-center justify-between gap-3 text-xs text-surface-500">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-surface-500">
                       <span>Joined {formatDate(u.createdAt)}</span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={busyId === u.id || isSelf}
-                        onClick={() => requestActiveToggle(u)}
-                        title={isSelf ? 'Cannot change own status' : undefined}
-                      >
-                        {u.isActive ? (
-                          <>
-                            <UserX size={14} /> Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck size={14} /> Activate
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setViewingId(u.id)}
+                        >
+                          <Eye size={14} /> View
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={busyId === u.id || isSelf}
+                          onClick={() => requestActiveToggle(u)}
+                          title={isSelf ? 'Cannot change own status' : undefined}
+                        >
+                          {u.isActive ? (
+                            <>
+                              <UserX size={14} /> Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck size={14} /> Activate
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </li>
                 )
@@ -355,23 +363,32 @@ export default function Admin() {
                         </td>
                         <td className="px-4 py-3 text-surface-600">{formatDate(u.createdAt)}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled={busyId === u.id || isSelf}
-                            onClick={() => requestActiveToggle(u)}
-                            title={isSelf ? 'Cannot change own status' : undefined}
-                          >
-                            {u.isActive ? (
-                              <>
-                                <UserX size={14} /> Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck size={14} /> Activate
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setViewingId(u.id)}
+                            >
+                              <Eye size={14} /> View
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={busyId === u.id || isSelf}
+                              onClick={() => requestActiveToggle(u)}
+                              title={isSelf ? 'Cannot change own status' : undefined}
+                            >
+                              {u.isActive ? (
+                                <>
+                                  <UserX size={14} /> Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck size={14} /> Activate
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -382,6 +399,8 @@ export default function Admin() {
           </>
         )}
       </section>
+
+      <AdminUserSummaryModal userId={viewingId} onClose={() => setViewingId(null)} />
 
       <ConfirmDialog
         open={pending !== null}
@@ -410,7 +429,7 @@ function WaitlistChip({ interest }: { interest: 'plus' | 'pro' }) {
 function CountCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-card">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'

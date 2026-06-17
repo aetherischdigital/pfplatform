@@ -3,8 +3,8 @@ import { supabase } from './supabase'
 export type UserRole = 'homeowner' | 'advisor' | 'admin'
 
 /** For advisor-role users: realtor vs loan officer. Drives the UI label, the
- *  license field (real-estate license vs NMLS #), and feature gating. Null for
- *  non-advisors. */
+ *  license field (real-estate license vs NMLS #), and feature gating (e.g. the
+ *  CMA tool is realtor-only). Null for non-advisors. */
 export type ProfessionalType = 'realtor' | 'loan_officer'
 
 export type WaitlistInterest = 'none' | 'plus' | 'pro'
@@ -20,6 +20,14 @@ export type Profile = {
   /** Soft activation flag. An admin can deactivate an account; a deactivated
    *  user is blocked from signing in and signed out of any live session. */
   isActive: boolean
+  // Phase 2 §3.4 additions — both optional, support null until user fills them in.
+  birthdate: string | null
+  dependents: number | null
+  // Phase 2 overdelivery — WSFS Section 2 lite (spouse demographic only,
+  // not a parallel PFS).
+  spouseName: string | null
+  spouseBirthdate: string | null
+  spouseOccupation: string | null
 }
 
 type Row = {
@@ -30,6 +38,11 @@ type Row = {
   email: string | null
   waitlist_interest: WaitlistInterest
   is_active: boolean
+  birthdate: string | null
+  dependents: number | null
+  spouse_name: string | null
+  spouse_birthdate: string | null
+  spouse_occupation: string | null
 }
 
 export async function fetchOwnProfile(): Promise<Profile | null> {
@@ -38,7 +51,9 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, professional_type, display_name, email, waitlist_interest, is_active')
+    .select(
+      'id, role, professional_type, display_name, email, waitlist_interest, is_active, birthdate, dependents, spouse_name, spouse_birthdate, spouse_occupation',
+    )
     .eq('id', auth.user.id)
     .maybeSingle<Row>()
 
@@ -53,7 +68,56 @@ export async function fetchOwnProfile(): Promise<Profile | null> {
     email: data.email,
     waitlistInterest: data.waitlist_interest ?? 'none',
     isActive: data.is_active ?? true,
+    birthdate: data.birthdate,
+    dependents: data.dependents,
+    spouseName: data.spouse_name,
+    spouseBirthdate: data.spouse_birthdate,
+    spouseOccupation: data.spouse_occupation,
   }
+}
+
+/** Update the user's spouse demographic fields. Pass null to clear any. */
+export async function updateOwnSpouse(input: {
+  spouseName: string | null
+  spouseBirthdate: string | null
+  spouseOccupation: string | null
+}): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      spouse_name: input.spouseName,
+      spouse_birthdate: input.spouseBirthdate,
+      spouse_occupation: input.spouseOccupation,
+    })
+    .eq('id', auth.user.id)
+  if (error) throw error
+}
+
+/** Update the user's own birthdate. ISO date string (yyyy-mm-dd) or null to clear. */
+export async function updateOwnBirthdate(birthdate: string | null): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('profiles')
+    .update({ birthdate })
+    .eq('id', auth.user.id)
+  if (error) throw error
+}
+
+/** Update the user's own dependents count. Non-negative int or null to clear. */
+export async function updateOwnDependents(dependents: number | null): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  if (dependents !== null && (dependents < 0 || !Number.isInteger(dependents))) {
+    throw new Error('Dependents must be a non-negative whole number.')
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({ dependents })
+    .eq('id', auth.user.id)
+  if (error) throw error
 }
 
 export function displayLabel(p: Profile | null): string {

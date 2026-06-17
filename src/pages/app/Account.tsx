@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   LogOut,
   Mail,
@@ -8,16 +8,29 @@ import {
   AlertTriangle,
   Pencil,
   CheckCircle2,
+  Cake,
+  Users,
+  Heart,
+  Briefcase,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { BRAND } from '../../config/brand'
+import { supabase } from '../../lib/supabase'
+import {
+  fetchOwnSubscription,
+  isEntitling,
+  type Subscription,
+} from '../../lib/subscription'
 import { useAuth } from '../../lib/useAuth'
 import {
   fetchOwnProfile,
   requestOwnEmailChange,
+  updateOwnBirthdate,
+  updateOwnDependents,
   updateOwnDisplayName,
   updateOwnPassword,
+  updateOwnSpouse,
   updateOwnWaitlistInterest,
   type Profile,
   type WaitlistInterest,
@@ -26,6 +39,7 @@ import {
 export default function Account() {
   const { user, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   // Supabase's User exposes `new_email` while a change is pending confirmation
   // — we surface that under the Email field so the user knows the link is
   // waiting in their NEW inbox.
@@ -61,6 +75,94 @@ export default function Account() {
     new?: string
     confirm?: string
   }>({})
+
+  const [editingPersonal, setEditingPersonal] = useState(false)
+  const [birthdateDraft, setBirthdateDraft] = useState('')
+  const [dependentsDraft, setDependentsDraft] = useState('')
+  const [savingPersonal, setSavingPersonal] = useState(false)
+  const [personalFieldErrors, setPersonalFieldErrors] = useState<{
+    birthdate?: string
+    dependents?: string
+  }>({})
+
+  const [editingSpouse, setEditingSpouse] = useState(false)
+  const [spouseNameDraft, setSpouseNameDraft] = useState('')
+  const [spouseBirthdateDraft, setSpouseBirthdateDraft] = useState('')
+  const [spouseOccupationDraft, setSpouseOccupationDraft] = useState('')
+  const [savingSpouse, setSavingSpouse] = useState(false)
+  const [spouseFieldErrors, setSpouseFieldErrors] = useState<{
+    spouseBirthdate?: string
+  }>({})
+
+  const [startingCheckout, setStartingCheckout] = useState(false)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+
+  // Load the user's current subscription state. The webhook handler keeps
+  // this in sync with Stripe; we just read it.
+  useEffect(() => {
+    let cancelled = false
+    fetchOwnSubscription()
+      .then((s) => {
+        if (!cancelled) setSubscription(s)
+      })
+      .catch(() => {
+        // Subscription read failures shouldn't block the rest of the page —
+        // worst case the user sees the Free state and can retry checkout.
+      })
+      .finally(() => {
+        if (!cancelled) setSubscriptionLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Stripe Checkout redirects back here with ?stripe=success|cancel. Surface
+  // the outcome as a banner, then strip the params so refresh doesn't re-fire.
+  useEffect(() => {
+    const stripeResult = searchParams.get('stripe')
+    if (!stripeResult) return
+    if (stripeResult === 'success') {
+      setSuccessMessage(
+        "Subscription confirmed. If the status below doesn't update right away, give the webhook a few seconds and refresh.",
+      )
+      // Webhook may have written the row by now; pull the fresh state.
+      void fetchOwnSubscription()
+        .then((s) => setSubscription(s))
+        .catch(() => undefined)
+    } else if (stripeResult === 'cancel') {
+      setError('Checkout was canceled. No charge was made.')
+    }
+    const next = new URLSearchParams(searchParams)
+    next.delete('stripe')
+    next.delete('session_id')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const startPlusCheckout = async () => {
+    setStartingCheckout(true)
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke<{
+        url?: string
+        error?: string
+      }>('create-checkout-session', {
+        body: {
+          tier: 'plus',
+          // Strip any existing query so Stripe's redirect template substitutes cleanly.
+          returnUrl: window.location.origin + window.location.pathname,
+        },
+      })
+      if (invokeError) throw invokeError
+      if (!data?.url) throw new Error(data?.error ?? 'No checkout URL returned.')
+      window.location.href = data.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start checkout.')
+      setStartingCheckout(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -174,6 +276,112 @@ export default function Account() {
     setNewPassword('')
     setConfirmPassword('')
     setPasswordFieldErrors({})
+  }
+
+  const startEditingPersonal = () => {
+    setBirthdateDraft(profile?.birthdate ?? '')
+    setDependentsDraft(profile?.dependents != null ? String(profile.dependents) : '')
+    setPersonalFieldErrors({})
+    setEditingPersonal(true)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const cancelEditingPersonal = () => {
+    setEditingPersonal(false)
+    setBirthdateDraft('')
+    setDependentsDraft('')
+    setPersonalFieldErrors({})
+  }
+
+  const savePersonal = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const errs: typeof personalFieldErrors = {}
+    const trimmedBirthdate = birthdateDraft.trim()
+    const nextBirthdate = trimmedBirthdate === '' ? null : trimmedBirthdate
+    if (nextBirthdate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(nextBirthdate)) {
+      errs.birthdate = 'Use YYYY-MM-DD.'
+    }
+
+    const trimmedDeps = dependentsDraft.trim()
+    let nextDependents: number | null = null
+    if (trimmedDeps !== '') {
+      const n = Number(trimmedDeps)
+      if (!Number.isInteger(n) || n < 0 || n > 20) {
+        errs.dependents = 'Whole number between 0 and 20.'
+      } else {
+        nextDependents = n
+      }
+    }
+
+    setPersonalFieldErrors(errs)
+    if (Object.keys(errs).length > 0) return
+
+    setSavingPersonal(true)
+    try {
+      await Promise.all([
+        updateOwnBirthdate(nextBirthdate),
+        updateOwnDependents(nextDependents),
+      ])
+      const fresh = await fetchOwnProfile()
+      setProfile(fresh)
+      setEditingPersonal(false)
+      setSuccessMessage('Personal details saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save personal details.')
+    } finally {
+      setSavingPersonal(false)
+    }
+  }
+
+  const startEditingSpouse = () => {
+    setSpouseNameDraft(profile?.spouseName ?? '')
+    setSpouseBirthdateDraft(profile?.spouseBirthdate ?? '')
+    setSpouseOccupationDraft(profile?.spouseOccupation ?? '')
+    setSpouseFieldErrors({})
+    setEditingSpouse(true)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const cancelEditingSpouse = () => {
+    setEditingSpouse(false)
+    setSpouseNameDraft('')
+    setSpouseBirthdateDraft('')
+    setSpouseOccupationDraft('')
+    setSpouseFieldErrors({})
+  }
+
+  const saveSpouse = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    const trimmedBirth = spouseBirthdateDraft.trim()
+    const nextBirth = trimmedBirth === '' ? null : trimmedBirth
+    if (nextBirth !== null && !/^\d{4}-\d{2}-\d{2}$/.test(nextBirth)) {
+      setSpouseFieldErrors({ spouseBirthdate: 'Use YYYY-MM-DD.' })
+      return
+    }
+    setSpouseFieldErrors({})
+    setSavingSpouse(true)
+    try {
+      const trimmedName = spouseNameDraft.trim()
+      const trimmedOcc = spouseOccupationDraft.trim()
+      await updateOwnSpouse({
+        spouseName: trimmedName === '' ? null : trimmedName,
+        spouseBirthdate: nextBirth,
+        spouseOccupation: trimmedOcc === '' ? null : trimmedOcc,
+      })
+      const fresh = await fetchOwnProfile()
+      setProfile(fresh)
+      setEditingSpouse(false)
+      setSuccessMessage('Spouse details saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save spouse details.')
+    } finally {
+      setSavingSpouse(false)
+    }
   }
 
   const savePassword = async (e: FormEvent) => {
@@ -322,6 +530,7 @@ export default function Account() {
                   ? `Pending change to ${pendingNewEmail} — confirm via the link we sent.`
                   : undefined
               }
+              subTone="warning"
               action={
                 !loading && (
                   <button
@@ -334,6 +543,125 @@ export default function Account() {
                 )
               }
             />
+          )}
+          {editingPersonal ? (
+            <form
+              onSubmit={savePersonal}
+              className="flex flex-col gap-3 border-b border-surface-100 py-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Birthdate
+                  </span>
+                  <input
+                    type="date"
+                    autoFocus
+                    aria-invalid={personalFieldErrors.birthdate ? true : undefined}
+                    value={birthdateDraft}
+                    onChange={(e) => setBirthdateDraft(e.target.value)}
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none focus:bg-white ${
+                      personalFieldErrors.birthdate
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {personalFieldErrors.birthdate && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {personalFieldErrors.birthdate}
+                    </p>
+                  )}
+                </label>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Dependents
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    step="1"
+                    min="0"
+                    max="20"
+                    aria-invalid={personalFieldErrors.dependents ? true : undefined}
+                    value={dependentsDraft}
+                    onChange={(e) => setDependentsDraft(e.target.value)}
+                    placeholder="0"
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:bg-white ${
+                      personalFieldErrors.dependents
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {personalFieldErrors.dependents && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {personalFieldErrors.dependents}
+                    </p>
+                  )}
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelEditingPersonal}
+                  disabled={savingPersonal}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingPersonal}>
+                  {savingPersonal ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <Field
+                icon={Cake}
+                label="Birthdate"
+                value={loading ? '…' : formatBirthdate(profile?.birthdate)}
+                sub={
+                  !loading && profile?.birthdate
+                    ? yearsToRetirementText(profile.birthdate)
+                    : undefined
+                }
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingPersonal}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit birthdate and dependents"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Users}
+                label="Dependents"
+                value={
+                  loading
+                    ? '…'
+                    : profile?.dependents != null
+                      ? String(profile.dependents)
+                      : '—'
+                }
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingPersonal}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit birthdate and dependents"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+            </>
           )}
           {changingPassword ? (
             <form onSubmit={savePassword} className="flex flex-col gap-3 py-3">
@@ -413,19 +741,189 @@ export default function Account() {
 
       <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
         <header className="border-b border-surface-200 px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-surface-900">Session</h2>
+        </header>
+        <div className="flex flex-col items-stretch gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 truncate text-sm text-surface-600">
+            Signed in as{' '}
+            <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={handleSignOut}
+            className="flex-shrink-0"
+          >
+            <LogOut size={14} />
+            Sign out
+          </Button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
+        <header className="border-b border-surface-200 px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-surface-900">
+            Spouse / co-applicant
+          </h2>
+          <p className="mt-1 text-xs text-surface-500">
+            Optional. Useful joint-planning context — names, ages, occupation.
+          </p>
+        </header>
+        <div className="p-6">
+          {editingSpouse ? (
+            <form onSubmit={saveSpouse} className="space-y-4">
+              <label className="block">
+                <span className="text-xs uppercase tracking-wider text-surface-500">Name</span>
+                <input
+                  type="text"
+                  autoFocus
+                  maxLength={120}
+                  value={spouseNameDraft}
+                  onChange={(e) => setSpouseNameDraft(e.target.value)}
+                  placeholder="Spouse's name"
+                  className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Birthdate
+                  </span>
+                  <input
+                    type="date"
+                    aria-invalid={spouseFieldErrors.spouseBirthdate ? true : undefined}
+                    value={spouseBirthdateDraft}
+                    onChange={(e) => setSpouseBirthdateDraft(e.target.value)}
+                    className={`mt-1 w-full rounded-md border bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none focus:bg-white ${
+                      spouseFieldErrors.spouseBirthdate
+                        ? 'border-danger-200 focus:border-danger-600'
+                        : 'border-surface-200 focus:border-surface-400'
+                    }`}
+                  />
+                  {spouseFieldErrors.spouseBirthdate && (
+                    <p className="mt-1 text-xs font-medium text-danger-700">
+                      {spouseFieldErrors.spouseBirthdate}
+                    </p>
+                  )}
+                </label>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-surface-500">
+                    Occupation
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={120}
+                    value={spouseOccupationDraft}
+                    onChange={(e) => setSpouseOccupationDraft(e.target.value)}
+                    placeholder="e.g. Teacher"
+                    className="mt-1 w-full rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-900 outline-none placeholder:text-surface-400 focus:border-surface-400 focus:bg-white"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelEditingSpouse}
+                  disabled={savingSpouse}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingSpouse}>
+                  {savingSpouse ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <Field
+                icon={Heart}
+                label="Name"
+                value={loading ? '…' : profile?.spouseName || '—'}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Cake}
+                label="Birthdate"
+                value={loading ? '…' : formatBirthdate(profile?.spouseBirthdate)}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+              <Field
+                icon={Briefcase}
+                label="Occupation"
+                value={loading ? '…' : profile?.spouseOccupation || '—'}
+                action={
+                  !loading && (
+                    <button
+                      type="button"
+                      onClick={startEditingSpouse}
+                      className="inline-flex items-center gap-1 rounded text-xs font-medium text-surface-500 transition-colors hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+                      aria-label="Edit spouse details"
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                  )
+                }
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
+        <header className="border-b border-surface-200 px-6 py-4">
           <h2 className="font-display text-lg font-semibold text-surface-900">Subscription</h2>
         </header>
-        <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-surface-600">
-            <div className="font-medium text-surface-900">Free plan</div>
-            <div className="mt-0.5 text-surface-500">
-              Plus and Pro tiers land in the next release.
+        <SubscriptionStatusRow
+          subscription={subscription}
+          loading={subscriptionLoading}
+        />
+        {!isEntitling(subscription) && (
+          <div className="border-t border-surface-100 px-6 py-5">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-surface-600">
+                <div className="font-medium text-surface-900">Plus tier — sandbox checkout</div>
+                <div className="mt-0.5 text-surface-500">
+                  Round-trip through Stripe-hosted checkout with a test card
+                  (e.g. 4242 4242 4242 4242). Real billing is not live yet.
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={startPlusCheckout}
+                disabled={startingCheckout}
+                className="flex-shrink-0"
+              >
+                {startingCheckout ? 'Opening Stripe…' : 'Try Plus checkout'}
+              </Button>
             </div>
           </div>
-          <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
-            See plans
-          </ButtonLink>
-        </div>
+        )}
         <div className="border-t border-surface-100 px-6 py-5">
           <WaitlistInterestRow
             profile={profile}
@@ -455,29 +953,74 @@ export default function Account() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-surface-200 bg-white shadow-card">
-        <header className="border-b border-surface-200 px-6 py-4">
-          <h2 className="font-display text-lg font-semibold text-surface-900">Session</h2>
-        </header>
-        <div className="flex flex-col items-stretch gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 truncate text-sm text-surface-600">
-            Signed in as{' '}
-            <span className="font-medium text-surface-900">{profile?.email ?? '…'}</span>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={handleSignOut}
-            className="flex-shrink-0"
-          >
-            <LogOut size={14} />
-            Sign out
-          </Button>
-        </div>
-      </section>
     </div>
   )
+}
+
+function SubscriptionStatusRow({
+  subscription,
+  loading,
+}: {
+  subscription: Subscription | null
+  loading: boolean
+}) {
+  if (loading) {
+    return (
+      <div className="px-6 py-5">
+        <div className="h-5 w-32 animate-pulse rounded bg-surface-100" />
+        <div className="mt-2 h-4 w-64 animate-pulse rounded bg-surface-100" />
+      </div>
+    )
+  }
+
+  const entitling = isEntitling(subscription)
+  const tierLabel = entitling ? prettyTier(subscription!.tier) : 'Free plan'
+  const periodEnd = subscription?.currentPeriodEnd
+    ? formatLongDate(subscription.currentPeriodEnd)
+    : null
+
+  return (
+    <div className="flex flex-col items-start gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-surface-600">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-surface-900">{tierLabel}</span>
+          <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700">
+            Current
+          </span>
+          {subscription?.cancelAtPeriodEnd && (
+            <span className="inline-flex items-center rounded-full bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700">
+              Cancels at period end
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 text-surface-500">
+          {entitling && periodEnd
+            ? subscription!.cancelAtPeriodEnd
+              ? `Access ends ${periodEnd}.`
+              : `Renews ${periodEnd}.`
+            : 'Plus and Pro tiers land in the next release.'}
+        </div>
+      </div>
+      <ButtonLink to="/pricing" variant="secondary" size="sm" className="flex-shrink-0">
+        See plans
+      </ButtonLink>
+    </div>
+  )
+}
+
+function prettyTier(tier: string): string {
+  const capped = tier.charAt(0).toUpperCase() + tier.slice(1)
+  return `${capped} plan`
+}
+
+function formatLongDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 function WaitlistInterestRow({
@@ -526,17 +1069,52 @@ function WaitlistInterestRow({
   )
 }
 
+/**
+ * "X years until typical retirement age (65)" string, or null if the user
+ * is past 65 or the birthdate is unparseable. Lightweight derived stat —
+ * the only consumer of `profile.birthdate` so far.
+ */
+function yearsToRetirementText(iso: string): string | undefined {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return undefined
+  const today = new Date()
+  const dob = new Date(y, m - 1, d)
+  let age = today.getFullYear() - dob.getFullYear()
+  const beforeBirthday =
+    today.getMonth() < dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+  if (beforeBirthday) age -= 1
+  const yearsToRetirement = 65 - age
+  if (yearsToRetirement <= 0) return 'Past typical retirement age.'
+  if (yearsToRetirement === 1) return '1 year until typical retirement age (65).'
+  return `${yearsToRetirement} years until typical retirement age (65).`
+}
+
+function formatBirthdate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  // ISO date is YYYY-MM-DD; render as "Mon D, YYYY" without TZ drift.
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 function Field({
   icon: Icon,
   label,
   value,
   sub,
+  subTone = 'neutral',
   action,
 }: {
   icon: LucideIcon
   label: string
   value: string
   sub?: string
+  subTone?: 'neutral' | 'warning'
   action?: React.ReactNode
 }) {
   return (
@@ -545,7 +1123,13 @@ function Field({
       <div className="min-w-0 flex-1">
         <div className="text-xs uppercase tracking-wider text-surface-500">{label}</div>
         <div className="truncate text-sm font-medium text-surface-900">{value}</div>
-        {sub && <div className="mt-0.5 text-xs text-warning-700">{sub}</div>}
+        {sub && (
+          <div
+            className={`mt-0.5 text-xs ${subTone === 'warning' ? 'text-warning-700' : 'text-surface-500'}`}
+          >
+            {sub}
+          </div>
+        )}
       </div>
       {action}
     </div>

@@ -73,7 +73,7 @@ export default function OnboardingCard({
     },
     {
       icon: Wallet,
-      title: 'Add income & household expenses',
+      title: 'Add income & spending',
       body: "Your paycheck plus rent, groceries, utilities — what powers your cash flow waterfall.",
       ctaLabel: 'Open the PFS',
       ctaTo: '/app/financials',
@@ -100,6 +100,41 @@ export default function OnboardingCard({
   }
 
   const doneCount = steps.filter((s) => s.done).length
+  // Once the user is mostly through, shrink the card to a single-line nudge
+  // pointing at the remaining step. The full-tile layout is generous when
+  // there's actually three things to do, but starts feeling nagging at 2/3.
+  const compact = doneCount >= 2
+  const nextStep = steps.find((s) => !s.done)
+
+  if (compact && nextStep) {
+    return (
+      <div className="relative flex items-center gap-3 rounded-xl border border-accent-200 bg-accent-100/50 px-4 py-3 shadow-card animate-fade-in">
+        <div className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-surface-900 text-accent-400">
+          <nextStep.icon size={14} />
+        </div>
+        <div className="min-w-0 flex-1 text-sm">
+          <span className="font-mono text-xs uppercase tracking-wider text-accent-600">
+            {doneCount} of {steps.length} done —{' '}
+          </span>
+          <span className="font-medium text-surface-900">{nextStep.title}.</span>{' '}
+          <Link
+            to={nextStep.ctaTo}
+            className="rounded font-medium text-surface-900 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+          >
+            {nextStep.ctaLabel} →
+          </Link>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="rounded-md p-2 text-surface-500 transition-colors hover:bg-surface-50 hover:text-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-50"
+          aria-label="Dismiss onboarding"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="relative rounded-2xl border border-accent-200 bg-accent-100/50 p-6 shadow-card animate-fade-in sm:p-8">

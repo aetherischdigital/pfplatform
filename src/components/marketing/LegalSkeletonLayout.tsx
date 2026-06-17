@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 import Container from '../ui/Container'
+import PageHeader from './PageHeader'
 import { usePageMeta } from '../../lib/usePageMeta'
 
 /**
@@ -38,17 +39,16 @@ export default function LegalSkeletonLayout({ title, description, url }: Props) 
 
   return (
     <>
-      <section className="bg-gradient-to-b from-surface-50 to-white">
-        <Container size="md" className="py-20">
-          <p className="font-mono text-xs uppercase tracking-wider text-accent-600">Legal</p>
-          <h1 className="mt-3 font-display text-5xl font-semibold tracking-tight text-surface-900 sm:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-4 text-sm text-surface-500">
+      <PageHeader
+        kicker="Legal"
+        title={title}
+        size="md"
+        intro={
+          <span className="text-sm">
             Last updated: <em>pending counsel review</em>
-          </p>
-        </Container>
-      </section>
+          </span>
+        }
+      />
 
       <section className="bg-white">
         <Container size="md" className="pb-24">

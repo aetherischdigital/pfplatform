@@ -8,7 +8,8 @@ import {
   formatYearsMonths,
   payoffDate,
 } from '../../lib/mortgage'
-import { formFieldClass } from '../ui/formStyles'
+import { NumberField } from '../ui/NumberField'
+import PitiLine from './PitiLine'
 
 export type PayoffCalculatorDefaults = {
   balance?: number
@@ -16,6 +17,12 @@ export type PayoffCalculatorDefaults = {
   termYears?: number
   extra?: number
   monthlyPayment?: number
+  /** Annual property tax — when present, surfaces true PITI line in the summary. */
+  propertyTaxAnnual?: number | null
+  homeownersInsuranceAnnual?: number | null
+  hoaMonthly?: number | null
+  floodInsuranceAnnual?: number | null
+  pmiMipMonthly?: number | null
 }
 
 type Props = {
@@ -100,11 +107,20 @@ export default function PayoffCalculator({ defaults, footer }: Props) {
               </span>
             </div>
             <div className="mt-2 flex items-baseline justify-between text-sm">
-              <span className="text-surface-500">Total monthly outflow</span>
+              <span className="text-surface-500">P&amp;I + extra principal</span>
               <span className="font-mono font-medium text-surface-900">
                 {formatUSD(monthlyPayment + extra)}
               </span>
             </div>
+            <PitiLine
+              monthlyPayment={monthlyPayment}
+              extraPrincipal={extra}
+              propertyTaxAnnual={defaults?.propertyTaxAnnual ?? null}
+              homeownersInsuranceAnnual={defaults?.homeownersInsuranceAnnual ?? null}
+              hoaMonthly={defaults?.hoaMonthly ?? null}
+              floodInsuranceAnnual={defaults?.floodInsuranceAnnual ?? null}
+              pmiMipMonthly={defaults?.pmiMipMonthly ?? null}
+            />
           </div>
         </div>
       </div>
@@ -162,7 +178,7 @@ function ResultStat({
 }) {
   return (
     <div className="p-6">
-      <div className="text-xs font-medium uppercase tracking-wider text-surface-500">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-surface-500">{label}</div>
       <div
         className={`mt-2 font-display text-2xl font-semibold leading-tight tracking-tight ${
           accent ? 'text-accent-600' : 'text-surface-900'
@@ -190,49 +206,3 @@ function Legend() {
   )
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  prefix,
-  suffix,
-  step = 1,
-  min = 0,
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  prefix?: string
-  suffix?: string
-  step?: number
-  min?: number
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-surface-700">{label}</span>
-      <div className="relative mt-1.5">
-        {prefix && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
-            {prefix}
-          </span>
-        )}
-        <input
-          type="number"
-          value={Number.isFinite(value) ? value : ''}
-          onChange={(e) => {
-            const n = Number(e.target.value)
-            onChange(Number.isFinite(n) ? Math.max(min, n) : min)
-          }}
-          step={step}
-          min={min}
-          className={`${formFieldClass} text-base ${prefix ? 'pl-7' : ''} ${suffix ? 'pr-16' : ''}`}
-        />
-        {suffix && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-400">
-            {suffix}
-          </span>
-        )}
-      </div>
-    </label>
-  )
-}
